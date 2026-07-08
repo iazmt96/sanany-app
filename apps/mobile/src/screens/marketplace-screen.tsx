@@ -33,6 +33,7 @@ export function MarketplaceScreen({ direction }: MarketplaceScreenProps) {
     const query: ListingsQuery = {
       search,
       status: statusFilter,
+      sort: "newest",
       page,
       pageSize: 5
     };
@@ -101,7 +102,7 @@ export function MarketplaceScreen({ direction }: MarketplaceScreenProps) {
         </Pressable>
       </View>
 
-      <View style={styles.headerActions}>
+      <View style={[styles.headerActions, direction === "rtl" ? styles.headerActionsRtl : undefined]}>
         <Pressable
           style={styles.secondaryButton}
           onPress={() => {
@@ -126,7 +127,7 @@ export function MarketplaceScreen({ direction }: MarketplaceScreenProps) {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <View style={styles.cardHeader}>
+            <View style={[styles.cardHeader, direction === "rtl" ? styles.cardHeaderRtl : undefined]}>
               <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.badge}>
                 {t(`marketplace.status.${item.status}`)}
@@ -218,6 +219,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end"
   },
+  headerActionsRtl: {
+    justifyContent: "flex-start"
+  },
   secondaryButton: {
     borderRadius: 8,
     borderWidth: 1,
@@ -275,6 +279,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between"
+  },
+  cardHeaderRtl: {
+    flexDirection: "row-reverse"
   },
   cardTitle: {
     fontSize: 18,

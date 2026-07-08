@@ -44,8 +44,12 @@ export const ar = {
     pageTitle: "سوق الخدمات والمنتجات",
     pageSubtitle: "استعرض أحدث العروض من مزودي سنعني",
     pricePerDay: "{{value}} ريال / يوم",
+    listCount: "{{count}} إعلان",
+    postedAt: "نشر {{value}}",
     create: {
       title: "أضف إعلان جديد",
+      open: "أضف إعلاناً",
+      close: "إغلاق",
       listingTitleLabel: "عنوان الإعلان",
       listingDescriptionLabel: "وصف الإعلان",
       listingPriceLabel: "السعر",
@@ -59,6 +63,12 @@ export const ar = {
         titleRequired: "عنوان الإعلان مطلوب.",
         priceInvalid: "السعر يجب أن يكون رقمًا صحيحًا أكبر من صفر."
       }
+    },
+    sort: {
+      label: "الترتيب",
+      newest: "الأحدث",
+      priceHigh: "الأعلى سعراً",
+      priceLow: "الأقل سعراً"
     },
     searchPlaceholder: "ابحث في العروض",
     filters: {

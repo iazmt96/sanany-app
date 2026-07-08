@@ -44,8 +44,12 @@ export const en = {
     pageTitle: "Marketplace",
     pageSubtitle: "Browse recent offers from SANANY providers",
     pricePerDay: "SAR {{value}} / day",
+    listCount: "{{count}} listings",
+    postedAt: "Posted {{value}}",
     create: {
       title: "Post a new listing",
+      open: "Post listing",
+      close: "Close",
       listingTitleLabel: "Listing title",
       listingDescriptionLabel: "Listing description",
       listingPriceLabel: "Price",
@@ -59,6 +63,12 @@ export const en = {
         titleRequired: "Listing title is required.",
         priceInvalid: "Price must be a valid number greater than zero."
       }
+    },
+    sort: {
+      label: "Sort",
+      newest: "Newest",
+      priceHigh: "Highest price",
+      priceLow: "Lowest price"
     },
     searchPlaceholder: "Search listings",
     filters: {

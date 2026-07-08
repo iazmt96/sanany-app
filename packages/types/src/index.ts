@@ -27,6 +27,7 @@ export type AuthPayload = {
 export type ListingsQuery = {
   search: string;
   status: ListingFilterStatus;
+  sort: "newest" | "priceHigh" | "priceLow";
   page: number;
   pageSize: number;
 };

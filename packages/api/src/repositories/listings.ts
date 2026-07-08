@@ -21,10 +21,13 @@ const DEFAULT_PAGE_SIZE = 9;
 function normalizeQuery(query: ListingsQuery): ListingsQuery {
   const page = Number.isInteger(query.page) && query.page > 0 ? query.page : 1;
   const pageSize = Number.isInteger(query.pageSize) && query.pageSize > 0 ? query.pageSize : DEFAULT_PAGE_SIZE;
+  const sort: ListingsQuery["sort"] =
+    query.sort === "priceHigh" || query.sort === "priceLow" || query.sort === "newest" ? query.sort : "newest";
 
   return {
     search: query.search.trim(),
     status: query.status,
+    sort,
     page,
     pageSize
   };
@@ -52,8 +55,15 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
       let supabaseQuery = client
         .from("listings")
         .select("id,title,description,price,status,image_url,created_at", { count: "exact" })
-        .order("created_at", { ascending: false })
         .range(from, to);
+
+      if (normalizedQuery.sort === "priceHigh") {
+        supabaseQuery = supabaseQuery.order("price", { ascending: false }).order("created_at", { ascending: false });
+      } else if (normalizedQuery.sort === "priceLow") {
+        supabaseQuery = supabaseQuery.order("price", { ascending: true }).order("created_at", { ascending: false });
+      } else {
+        supabaseQuery = supabaseQuery.order("created_at", { ascending: false });
+      }
 
       if (normalizedQuery.status !== "all") {
         supabaseQuery = supabaseQuery.eq("status", normalizedQuery.status);
