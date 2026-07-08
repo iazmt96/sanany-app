@@ -11,6 +11,14 @@ export type MarketplaceListing = {
   createdAt: string;
 };
 
+export type CreateListingInput = {
+  title: string;
+  description: string;
+  price: number;
+  ownerId: string;
+  status?: ListingStatus;
+};
+
 export type AuthPayload = {
   email: string;
   password: string;

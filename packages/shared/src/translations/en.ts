@@ -44,6 +44,22 @@ export const en = {
     pageTitle: "Marketplace",
     pageSubtitle: "Browse recent offers from SANANY providers",
     pricePerDay: "SAR {{value}} / day",
+    create: {
+      title: "Post a new listing",
+      listingTitleLabel: "Listing title",
+      listingDescriptionLabel: "Listing description",
+      listingPriceLabel: "Price",
+      listingTitlePlaceholder: "Example: Home AC maintenance",
+      listingDescriptionPlaceholder: "Write service or product details",
+      listingPricePlaceholder: "Example: 180",
+      submit: "Publish listing",
+      success: "Listing published successfully.",
+      errors: {
+        authRequired: "You must be signed in to post a listing.",
+        titleRequired: "Listing title is required.",
+        priceInvalid: "Price must be a valid number greater than zero."
+      }
+    },
     searchPlaceholder: "Search listings",
     filters: {
       all: "All listings",

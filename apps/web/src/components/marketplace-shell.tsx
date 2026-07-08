@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import type { ListingFilterStatus, ListingsQuery, MarketplaceListing, PaginatedResult } from "@sanany/types";
-import { Badge, Card } from "@sanany/ui";
+import { Badge, Button, Card, TextInput } from "@sanany/ui";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { RequireAuth } from "../auth/guards";
@@ -25,7 +25,14 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
   const [statusFilter, setStatusFilter] = useState<ListingFilterStatus>("all");
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [listingTitle, setListingTitle] = useState("");
+  const [listingDescription, setListingDescription] = useState("");
+  const [listingPrice, setListingPrice] = useState("");
   const [data, setData] = useState<PaginatedResult<MarketplaceListing>>({
     items: [],
     totalItems: 0,
@@ -35,6 +42,58 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
   });
 
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
+
+  const publishListing = useCallback(async () => {
+    setPublishError(null);
+    setPublishSuccess(null);
+
+    if (!snapshot.user?.id) {
+      setPublishError(t("marketplace.create.errors.authRequired"));
+      return;
+    }
+
+    if (!listingTitle.trim()) {
+      setPublishError(t("marketplace.create.errors.titleRequired"));
+      return;
+    }
+
+    const parsedPrice = Number(listingPrice);
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      setPublishError(t("marketplace.create.errors.priceInvalid"));
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const response = await fetch("/api/listings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          title: listingTitle.trim(),
+          description: listingDescription.trim(),
+          price: parsedPrice
+        })
+      });
+
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(result.error ?? t("marketplace.loadError"));
+      }
+
+      setListingTitle("");
+      setListingDescription("");
+      setListingPrice("");
+      setPage(1);
+      setRefreshToken((value) => value + 1);
+      setPublishSuccess(t("marketplace.create.success"));
+    } catch (publishRequestError) {
+      setPublishError(publishRequestError instanceof Error ? publishRequestError.message : t("marketplace.loadError"));
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [listingDescription, listingPrice, listingTitle, snapshot.user?.id, t]);
 
   useEffect(() => {
     const query: ListingsQuery = {
@@ -69,7 +128,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
     return () => {
       active = false;
     };
-  }, [listingsRepository, page, search, statusFilter, t]);
+  }, [listingsRepository, page, refreshToken, search, statusFilter, t]);
 
   return (
     <RequireAuth language={resolvedLanguage}>
@@ -96,6 +155,43 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
             </button>
           </div>
         </header>
+
+        <Card className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-900">{t("marketplace.create.title")}</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-sm font-medium text-slate-700">{t("marketplace.create.listingTitleLabel")}</span>
+              <TextInput
+                value={listingTitle}
+                onChange={(event) => setListingTitle(event.target.value)}
+                placeholder={t("marketplace.create.listingTitlePlaceholder")}
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium text-slate-700">{t("marketplace.create.listingPriceLabel")}</span>
+              <TextInput
+                type="number"
+                value={listingPrice}
+                onChange={(event) => setListingPrice(event.target.value)}
+                placeholder={t("marketplace.create.listingPricePlaceholder")}
+              />
+            </label>
+          </div>
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">{t("marketplace.create.listingDescriptionLabel")}</span>
+            <textarea
+              value={listingDescription}
+              onChange={(event) => setListingDescription(event.target.value)}
+              placeholder={t("marketplace.create.listingDescriptionPlaceholder")}
+              className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-brand focus:ring-2"
+            />
+          </label>
+          {publishError ? <p className="text-sm text-red-600">{publishError}</p> : null}
+          {publishSuccess ? <p className="text-sm text-emerald-700">{publishSuccess}</p> : null}
+          <Button type="button" onClick={() => void publishListing()} disabled={isPublishing}>
+            {isPublishing ? t("common.loading") : t("marketplace.create.submit")}
+          </Button>
+        </Card>
 
         <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_220px]">
           <input

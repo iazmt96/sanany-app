@@ -44,6 +44,22 @@ export const ar = {
     pageTitle: "سوق الخدمات والمنتجات",
     pageSubtitle: "استعرض أحدث العروض من مزودي سنعني",
     pricePerDay: "{{value}} ريال / يوم",
+    create: {
+      title: "أضف إعلان جديد",
+      listingTitleLabel: "عنوان الإعلان",
+      listingDescriptionLabel: "وصف الإعلان",
+      listingPriceLabel: "السعر",
+      listingTitlePlaceholder: "مثال: صيانة مكيفات منزلية",
+      listingDescriptionPlaceholder: "اكتب تفاصيل الخدمة أو المنتج",
+      listingPricePlaceholder: "مثال: 180",
+      submit: "نشر الإعلان",
+      success: "تم نشر الإعلان بنجاح.",
+      errors: {
+        authRequired: "يجب تسجيل الدخول لإضافة إعلان.",
+        titleRequired: "عنوان الإعلان مطلوب.",
+        priceInvalid: "السعر يجب أن يكون رقمًا صحيحًا أكبر من صفر."
+      }
+    },
     searchPlaceholder: "ابحث في العروض",
     filters: {
       all: "كل العروض",

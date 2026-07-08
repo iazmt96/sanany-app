@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ListingsQuery, MarketplaceListing, PaginatedResult } from "@sanany/types";
+import type { CreateListingInput, ListingsQuery, MarketplaceListing, PaginatedResult } from "@sanany/types";
 
 export type ListingsRepository = {
   list(query: ListingsQuery): Promise<PaginatedResult<MarketplaceListing>>;
+  create(input: CreateListingInput): Promise<MarketplaceListing>;
 };
 
 type ListingRow = {
@@ -81,6 +82,25 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
         pageSize: normalizedQuery.pageSize,
         totalPages
       };
+    },
+    async create(input) {
+      const { data, error } = await client
+        .from("listings")
+        .insert({
+          title: input.title.trim(),
+          description: input.description.trim() || null,
+          price: input.price,
+          status: input.status ?? "available",
+          owner_id: input.ownerId
+        })
+        .select("id,title,description,price,status,image_url,created_at")
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return mapRow(data as ListingRow);
     }
   };
 }
