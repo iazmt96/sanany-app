@@ -8,7 +8,7 @@ import type { AuthPayload } from "@sanany/types";
 type AuthContextValue = {
   snapshot: AuthSnapshot;
   signIn(payload: AuthPayload): Promise<void>;
-  signUp(payload: AuthPayload): Promise<void>;
+  signUp(payload: AuthPayload): Promise<AuthSnapshot["session"]>;
   signOut(): Promise<void>;
 };
 
@@ -56,4 +56,3 @@ export function useAuth(): AuthContextValue {
 
   return value;
 }
-

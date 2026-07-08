@@ -17,7 +17,7 @@ export type AuthController = {
   subscribe(listener: SnapshotListener): AuthSubscription;
   getSnapshot(): AuthSnapshot;
   signIn(payload: AuthPayload): Promise<void>;
-  signUp(payload: AuthPayload): Promise<void>;
+  signUp(payload: AuthPayload): Promise<Session | null>;
   signOut(): Promise<void>;
 };
 
@@ -86,11 +86,10 @@ export function createAuthController(service: AuthService): AuthController {
       await service.signIn(payload);
     },
     async signUp(payload) {
-      await service.signUp(payload);
+      return service.signUp(payload);
     },
     async signOut() {
       await service.signOut();
     }
   };
 }
-

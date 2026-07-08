@@ -26,10 +26,13 @@ export const en = {
     signUpAction: "Sign up",
     switchToSignUp: "Don't have an account? Sign up now",
     switchToSignIn: "Already have an account? Sign in",
+    emailConfirmationSent: "Account created. Check your email to confirm your account, then sign in.",
     configError: "Authentication is unavailable due to missing configuration.",
     errors: {
       emailRequired: "Email is required.",
       passwordRequired: "Password is required.",
+      invalidEmail: "Email format is invalid.",
+      emailNotConfirmed: "Email is not confirmed yet. Check your inbox and try again.",
       invalidCredentials: "Invalid email or password.",
       userExists: "An account already exists for this email.",
       unknown: "An unexpected authentication error occurred."

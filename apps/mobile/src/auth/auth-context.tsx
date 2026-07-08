@@ -6,7 +6,7 @@ import { getMobileAuthController } from "../lib/auth-controller";
 type AuthContextValue = {
   snapshot: AuthSnapshot;
   signIn(payload: AuthPayload): Promise<void>;
-  signUp(payload: AuthPayload): Promise<void>;
+  signUp(payload: AuthPayload): Promise<AuthSnapshot["session"]>;
   signOut(): Promise<void>;
 };
 

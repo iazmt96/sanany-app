@@ -26,10 +26,13 @@ export const ar = {
     signUpAction: "تسجيل",
     switchToSignUp: "ليس لديك حساب؟ سجل الآن",
     switchToSignIn: "لديك حساب بالفعل؟ سجل الدخول",
+    emailConfirmationSent: "تم إنشاء الحساب. افحص بريدك الإلكتروني لتأكيد الحساب ثم سجّل الدخول.",
     configError: "المصادقة غير متاحة بسبب نقص الإعدادات.",
     errors: {
       emailRequired: "البريد الإلكتروني مطلوب.",
       passwordRequired: "كلمة المرور مطلوبة.",
+      invalidEmail: "صيغة البريد الإلكتروني غير صحيحة.",
+      emailNotConfirmed: "البريد الإلكتروني غير مؤكد. افحص بريدك ثم حاول مجددًا.",
       invalidCredentials: "بيانات الدخول غير صحيحة.",
       userExists: "يوجد حساب مسجل بهذا البريد الإلكتروني.",
       unknown: "حدث خطأ غير متوقع أثناء المصادقة."

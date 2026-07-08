@@ -6,7 +6,7 @@ export type AuthSubscription = () => void;
 export type AuthService = {
   getSession(): Promise<Session | null>;
   signIn(payload: AuthPayload): Promise<void>;
-  signUp(payload: AuthPayload): Promise<void>;
+  signUp(payload: AuthPayload): Promise<Session | null>;
   signOut(): Promise<void>;
   onAuthStateChange(listener: (session: Session | null, event: AuthChangeEvent) => void): AuthSubscription;
 };
@@ -28,10 +28,12 @@ export function createSupabaseAuthService(client: SupabaseClient): AuthService {
       }
     },
     async signUp(payload) {
-      const { error } = await client.auth.signUp(payload);
+      const { data, error } = await client.auth.signUp(payload);
       if (error) {
         throw error;
       }
+
+      return data.session;
     },
     async signOut() {
       const { error } = await client.auth.signOut();
@@ -50,4 +52,3 @@ export function createSupabaseAuthService(client: SupabaseClient): AuthService {
     }
   };
 }
-

@@ -19,6 +19,14 @@ function resolveAuthErrorKey(message: string): string {
     return "auth.errors.invalidCredentials";
   }
 
+  if (loweredMessage.includes("email not confirmed")) {
+    return "auth.errors.emailNotConfirmed";
+  }
+
+  if (loweredMessage.includes("email address") && loweredMessage.includes("is invalid")) {
+    return "auth.errors.invalidEmail";
+  }
+
   if (loweredMessage.includes("already registered")) {
     return "auth.errors.userExists";
   }
@@ -35,12 +43,14 @@ export function AuthShell({ language }: AuthShellProps) {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [infoKey, setInfoKey] = useState<string | null>(null);
 
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorKey(null);
+    setInfoKey(null);
 
     if (!email.trim()) {
       setErrorKey("auth.errors.emailRequired");
@@ -56,10 +66,15 @@ export function AuthShell({ language }: AuthShellProps) {
     try {
       if (isSignIn) {
         await signIn({ email: email.trim(), password });
+        router.replace(`/${resolvedLanguage}`);
       } else {
-        await signUp({ email: email.trim(), password });
+        const session = await signUp({ email: email.trim(), password });
+        if (!session) {
+          setInfoKey("auth.emailConfirmationSent");
+          return;
+        }
+        router.replace(`/${resolvedLanguage}`);
       }
-      router.replace(`/${resolvedLanguage}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.errors.unknown");
       setErrorKey(resolveAuthErrorKey(message));
@@ -106,6 +121,7 @@ export function AuthShell({ language }: AuthShellProps) {
             </label>
 
             {errorKey ? <p className="text-sm text-red-600">{t(errorKey)}</p> : null}
+            {infoKey ? <p className="text-sm text-emerald-700">{t(infoKey)}</p> : null}
 
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? t("common.loading") : t(isSignIn ? "auth.signInAction" : "auth.signUpAction")}
@@ -117,6 +133,7 @@ export function AuthShell({ language }: AuthShellProps) {
             className="mt-4 text-sm font-medium text-brand hover:text-brand-dark"
             onClick={() => {
               setErrorKey(null);
+              setInfoKey(null);
               setIsSignIn((value) => !value);
             }}
           >

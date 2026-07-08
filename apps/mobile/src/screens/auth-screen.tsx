@@ -9,6 +9,14 @@ function resolveAuthErrorKey(message: string): string {
     return "auth.errors.invalidCredentials";
   }
 
+  if (loweredMessage.includes("email not confirmed")) {
+    return "auth.errors.emailNotConfirmed";
+  }
+
+  if (loweredMessage.includes("email address") && loweredMessage.includes("is invalid")) {
+    return "auth.errors.invalidEmail";
+  }
+
   if (loweredMessage.includes("already registered")) {
     return "auth.errors.userExists";
   }
@@ -23,10 +31,12 @@ export function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [infoKey, setInfoKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     setErrorKey(null);
+    setInfoKey(null);
 
     if (!email.trim()) {
       setErrorKey("auth.errors.emailRequired");
@@ -43,7 +53,11 @@ export function AuthScreen() {
       if (isSignIn) {
         await signIn({ email: email.trim(), password });
       } else {
-        await signUp({ email: email.trim(), password });
+        const session = await signUp({ email: email.trim(), password });
+        if (!session) {
+          setInfoKey("auth.emailConfirmationSent");
+          return;
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : t("auth.errors.unknown");
@@ -73,6 +87,7 @@ export function AuthScreen() {
       </View>
 
       {errorKey ? <Text style={styles.errorLabel}>{t(errorKey)}</Text> : null}
+      {infoKey ? <Text style={styles.infoLabel}>{t(infoKey)}</Text> : null}
 
       <Pressable style={styles.primaryAction} onPress={() => void handleSubmit()} disabled={isSubmitting}>
         <Text style={styles.primaryActionLabel}>{isSubmitting ? t("common.loading") : t(isSignIn ? "auth.signInAction" : "auth.signUpAction")}</Text>
@@ -82,6 +97,7 @@ export function AuthScreen() {
         style={styles.switchAction}
         onPress={() => {
           setErrorKey(null);
+          setInfoKey(null);
           setIsSignIn((value) => !value);
         }}
       >
@@ -140,6 +156,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 13,
     color: "#dc2626"
+  },
+  infoLabel: {
+    marginTop: 12,
+    fontSize: 13,
+    color: "#047857"
   },
   primaryAction: {
     marginTop: 16,
