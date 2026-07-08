@@ -35,6 +35,8 @@ export const en = {
       emailNotConfirmed: "Email is not confirmed yet. Check your inbox and try again.",
       invalidCredentials: "Invalid email or password.",
       userExists: "An account already exists for this email.",
+      rateLimited: "Email rate limit exceeded. Please wait a few minutes before trying again.",
+      passwordTooShort: "Password is too short. It must be at least 6 characters.",
       unknown: "An unexpected authentication error occurred."
     }
   },

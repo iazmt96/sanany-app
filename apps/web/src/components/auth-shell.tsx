@@ -28,8 +28,16 @@ function resolveAuthErrorKey(message: string): string {
     return "auth.errors.invalidEmail";
   }
 
-  if (loweredMessage.includes("already registered")) {
+  if (loweredMessage.includes("already registered") || loweredMessage.includes("user already registered")) {
     return "auth.errors.userExists";
+  }
+
+  if (loweredMessage.includes("rate limit") || loweredMessage.includes("over_email_send_rate_limit") || loweredMessage.includes("too many")) {
+    return "auth.errors.rateLimited";
+  }
+
+  if (loweredMessage.includes("password should be") || loweredMessage.includes("password is too short")) {
+    return "auth.errors.passwordTooShort";
   }
 
   return "auth.errors.unknown";
