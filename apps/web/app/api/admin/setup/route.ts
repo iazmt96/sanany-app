@@ -20,39 +20,17 @@ export async function GET() {
   }
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
-
-  // Use pg-meta admin endpoint to execute DDL
-  const ddlResponse = await fetch(`${url}/pg/query`, {
-    method: "POST",
-    headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      query: `
-        create table if not exists public.listings (
-          id         uuid primary key default gen_random_uuid(),
-          title      text not null,
-          description text,
-          price      numeric(12,2) not null default 0,
-          status     text not null default 'available'
-                       check (status in ('available','reserved','inactive')),
-          owner_id   uuid references auth.users(id) on delete cascade,
-          image_url  text,
-          created_at timestamptz not null default now(),
-          updated_at timestamptz not null default now()
-        );
-        alter table public.listings enable row level security;
-        create policy if not exists "read_public" on public.listings
-          for select using (status in ('available','reserved'));
-      `
-    })
-  });
-
-  if (!ddlResponse.ok) {
-    const body = await ddlResponse.text();
-    return NextResponse.json({ error: "DDL failed", detail: body }, { status: 500 });
+  const { error: tableCheckError } = await admin.from("listings").select("id", { count: "exact", head: true }).limit(1);
+  if (tableCheckError) {
+    return NextResponse.json(
+      {
+        error: "Listings table is missing.",
+        detail: tableCheckError.message,
+        instructions:
+          "Run supabase/migrations/20240101000000_create_listings.sql in Supabase SQL Editor first, then call /api/admin/setup again."
+      },
+      { status: 500 }
+    );
   }
 
   // Seed demo listings
@@ -65,10 +43,19 @@ export async function GET() {
     { title: "دهانات ديكور", description: "دهانات داخلية وخارجية بأجود الأصباغ", price: 80, status: "available" }
   ];
 
-  const { error: seedError } = await admin.from("listings").upsert(seeds);
+  const { count, error: countError } = await admin.from("listings").select("id", { count: "exact", head: true });
+  if (countError) {
+    return NextResponse.json({ error: "Count failed", detail: countError.message }, { status: 500 });
+  }
+
+  if ((count ?? 0) > 0) {
+    return NextResponse.json({ ok: true, message: "Listings already seeded." });
+  }
+
+  const { error: seedError } = await admin.from("listings").insert(seeds);
   if (seedError) {
     return NextResponse.json({ error: "Seed failed", detail: seedError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, message: "✅ listings table created and seeded with 6 demo listings." });
+  return NextResponse.json({ ok: true, message: "Listings seed completed." });
 }
