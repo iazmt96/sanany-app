@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@sanany/types": [
+        "packages/types/src"
+      ],
+      "@sanany/utils": [
+        "packages/utils/src"
+      ],
+      "@sanany/shared": [
+        "packages/shared/src"
+      ],
+      "@sanany/api": [
+        "packages/api/src"
+      ],
+      "@sanany/ui": [
+        "packages/ui/src"
+      ]
+    }
+  }
+}
+
