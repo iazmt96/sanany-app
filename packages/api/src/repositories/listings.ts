@@ -4,6 +4,7 @@ import type { CreateListingInput, ListingsQuery, MarketplaceListing, PaginatedRe
 export type ListingsRepository = {
   list(query: ListingsQuery): Promise<PaginatedResult<MarketplaceListing>>;
   create(input: CreateListingInput): Promise<MarketplaceListing>;
+  getById(id: string): Promise<MarketplaceListing | null>;
 };
 
 type ListingRow = {
@@ -108,6 +109,23 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
 
       if (error) {
         throw error;
+      }
+
+      return mapRow(data as ListingRow);
+    },
+    async getById(id) {
+      const { data, error } = await client
+        .from("listings")
+        .select("id,title,description,price,status,image_url,created_at")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        return null;
       }
 
       return mapRow(data as ListingRow);

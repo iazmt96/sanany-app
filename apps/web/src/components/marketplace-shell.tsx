@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useTranslation } from "react-i18next";
 import type { ListingFilterStatus, ListingsQuery, MarketplaceListing, PaginatedResult } from "@sanany/types";
 import { Badge, Button, Card, TextInput } from "@sanany/ui";
@@ -302,7 +303,8 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
 
         <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {data.items.map((listing) => (
-            <Card key={listing.id} className="space-y-3">
+            <Link key={listing.id} href={`/${resolvedLanguage}/listing/${listing.id}`} className="block">
+              <Card className="space-y-3 transition hover:border-brand hover:shadow-md">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-lg font-semibold">{listing.title}</h2>
                 <Badge variant={listing.status}>{t(`marketplace.status.${listing.status}`)}</Badge>
@@ -314,7 +316,8 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                 <span>{t("marketplace.postedAt", { value: formatRelativeTime(listing.createdAt, resolvedLanguage) })}</span>
                 <span>{t("marketplace.pricePerDay", { value: listing.price })}</span>
               </div>
-            </Card>
+              </Card>
+            </Link>
           ))}
         </section>
 

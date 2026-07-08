@@ -82,6 +82,13 @@ export const en = {
       available: "Available",
       reserved: "Reserved"
     },
+    detail: {
+      pageTitle: "Listing details",
+      back: "Back to marketplace",
+      description: "Listing description",
+      noDescription: "This listing has no description.",
+      notFound: "Listing not found."
+    },
     signOutHint: "Signed in as {{email}}"
   }
 } as const;

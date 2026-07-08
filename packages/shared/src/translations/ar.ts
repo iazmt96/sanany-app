@@ -82,6 +82,13 @@ export const ar = {
     status: {
       available: "متاح",
       reserved: "محجوز"
+    },
+    detail: {
+      pageTitle: "تفاصيل الإعلان",
+      back: "رجوع للسوق",
+      description: "وصف الإعلان",
+      noDescription: "لا يوجد وصف لهذا الإعلان.",
+      notFound: "الإعلان غير موجود."
     }
   }
 } as const;
