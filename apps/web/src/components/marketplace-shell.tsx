@@ -136,13 +136,14 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
           {data.items.map((listing) => (
             <Card key={listing.id} className="space-y-3">
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-lg font-semibold">{t(listing.titleKey)}</h2>
+                <h2 className="text-lg font-semibold">{listing.title}</h2>
                 <Badge>{t(`marketplace.status.${listing.status}`)}</Badge>
               </div>
-              <p className="text-sm text-slate-600">{t(listing.summaryKey)}</p>
-              <div className="flex items-center justify-between text-sm text-slate-500">
-                <span>{t(listing.locationKey)}</span>
-                <span>{t("marketplace.pricePerDay", { value: listing.dailyPrice })}</span>
+              {listing.description ? (
+                <p className="text-sm text-slate-600">{listing.description}</p>
+              ) : null}
+              <div className="flex items-center justify-end text-sm text-slate-500">
+                <span>{t("marketplace.pricePerDay", { value: listing.price })}</span>
               </div>
             </Card>
           ))}

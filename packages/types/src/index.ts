@@ -3,11 +3,12 @@ export type ListingFilterStatus = ListingStatus | "all";
 
 export type MarketplaceListing = {
   id: string;
-  titleKey: string;
-  summaryKey: string;
-  locationKey: string;
+  title: string;
+  description: string | null;
+  price: number;
   status: ListingStatus;
-  dailyPrice: number;
+  imageUrl: string | null;
+  createdAt: string;
 };
 
 export type AuthPayload = {

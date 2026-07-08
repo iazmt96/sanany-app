@@ -127,15 +127,16 @@ export function MarketplaceScreen({ direction }: MarketplaceScreenProps) {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{t(item.titleKey)}</Text>
+              <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.badge}>
                 {t(`marketplace.status.${item.status}`)}
               </Text>
             </View>
-            <Text style={styles.cardSummary}>{t(item.summaryKey)}</Text>
+            {item.description ? (
+              <Text style={styles.cardSummary}>{item.description}</Text>
+            ) : null}
             <View style={styles.cardFooter}>
-              <Text style={styles.location}>{t(item.locationKey)}</Text>
-              <Text style={styles.price}>{t("marketplace.pricePerDay", { value: item.dailyPrice })}</Text>
+              <Text style={styles.price}>{t("marketplace.pricePerDay", { value: item.price })}</Text>
             </View>
           </View>
         )}

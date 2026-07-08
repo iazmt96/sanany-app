@@ -7,11 +7,12 @@ export type ListingsRepository = {
 
 type ListingRow = {
   id: string;
-  title_key: string;
-  summary_key: string;
-  location_key: string;
+  title: string;
+  description: string | null;
+  price: number;
   status: MarketplaceListing["status"];
-  daily_price: number;
+  image_url: string | null;
+  created_at: string;
 };
 
 const DEFAULT_PAGE_SIZE = 9;
@@ -31,11 +32,12 @@ function normalizeQuery(query: ListingsQuery): ListingsQuery {
 function mapRow(row: ListingRow): MarketplaceListing {
   return {
     id: row.id,
-    titleKey: row.title_key,
-    summaryKey: row.summary_key,
-    locationKey: row.location_key,
+    title: row.title,
+    description: row.description,
+    price: row.price,
     status: row.status,
-    dailyPrice: row.daily_price
+    imageUrl: row.image_url,
+    createdAt: row.created_at
   };
 }
 
@@ -48,8 +50,8 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
 
       let supabaseQuery = client
         .from("listings")
-        .select("id,title_key,summary_key,location_key,status,daily_price", { count: "exact" })
-        .order("id", { ascending: true })
+        .select("id,title,description,price,status,image_url,created_at", { count: "exact" })
+        .order("created_at", { ascending: false })
         .range(from, to);
 
       if (normalizedQuery.status !== "all") {
@@ -59,7 +61,7 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
       if (normalizedQuery.search) {
         const escapedSearch = normalizedQuery.search.replaceAll("%", "\\%").replaceAll("_", "\\_");
         supabaseQuery = supabaseQuery.or(
-          `title_key.ilike.%${escapedSearch}%,summary_key.ilike.%${escapedSearch}%,location_key.ilike.%${escapedSearch}%`
+          `title.ilike.%${escapedSearch}%,description.ilike.%${escapedSearch}%`
         );
       }
 
