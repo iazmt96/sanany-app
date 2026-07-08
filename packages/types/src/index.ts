@@ -1,4 +1,5 @@
 export type ListingStatus = "available" | "reserved";
+export type ListingFilterStatus = ListingStatus | "all";
 
 export type MarketplaceListing = {
   id: string;
@@ -14,3 +15,17 @@ export type AuthPayload = {
   password: string;
 };
 
+export type ListingsQuery = {
+  search: string;
+  status: ListingFilterStatus;
+  page: number;
+  pageSize: number;
+};
+
+export type PaginatedResult<TItem> = {
+  items: TItem[];
+  totalItems: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};

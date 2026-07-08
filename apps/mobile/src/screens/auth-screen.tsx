@@ -1,14 +1,57 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useAuth } from "../auth/auth-context";
 
-type AuthScreenProps = {
-  onAuthenticated: () => void;
-};
+function resolveAuthErrorKey(message: string): string {
+  const loweredMessage = message.toLowerCase();
+  if (loweredMessage.includes("invalid login credentials")) {
+    return "auth.errors.invalidCredentials";
+  }
 
-export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
+  if (loweredMessage.includes("already registered")) {
+    return "auth.errors.userExists";
+  }
+
+  return "auth.errors.unknown";
+}
+
+export function AuthScreen() {
   const { t } = useTranslation();
+  const { signIn, signUp } = useAuth();
   const [isSignIn, setIsSignIn] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setErrorKey(null);
+
+    if (!email.trim()) {
+      setErrorKey("auth.errors.emailRequired");
+      return;
+    }
+
+    if (!password.trim()) {
+      setErrorKey("auth.errors.passwordRequired");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (isSignIn) {
+        await signIn({ email: email.trim(), password });
+      } else {
+        await signUp({ email: email.trim(), password });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("auth.errors.unknown");
+      setErrorKey(resolveAuthErrorKey(message));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -17,19 +60,31 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       <Text style={styles.formTitle}>{t(isSignIn ? "auth.signInTitle" : "auth.signUpTitle")}</Text>
 
       <View style={styles.fields}>
-        <TextInput style={styles.input} placeholder={t("auth.emailPlaceholder")} />
+        <Text style={styles.fieldLabel}>{t("auth.emailLabel")}</Text>
+        <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder={t("auth.emailPlaceholder")} autoCapitalize="none" />
+        <Text style={styles.fieldLabel}>{t("auth.passwordLabel")}</Text>
         <TextInput
           style={styles.input}
+          value={password}
+          onChangeText={setPassword}
           placeholder={t("auth.passwordPlaceholder")}
           secureTextEntry
         />
       </View>
 
-      <Pressable style={styles.primaryAction} onPress={onAuthenticated}>
-        <Text style={styles.primaryActionLabel}>{t(isSignIn ? "auth.signInAction" : "auth.signUpAction")}</Text>
+      {errorKey ? <Text style={styles.errorLabel}>{t(errorKey)}</Text> : null}
+
+      <Pressable style={styles.primaryAction} onPress={() => void handleSubmit()} disabled={isSubmitting}>
+        <Text style={styles.primaryActionLabel}>{isSubmitting ? t("common.loading") : t(isSignIn ? "auth.signInAction" : "auth.signUpAction")}</Text>
       </Pressable>
 
-      <Pressable style={styles.switchAction} onPress={() => setIsSignIn((value) => !value)}>
+      <Pressable
+        style={styles.switchAction}
+        onPress={() => {
+          setErrorKey(null);
+          setIsSignIn((value) => !value);
+        }}
+      >
         <Text style={styles.switchActionLabel}>{t(isSignIn ? "auth.switchToSignUp" : "auth.switchToSignIn")}</Text>
       </Pressable>
     </View>
@@ -67,6 +122,12 @@ const styles = StyleSheet.create({
   fields: {
     gap: 12
   },
+  fieldLabel: {
+    marginBottom: -8,
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#334155"
+  },
   input: {
     borderRadius: 8,
     borderWidth: 1,
@@ -74,6 +135,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16
+  },
+  errorLabel: {
+    marginTop: 12,
+    fontSize: 13,
+    color: "#dc2626"
   },
   primaryAction: {
     marginTop: 16,

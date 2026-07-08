@@ -1,6 +1,10 @@
 import { AuthShell } from "../../../src/components/auth-shell";
 
-export default function AuthPage() {
-  return <AuthShell />;
-}
+type AuthPageProps = {
+  params: Promise<{ lang: string }>;
+};
 
+export default async function AuthPage({ params }: AuthPageProps) {
+  const { lang } = await params;
+  return <AuthShell language={lang} />;
+}

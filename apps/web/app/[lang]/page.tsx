@@ -1,6 +1,10 @@
 import { MarketplaceShell } from "../../src/components/marketplace-shell";
 
-export default function MarketplacePage() {
-  return <MarketplaceShell />;
-}
+type MarketplacePageProps = {
+  params: Promise<{ lang: string }>;
+};
 
+export default async function MarketplacePage({ params }: MarketplacePageProps) {
+  const { lang } = await params;
+  return <MarketplaceShell language={lang} />;
+}

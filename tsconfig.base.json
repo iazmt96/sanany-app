@@ -27,10 +27,12 @@
       "@sanany/api": [
         "packages/api/src"
       ],
+      "@sanany/auth": [
+        "packages/auth/src"
+      ],
       "@sanany/ui": [
         "packages/ui/src"
       ]
     }
   }
 }
-

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@sanany/api": "file:../../packages/api",
+    "@sanany/auth": "file:../../packages/auth",
     "@sanany/shared": "file:../../packages/shared",
     "@sanany/types": "file:../../packages/types",
     "@sanany/ui": "file:../../packages/ui",
