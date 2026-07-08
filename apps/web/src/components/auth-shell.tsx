@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
@@ -87,7 +88,10 @@ export function AuthShell({ language }: AuthShellProps) {
     <RedirectIfAuthenticated language={resolvedLanguage}>
       <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-4 py-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-slate-900">{t("app.title")}</h1>
+          <div className="flex items-center gap-3">
+            <Image src="/brand/sanany-logo.png" alt={t("app.title")} width={500} height={220} className="h-10 w-auto" priority />
+            <h1 className="text-2xl font-bold text-slate-900">{t("app.title")}</h1>
+          </div>
           <LanguageSwitcher />
         </header>
 

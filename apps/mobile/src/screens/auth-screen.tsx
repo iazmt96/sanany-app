@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useAuth } from "../auth/auth-context";
 
 function resolveAuthErrorKey(message: string): string {
@@ -69,6 +69,7 @@ export function AuthScreen() {
 
   return (
     <View style={styles.container}>
+      <Image source={require("../../assets/sanany-logo.png")} style={styles.logo} resizeMode="contain" />
       <Text style={styles.title}>{t("app.title")}</Text>
       <Text style={styles.subtitle}>{t("auth.subtitle")}</Text>
       <Text style={styles.formTitle}>{t(isSignIn ? "auth.signInTitle" : "auth.signUpTitle")}</Text>
@@ -123,6 +124,11 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     color: "#0f172a"
+  },
+  logo: {
+    width: "100%",
+    height: 76,
+    marginBottom: 8
   },
   subtitle: {
     marginBottom: 16,

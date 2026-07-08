@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createSupabaseClient } from "@sanany/api";
+import { createBrowserClient } from "@supabase/ssr";
 import { getWebSupabaseEnv } from "../config/env";
 
 let client: SupabaseClient | null = null;
@@ -9,7 +9,7 @@ export function getWebSupabaseClient(): SupabaseClient {
     return client;
   }
 
-  client = createSupabaseClient(getWebSupabaseEnv());
+  const env = getWebSupabaseEnv();
+  client = createBrowserClient(env.supabaseUrl, env.supabaseAnonKey);
   return client;
 }
-

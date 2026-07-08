@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "SANANY Marketplace",
+  title: "سنعني | SANANY Marketplace",
   description: "SANANY multi-platform marketplace"
 };
 
@@ -14,4 +14,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
-

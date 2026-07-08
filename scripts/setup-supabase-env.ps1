@@ -19,7 +19,7 @@ function Get-Value([string]$name, [string]$promptText) {
 }
 
 $supabaseUrl = Get-Value "SUPABASE_URL" "Enter Supabase Project URL (https://xxxx.supabase.co)"
-$supabaseAnonKey = Get-Value "SUPABASE_ANON_KEY" "Enter Supabase anon public key"
+$supabasePublishableKey = Get-Value "SUPABASE_PUBLISHABLE_KEY" "Enter Supabase publishable key"
 
 if (-not $supabaseUrl.StartsWith("https://")) {
   throw "SUPABASE_URL must start with https://"
@@ -27,12 +27,14 @@ if (-not $supabaseUrl.StartsWith("https://")) {
 
 $webContent = @(
   "NEXT_PUBLIC_SUPABASE_URL=$supabaseUrl"
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY=$supabaseAnonKey"
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$supabasePublishableKey"
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY=$supabasePublishableKey"
 ) -join [Environment]::NewLine
 
 $mobileContent = @(
   "EXPO_PUBLIC_SUPABASE_URL=$supabaseUrl"
-  "EXPO_PUBLIC_SUPABASE_ANON_KEY=$supabaseAnonKey"
+  "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$supabasePublishableKey"
+  "EXPO_PUBLIC_SUPABASE_ANON_KEY=$supabasePublishableKey"
 ) -join [Environment]::NewLine
 
 Set-Content -Path $webEnvPath -Value $webContent -NoNewline

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import type { ListingFilterStatus, ListingsQuery, MarketplaceListing, PaginatedResult } from "@sanany/types";
 import { Badge, Card } from "@sanany/ui";
@@ -75,6 +76,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
       <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-2">
+            <Image src="/brand/sanany-logo.png" alt={t("app.title")} width={500} height={220} className="h-9 w-auto" priority />
             <h1 className="text-2xl font-bold text-slate-900">{t("marketplace.pageTitle")}</h1>
             <p className="text-sm text-slate-600">{t("marketplace.pageSubtitle")}</p>
             {snapshot.user?.email ? (

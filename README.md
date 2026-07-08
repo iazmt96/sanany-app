@@ -20,6 +20,7 @@ Phase 2 baseline for a production-oriented SANANY marketplace stack.
 2. Add environment configuration:
    1. Copy `.env.example` values into `apps/web/.env.local` and `apps/mobile/.env`.
    2. Fill in real Supabase project values.
+   3. For web and mobile, use `*_SUPABASE_PUBLISHABLE_KEY` as the primary key.
 3. Run web:
    `npm run dev:web`
 4. Run mobile:

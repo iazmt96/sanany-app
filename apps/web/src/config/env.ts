@@ -1,18 +1,17 @@
-type RequiredWebEnvKey = "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY";
+export function getWebSupabaseEnv() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-function readRequiredWebEnv(key: RequiredWebEnvKey): string {
-  const value = process.env[key];
-  if (!value || !value.trim()) {
-    throw new Error(`Missing required web environment variable: ${key}. Define it in apps/web/.env.local.`);
+  if (!supabaseUrl || !supabaseUrl.trim()) {
+    throw new Error("Missing required web environment variable: NEXT_PUBLIC_SUPABASE_URL. Define it in apps/web/.env.local.");
   }
 
-  return value;
-}
+  if (!supabasePublishableKey || !supabasePublishableKey.trim()) {
+    throw new Error("Missing required web environment variable: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Define it in apps/web/.env.local.");
+  }
 
-export function getWebSupabaseEnv() {
   return {
-    supabaseUrl: readRequiredWebEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    supabaseAnonKey: readRequiredWebEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    supabaseUrl,
+    supabaseAnonKey: supabasePublishableKey
   };
 }
-

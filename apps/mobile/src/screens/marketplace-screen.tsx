@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import type { ListingFilterStatus, ListingsQuery, MarketplaceListing, PaginatedResult } from "@sanany/types";
 import { useAuth } from "../auth/auth-context";
 import { getMobileListingsRepository } from "../lib/listings-repository";
@@ -75,6 +75,7 @@ export function MarketplaceScreen({ direction }: MarketplaceScreenProps) {
 
   return (
     <View style={styles.container}>
+      <Image source={require("../../assets/sanany-logo.png")} style={styles.logo} resizeMode="contain" />
       <Text style={[styles.pageTitle, { textAlign }]}>
         {t("marketplace.pageTitle")}
       </Text>
@@ -168,6 +169,11 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     color: "#0f172a"
+  },
+  logo: {
+    width: "100%",
+    height: 64,
+    marginBottom: 8
   },
   pageSubtitle: {
     marginTop: 4,

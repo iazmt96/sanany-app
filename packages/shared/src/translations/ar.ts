@@ -1,6 +1,6 @@
 export const ar = {
   app: {
-    title: "سناني"
+    title: "سنعني"
   },
   common: {
     loading: "جاري التحميل...",
@@ -17,7 +17,7 @@ export const ar = {
   auth: {
     signInTitle: "تسجيل الدخول",
     signUpTitle: "إنشاء حساب",
-    subtitle: "بوابة الوصول إلى سوق سناني",
+    subtitle: "بوابة الوصول إلى سوق سنعني",
     emailPlaceholder: "البريد الإلكتروني",
     passwordPlaceholder: "كلمة المرور",
     emailLabel: "البريد الإلكتروني",
@@ -40,7 +40,7 @@ export const ar = {
   },
   marketplace: {
     pageTitle: "سوق الخدمات والمنتجات",
-    pageSubtitle: "استعرض أحدث العروض من مزودي سناني",
+    pageSubtitle: "استعرض أحدث العروض من مزودي سنعني",
     pricePerDay: "{{value}} ريال / يوم",
     searchPlaceholder: "ابحث في العروض",
     filters: {
