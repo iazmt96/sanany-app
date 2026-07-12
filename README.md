@@ -28,14 +28,39 @@ Phase 2 baseline for a production-oriented SANANY marketplace stack.
 
 ## Supabase schema expectations
 
-`listings` table should expose:
+Core tables used by the current app:
 
-- `id` (text/uuid primary key)
-- `title_key` (text, i18n key)
-- `summary_key` (text, i18n key)
-- `location_key` (text, i18n key)
-- `status` (`available` or `reserved`)
-- `daily_price` (numeric)
+- `public.listings`
+- `public.listing_images`
+- `public.profiles`
+- `public.company_profiles`
+- `public.follows`
+- `public.ratings`
+
+Auth/profile flows expect `profiles.account_type` to be normalized to:
+
+- `individual`
+- `company`
+
+Company signup flow expects these metadata fields at sign-up time:
+
+- `company_name`
+- `representative_name`
+- `business_type`
+- `commercial_registration` (8-20 digits)
+
+## Supabase migration rollout
+
+Apply all files in `supabase/migrations` to your target project, especially the latest hardening migrations:
+
+- `20260712163000_harden_profile_update_permissions.sql`
+- `20260712163500_harden_company_signup_failfast.sql`
+
+These enforce:
+
+- clients cannot update `profiles.account_type`
+- clients cannot update `company_profiles.verification_status`
+- company signup fails fast when required metadata is missing or invalid
 
 ## Runtime validation behavior
 

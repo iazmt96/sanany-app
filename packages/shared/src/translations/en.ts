@@ -5,6 +5,7 @@ export const en = {
   common: {
     loading: "Loading...",
     retry: "Try again",
+    cancel: "Cancel",
     signOut: "Sign out",
     next: "Next",
     previous: "Previous",
@@ -14,16 +15,76 @@ export const en = {
     ar: "Arabic",
     en: "English"
   },
+  nav: {
+    marketplace: "Marketplace",
+    search: "Search",
+    categories: "Categories",
+    myAds: "My ads",
+    profile: "Profile",
+    favorites: "Favorites",
+    chat: "Chat",
+    add: "+",
+    notifications: "Notifications",
+    account: "Account",
+    settings: "Settings"
+  },
   auth: {
     signInTitle: "Sign in",
     signUpTitle: "Create account",
     subtitle: "Your access gateway to SANANY marketplace",
+    signUpDescription: "Choose the account type that fits you.",
+    signUpAccountTypeLabel: "Account type",
+    signUpAccountType: {
+      individual: "Individual",
+      company: "Company"
+    },
+    fullNameLabel: "Full name",
+    fullNamePlaceholder: "Example: Mohammed Ahmed",
+    phoneLabel: "Phone number",
+    phonePlaceholder: "Example: 05XXXXXXXX",
+    cityLabel: "City",
+    cityPlaceholder: "Example: Riyadh",
+    confirmPasswordLabel: "Confirm password",
+    confirmPasswordPlaceholder: "Re-enter your password",
+    termsAgreement: "I agree to the terms and conditions",
     emailPlaceholder: "Email address",
     passwordPlaceholder: "Password",
     emailLabel: "Email",
     passwordLabel: "Password",
     signInAction: "Sign in",
     signUpAction: "Sign up",
+    signUpIndividualAction: "Create individual account",
+    signUpCompanyAction: "Create company account",
+    company: {
+      hint: "Company accounts are for showrooms, businesses, and service providers. You can complete verification details later.",
+      companyNameLabel: "Company name",
+      companyNamePlaceholder: "Example: SANANY Trading Co.",
+      representativeNameLabel: "Representative name",
+      representativeNamePlaceholder: "Example: Abdullah Mohammed",
+      businessTypeLabel: "Business type",
+      customBusinessTypeLabel: "Other business type",
+      customBusinessTypePlaceholder: "Enter your business type",
+      commercialRegistrationLabel: "Commercial registration number",
+      commercialRegistrationPlaceholder: "Enter commercial registration number",
+      taxNumberLabel: "Tax number (optional)",
+      taxNumberPlaceholder: "Enter tax number",
+      websiteLabel: "Website (optional)",
+      websitePlaceholder: "https://example.com",
+      descriptionLabel: "Company description (optional)",
+      descriptionPlaceholder: "Short company description",
+      businessTypes: {
+        carShowroom: "Car showroom",
+        realEstate: "Real estate office",
+        contracting: "Contracting company",
+        trading: "Trading establishment",
+        store: "Store",
+        services: "Service provider",
+        transport: "Transport company",
+        factory: "Factory",
+        farm: "Farm",
+        other: "Other"
+      }
+    },
     switchToSignUp: "Don't have an account? Sign up now",
     switchToSignIn: "Already have an account? Sign in",
     emailConfirmationSent: "Account created. Check your email to confirm your account, then sign in.",
@@ -37,6 +98,19 @@ export const en = {
       userExists: "An account already exists for this email.",
       rateLimited: "Email rate limit exceeded. Please wait a few minutes before trying again.",
       passwordTooShort: "Password is too short. It must be at least 6 characters.",
+      passwordMismatch: "Password and confirmation do not match.",
+      termsRequired: "You must accept terms and conditions.",
+      phoneRequired: "Phone number is required.",
+      cityRequired: "City is required.",
+      fullNameRequired: "Full name is required.",
+      companyNameRequired: "Company name is required.",
+      representativeNameRequired: "Representative name is required.",
+      businessTypeRequired: "Business type is required.",
+      customBusinessTypeRequired: "Please provide the custom business type.",
+      commercialRegistrationRequired: "Commercial registration number is required.",
+      invalidCommercialRegistration: "Commercial registration number is invalid.",
+      invalidTaxNumber: "Tax number is invalid.",
+      invalidWebsite: "Website URL is invalid.",
       unknown: "An unexpected authentication error occurred."
     }
   },
@@ -50,6 +124,7 @@ export const en = {
       title: "Post a new listing",
       open: "Post listing",
       close: "Close",
+      defaultLocation: "Riyadh",
       listingTitleLabel: "Listing title",
       listingDescriptionLabel: "Listing description",
       listingPriceLabel: "Price",
@@ -58,10 +133,320 @@ export const en = {
       listingPricePlaceholder: "Example: 180",
       submit: "Publish listing",
       success: "Listing published successfully.",
+      draft: {
+        saveAndExit: "Save draft and exit",
+        saving: "Saving draft...",
+        savedAt: "Draft saved at {{value}}",
+        restored: "Draft restored. You can continue editing.",
+        saveFailed: "Failed to sync draft. Local copy is kept."
+      },
+      images: {
+        title: "Attach listing photos",
+        hint: "You can add up to 10 photos.",
+        selectedCount: "Selected photos: {{count}} / 10",
+        idealCountHint: "For better ad quality, add at least {{count}} photos.",
+        maxReached: "You reached the maximum number of photos ({{max}}).",
+        imageTooLarge: "Some photos are too large. Maximum allowed per photo is {{maxSizeMb}} MB.",
+        primaryBadge: "Primary",
+        makePrimary: "Set primary",
+        remove: "Remove",
+        moveUp: "Up",
+        moveDown: "Down",
+        imagePermissionDenied: "Photos permission is denied. Enable permission to pick images.",
+        imagePickFailed: "Failed to pick image. Please try again.",
+        videoTitle: "Add listing video",
+        videoHint: "Maximum video duration: 1 minute (60 seconds).",
+        videoSelectCta: "Select video",
+        videoReplaceCta: "Replace video",
+        videoProcessing: "Preparing and auto-compressing video...",
+        videoSelectedInfo: "Selected video: {{duration}}s • {{size}} MB",
+        videoCompressNote: "Automatic compression is applied before upload to reduce size.",
+        videoPermissionDenied: "Media permission is denied. Enable permission to pick a video.",
+        videoDurationExceeded: "Video exceeds 60 seconds. Pick a shorter video.",
+        videoTooLargeAfterCompression: "Video is still too large after compression. Max is {{maxSizeMb}} MB.",
+        videoProcessFailed: "Failed to prepare video. Please try again."
+      },
+      typeLabel: "Offer type",
+      offerTypes: {
+        service: "Service offer",
+        request: "Request",
+        sell: "Sale offer",
+        rent: "Rent offer"
+      },
+      categories: {
+        carSale: "Car for sale / transfer",
+        carPartsAndServices: "Car parts, services, or accessories",
+        truckAndHeavy: "Truck or heavy equipment (sale / rent)",
+        bikeSale: "Bike for sale",
+        propertySale: "Property for sale",
+        propertyRent: "Property for rent",
+        deviceSale: "Device for sale",
+        furnitureSale: "Furniture for sale",
+        livestockSale: "Livestock for sale",
+        mobileSale: "Mobile phones for sale",
+        laptopSale: "Laptops for sale",
+        homeAppliancesSale: "Home appliances for sale",
+        toolsEquipmentSale: "Tools or equipment for sale",
+        clothingSale: "Clothing for sale",
+        kidsSuppliesSale: "Kids supplies for sale",
+        electronicPartsSale: "Electronic parts for sale",
+        generalGoods: "Other uncategorized item",
+        saleOther: "Other (sale)",
+        carRent: "Cars for rent",
+        eventEquipmentRent: "Event equipment for rent",
+        constructionToolsRent: "Construction tools for rent",
+        chaletRent: "Chalets / rest houses for rent",
+        warehouseRent: "Warehouses for rent",
+        cameraGearRent: "Camera gear for rent",
+        rentOther: "Other (rent)",
+        serviceOffer: "Post a service",
+        cleaningService: "Cleaning service",
+        homeMaintenanceService: "Home maintenance service",
+        electricalPlumbingService: "Electrical / plumbing service",
+        movingService: "Moving service",
+        designTechService: "Design / tech service",
+        photoVideoService: "Photography / video service",
+        deliveryService: "Delivery service",
+        womenServices: "Women services",
+        studentServices: "Student services",
+        serviceOther: "Other (services)",
+        requestGoods: "Request an item",
+        requestPurchase: "Purchase request",
+        requestRent: "Rental request",
+        requestHomeService: "Home service request",
+        requestTechService: "Tech service request",
+        requestUrgentMaintenance: "Urgent maintenance request",
+        requestOther: "Other (request)"
+      },
+      dynamicFields: {
+        service: {
+          label: "Service area",
+          placeholder: "Example: North Riyadh"
+        },
+        request: {
+          label: "Request details",
+          placeholder: "Example: Looking for used iPhone 14"
+        },
+        sell: {
+          label: "Item condition",
+          placeholder: "Example: New / Used / Refurbished"
+        },
+        rent: {
+          label: "Property details",
+          placeholder: "Example: Apartment 3BR in Al Olaya"
+        },
+        default: {
+          label: "Additional details",
+          placeholder: "Add any extra details"
+        }
+      },
+      ai: {
+        title: "AI request assistant",
+        hint: "Describe your request freely and I will suggest type/category and auto-fill fields.",
+        inputLabel: "Quick request brief",
+        inputPlaceholder: "Example: Looking for AC technician in Riyadh today with budget 300 SAR",
+        runButton: "Generate smart suggestion",
+        runningButton: "Analyzing...",
+        applied: "Updated fields: {{fields}}",
+        noSignal: "Not enough clear signals to auto-fill fields.",
+        emptyInput: "Please enter a request brief first.",
+        updatedType: "offer type",
+        updatedCategory: "category",
+        updatedTitle: "title",
+        updatedDescription: "description",
+        updatedDetails: "request details",
+        updatedBudget: "budget",
+        prefixes: {
+          request: "Wanted",
+          service: "Service",
+          sell: "For sale",
+          rent: "For rent"
+        }
+      },
+      carDetails: {
+        title: "Vehicle details",
+        brandLabel: "Brand",
+        modelOptionLabel: "Model",
+        yearLabel: "Year",
+        selectModelHint: "Choose brand, model, and year",
+        brands: {
+          toyota: "Toyota",
+          nissan: "Nissan",
+          hyundai: "Hyundai",
+          kia: "Kia",
+          ford: "Ford",
+          chevrolet: "Chevrolet",
+          honda: "Honda",
+          mazda: "Mazda",
+          mitsubishi: "Mitsubishi",
+          lexus: "Lexus",
+          bmw: "BMW",
+          mercedes: "Mercedes-Benz",
+          audi: "Audi",
+          volkswagen: "Volkswagen",
+          porsche: "Porsche",
+          jeep: "Jeep",
+          dodge: "Dodge",
+          gmc: "GMC",
+          cadillac: "Cadillac",
+          landRover: "Land Rover",
+          volvo: "Volvo",
+          tesla: "Tesla",
+          peugeot: "Peugeot",
+          renault: "Renault",
+          suzuki: "Suzuki",
+          isuzu: "Isuzu",
+          infiniti: "Infiniti",
+          lincoln: "Lincoln",
+          mini: "Mini",
+          subaru: "Subaru",
+          geely: "Geely",
+          haval: "Haval",
+          mg: "MG",
+          chery: "Chery",
+          byd: "BYD",
+          gac: "GAC",
+          skoda: "Skoda",
+          seat: "SEAT",
+          fiat: "Fiat",
+          alfaRomeo: "Alfa Romeo"
+        },
+        models: {
+          toyota: { camry: "Camry", corolla: "Corolla", yaris: "Yaris", landCruiser: "Land Cruiser" },
+          nissan: { patrol: "Patrol", altima: "Altima", sunny: "Sunny", xtrail: "X-Trail" },
+          hyundai: { elantra: "Elantra", sonata: "Sonata", accent: "Accent", tucson: "Tucson" },
+          kia: { sportage: "Sportage", cerato: "Cerato", k5: "K5", picanto: "Picanto" },
+          ford: { taurus: "Taurus", f150: "F-150", explorer: "Explorer", edge: "Edge" },
+          chevrolet: { tahoe: "Tahoe", suburban: "Suburban", malibu: "Malibu", captiva: "Captiva" }
+        },
+        modelLabel: "Model",
+        modelPlaceholder: "Type car model",
+        brandSearchPlaceholder: "Search make in Arabic or English",
+        modelSearchPlaceholder: "Search model",
+        yearSearchPlaceholder: "Search year",
+        recentBrandsTitle: "Recently used makes",
+        noBrandsFound: "No matching makes found.",
+        noModelsFound: "No matching models found.",
+        clearSelection: "Clear selection",
+        selectBrandFirst: "Select make first to enable model selection.",
+        modelOtherOption: "Other model",
+        modelOtherLabel: "Model name",
+        modelOtherPlaceholder: "Type model name",
+        makeChangeConfirmTitle: "Change make",
+        makeChangeConfirmMessage: "Changing make will clear the selected model. Continue?",
+        modelClearedHint: "Previous model was cleared after make change.",
+        locationLabel: "Location",
+        locationPlaceholder: "Riyadh, 2640",
+        locationDetecting: "Detecting location automatically...",
+        locationAutoDetected: "Location is auto-filled; you can edit it manually or from maps.",
+        currentLocationLabel: "My current location",
+        editLocationFromMap: "Edit from maps",
+        mapEditorTitle: "Edit location from map",
+        mapEditorHint: "Adjust coordinates or location name, then save.",
+        latitudeLabel: "Latitude",
+        longitudeLabel: "Longitude",
+        saveMapLocation: "Save location",
+        adTypeLabel: "Ad type",
+        adTypeOptions: {
+          sell: "Sell",
+          transfer: "Transfer",
+          lease: "Lease"
+        },
+        conditionLabel: "Car condition",
+        conditionOptions: {
+          new: "New",
+          likeNew: "Like new",
+          used: "Used"
+        },
+        fuelLabel: "Fuel",
+        fuelOptions: {
+          gasoline: "Gasoline",
+          diesel: "Diesel",
+          hybrid: "Hybrid",
+          electric: "Electric"
+        },
+        mileageLabel: "Mileage",
+        mileagePlaceholder: "KM",
+        priceModeLabel: "Pricing mode",
+        priceModeOptions: {
+          fixed: "Fixed price",
+          bid: "On bid",
+          byWork: "By work"
+        },
+        structuredTitle: "Car data",
+        showAdvanced: "Show advanced details",
+        hideAdvanced: "Hide advanced details"
+      },
+      flow: {
+        stepProgress: "Step {{current}} of {{total}}",
+        categoryTitle: "Select listing type",
+        categoryHint: "Start with offer type, then pick a matching category.",
+        offerTypeTitle: "Offer type",
+        subCategoryTitle: "Category",
+        chooseCategoryCta: "Choose a matching category",
+        selectedCategory: "Selected category: {{value}}",
+        categorySearchPlaceholder: "Search categories",
+        popularCategoriesTitle: "Most used",
+        allCategoriesTitle: "All categories",
+        noCategoryResults: "No categories match your search.",
+        detailsTitle: "Ad details",
+        livePreviewTitle: "Live preview",
+        previewTitle: "Ad preview",
+        previewHint: "Review your ad details before confirming.",
+        previewFallbackTitle: "Untitled listing",
+        previewType: "Type: {{value}}",
+        previewCategoryLabel: "Category",
+        previewCategory: "Category: {{value}}",
+        previewPrice: "Listing price: {{value}}",
+        previewPriceMode: "Pricing mode: {{value}}",
+        previewCommission: "Commission fee: {{value}}",
+        agreementTitle: "Fees agreement",
+        agreementHint: "Please read and accept the fees agreement to continue.",
+        agreementBasmala: "In the name of Allah, the Most Merciful.",
+        agreementVerseLabel: "Allah Almighty said:",
+        agreementVerseText: "\"Fulfill the covenant of Allah when you have taken it and do not break oaths after confirming them...\"",
+        agreementVerseCitation: "Truthful is Allah the Almighty",
+        agreementCommitPrimary:
+          "I pledge and swear by Allah, as the advertiser, to pay the platform fee of 1% of the sale value whether the sale happened through the platform or because of it.",
+        agreementCommitSecondary: "* I also pledge to pay the fees within 10 days of receiving the full sale amount.",
+        agreementNoteTitle: "Fee notice",
+        agreementNoteBody: "Platform fees are the advertiser's responsibility and remain due unless paid.",
+        paymentTitle: "Online payment",
+        paymentHint: "Pay the publishing fee to complete listing publication.",
+        paymentMethods: {
+          mada: "mada",
+          card: "Credit / Debit card",
+          applePay: "Apple Pay"
+        },
+        summaryPrice: "Listing amount",
+        summaryCommission: "Commission fee",
+        summarySellerGets: "You receive",
+        summaryTotal: "Amount due now",
+        priceValue: "SAR {{value}}",
+        paymentDone: "Payment completed. Publishing your listing...",
+        next: "Continue",
+        back: "Back",
+        publishAndPay: "Pay and publish"
+      },
       errors: {
         authRequired: "You must be signed in to post a listing.",
         titleRequired: "Listing title is required.",
-        priceInvalid: "Price must be a valid number greater than zero."
+        priceInvalid: "Price must be a valid number greater than zero.",
+        offerTypeRequired: "Please select offer type.",
+        categoryRequired: "Please select an ad category.",
+        carModelRequired: "Please enter car model.",
+        carBrandRequired: "Please select car brand.",
+        carModelOptionRequired: "Please select car model.",
+        carModelOtherRequired: "Please enter model name.",
+        carYearRequired: "Please select manufacture year.",
+        carYearInvalidRange: "Manufacture year is out of allowed range.",
+        carLocationRequired: "Please enter car location.",
+        carMileageInvalid: "Please enter valid mileage.",
+        carMileageTooHigh: "Mileage exceeds the allowed logical limit.",
+        priceOutOfRange: "Price is out of the allowed range (500 - 20,000,000).",
+        imagesMinimumRequired: "Please add at least one photo before continuing.",
+        imagesProcessing: "Please wait until photo processing completes.",
+        agreementRequired: "You must accept the fees agreement."
       }
     },
     sort: {
@@ -71,24 +456,294 @@ export const en = {
       priceLow: "Lowest price"
     },
     searchPlaceholder: "Search listings",
+    searchByLocation: "By location",
+    quickFiltersTitle: "Quick filters",
+    quickFilters: {
+      all: "All",
+      available: "Available",
+      reserved: "Reserved",
+      withImages: "With photos",
+      newest: "Newest",
+      priceLow: "Lowest price"
+    },
+    featuredTitle: "Featured for you",
+    featuredSubtitle: "Suggested listings based on your activity",
+    listSectionTitle: "All listings",
     filters: {
       all: "All listings",
+      draft: "Drafts",
       available: "Available only",
       reserved: "Reserved only"
     },
     emptyState: "No listings matched your filters.",
     loadError: "Unable to load listings.",
     status: {
+      draft: "Draft",
       available: "Available",
-      reserved: "Reserved"
+      reserved: "Reserved",
+      inactive: "Inactive"
+    },
+    favorite: {
+      add: "Add to favorites",
+      remove: "Remove from favorites"
     },
     detail: {
       pageTitle: "Listing details",
       back: "Back to marketplace",
       description: "Listing description",
       noDescription: "This listing has no description.",
-      notFound: "Listing not found."
+      notFound: "Listing not found.",
+      locationTitle: "Listing location",
+      openInMaps: "Open in maps",
+      approximateLocation: "Approximate location",
+      imagesCount: "{{count}} photos",
+      viewsCount: "{{count}} views",
+      share: "Share",
+      favorite: "Favorite",
+      report: "Report",
+      deleteAction: "Delete",
+      favoriteAdded: "Listing added to favorites.",
+      favoriteRemoved: "Listing removed from favorites.",
+      shared: "Listing link shared.",
+      shareFailed: "Failed to share this listing.",
+      reported: "Report submitted.",
+      deleteConfirmTitle: "Delete listing",
+      deleteConfirmMessage: "Are you sure you want to delete this listing? This action cannot be undone.",
+      deleteConfirmButton: "Delete",
+      deleteFailed: "Could not delete the listing right now. Please try again.",
+      call: "Call",
+      chat: "Chat",
+      contactUnavailable: "Contact details are not available for this listing.",
+      advertiserTitle: "Advertiser",
+      advertiserName: "SANANY seller {{id}}",
+      advertiserRole: "Verified SANANY member",
+      similarAdsTitle: "Similar ads",
+      similarAdsSubtitle: "You may also be interested in these listings"
     },
     signOutHint: "Signed in as {{email}}"
+  },
+  search: {
+    pageTitle: "Advanced search",
+    pageSubtitle: "Find the right listing faster with precise controls",
+    mapTitle: "Listings map by location",
+    mapSubtitle: "Explore ad pins based on listing spread across areas",
+    backFromMap: "Back"
+  },
+  categories: {
+    pageTitle: "Categories",
+    pageSubtitle: "Browse listings by category",
+    explore: "Explore listings",
+    items: {
+      cars: "Cars",
+      realestate: "Real estate",
+      electronics: "Electronics",
+      services: "Services",
+      furniture: "Furniture",
+      jobs: "Jobs"
+    }
+  },
+  myAds: {
+    pageTitle: "My ads",
+    pageSubtitle: "Manage your drafts and published listings in one place",
+    searchPlaceholder: "Search your listings",
+    statusAll: "All statuses",
+    statusDraft: "Drafts",
+    statusAvailable: "Published",
+    statusReserved: "Reserved",
+    emptyState: "You have not posted any listings yet.",
+    emptyTitle: "No published ads yet",
+    emptyHint: "Start from the marketplace, explore current listings, and post your first ad when you're ready.",
+    exploreMarketplace: "Explore marketplace",
+    deleteAction: "Delete listing",
+    deleteConfirmTitle: "Delete listing",
+    deleteConfirmMessage: "Are you sure you want to delete this listing? This action cannot be undone.",
+    deleteConfirmButton: "Delete",
+    deleteFailed: "Could not delete the listing right now. Please try again."
+  },
+  sellerProfile: {
+    pageTitle: "Profile",
+    pageSubtitle: "Public seller profile on SANANY",
+    back: "Back",
+    more: "More",
+    verifiedShort: "Verified",
+    unknownCity: "Unknown city",
+    memberSince: "Member since {{value}}",
+    companyBusinessType: "Business activity: {{value}}",
+    lastSeen: "Last seen {{value}}",
+    ratingCount: "{{count}} ratings",
+    editProfile: "Edit profile",
+    follow: "Follow",
+    unfollow: "Unfollow",
+    message: "Message",
+    call: "Call",
+    share: "Share",
+    shareSuccess: "Profile link shared/copied.",
+    shareFailed: "Could not share profile right now.",
+    followSuccess: "Followed successfully.",
+    unfollowSuccess: "Unfollowed successfully.",
+    followFailed: "Could not update follow status right now.",
+    phoneUnavailable: "Phone number is unavailable.",
+    errorLoad: "Could not load profile.",
+    notFound: "This account does not exist or is unavailable.",
+    emptyListings: "No listings for this user yet.",
+    emptyMyListings: "You have not posted any listings yet.",
+    noRatings: "No ratings yet.",
+    anonymousRater: "SANANY user",
+    tabs: {
+      all: "All",
+      available: "Available",
+      sold: "Sold",
+      ratings: "Ratings"
+    },
+    sortListings: {
+      newest: "Newest",
+      oldest: "Oldest",
+      priceLow: "Price: low to high",
+      priceHigh: "Price: high to low"
+    },
+    sortRatings: {
+      newest: "Newest",
+      highest: "Highest rated",
+      lowest: "Lowest rated"
+    },
+    stats: {
+      listings: "Listings",
+      sold: "Sold",
+      followers: "Followers",
+      following: "Following",
+      ratings: "Ratings"
+    },
+    accountType: {
+      individual: "Individual",
+      company: "Company",
+      dealer: "Dealer",
+      business: "Business",
+      store: "Store"
+    }
+  },
+  profile: {
+    pageTitle: "Profile",
+    pageSubtitle: "Manage your account and SANANY preferences",
+    accountNameFallback: "SANANY user",
+    accountSectionTitle: "Account",
+    quickActionsTitle: "Quick actions",
+    emailLabel: "Email",
+    stats: {
+      ads: "Ads",
+      purchases: "Purchase cases"
+    },
+    accountInfo: {
+      title: "Account details",
+      subtitle: "Edit details"
+    },
+    myAds: {
+      title: "My ads",
+      subtitle: "Track your active listings"
+    },
+    publicProfile: {
+      title: "My public profile",
+      subtitle: "Open your public seller page"
+    },
+    language: {
+      title: "App language"
+    },
+    promoNotifications: {
+      title: "Promotional notifications",
+      subtitle: "Get alerts for offers and discounts"
+    },
+    showPhone: {
+      title: "Show phone number",
+      subtitle: "In your listing details"
+    },
+    contact: {
+      title: "Contact us",
+      subtitle: "Update details"
+    },
+    terms: {
+      title: "Terms and conditions",
+      subtitle: "Usage policy in SANANY"
+    },
+    actions: {
+      myAds: "My ads",
+      favorites: "Favorites",
+      notifications: "Notifications",
+      chat: "Chat",
+      settings: "Settings"
+    },
+    settings: {
+      title: "Settings",
+      subtitle: "Manage app preferences",
+      languageTitle: "App language",
+      languageHint: "Choose your preferred language from the options below.",
+      backToProfile: "Back to profile"
+    },
+    accountDetails: {
+      title: "Account details",
+      subtitle: "Information linked to your account",
+      usernameLabel: "Username",
+      emailLabel: "Email",
+      phoneLabel: "Phone number",
+      userIdLabel: "Account ID",
+      createdAtLabel: "Account created at",
+      notProvided: "Not provided"
+    }
+  },
+  favorites: {
+    pageTitle: "Favorites",
+    pageSubtitle: "Listings you saved for quick access later",
+    emptyTitle: "No favorite listings yet",
+    emptyHint: "When you favorite a listing, it will appear here."
+  },
+  notifications: {
+    pageTitle: "Notifications",
+    pageSubtitle: "Account and listing updates in one place",
+    emptyTitle: "No new notifications",
+    emptyHint: "Latest alerts and updates will appear here."
+  },
+  chat: {
+    pageTitle: "Chat",
+    pageSubtitle: "Your conversations with sellers and providers",
+    emptyTitle: "No conversations yet",
+    emptyHint: "Start a chat from any listing and it will appear here.",
+    openListing: "Open listing",
+    headerSubtitle: "Listing conversation",
+    send: "Send",
+    noThreadSelected: "Select a conversation to start chatting.",
+    loadError: "Failed to load chats.",
+    unreadOnly: "Unread messages",
+    deleteAction: "Delete",
+    minutesAgo: "{{count}} min",
+    threadName: "User {{id}}",
+    listingMessage: "Inquiry about this listing",
+    filters: {
+      all: "All",
+      seller: "Want to sell",
+      buyer: "Want to buy"
+    },
+    official: {
+      name: "SANANY",
+      title: "Welcome, we now have land available today...",
+      lastMessage: "",
+      logoTitle: "SANANY",
+      logoSubtitle: "sanany"
+    },
+    sample: {
+      name: "abdulrhman",
+      listingTitle: "Toyota Jeep 2020",
+      lastMessage: "How much?"
+    },
+    detail: {
+      inputPlaceholder: "Write a message...",
+      quickReplies: {
+        duration: "How long have you used it?",
+        finalPrice: "What's your final price?",
+        latest: "Almost two months"
+      },
+      messages: {
+        other1: "How long have you used it?",
+        me1: "About two months.",
+        other2: "Why?"
+      }
+    }
   }
 } as const;

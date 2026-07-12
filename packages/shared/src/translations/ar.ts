@@ -5,6 +5,7 @@ export const ar = {
   common: {
     loading: "جاري التحميل...",
     retry: "إعادة المحاولة",
+    cancel: "إلغاء",
     signOut: "تسجيل الخروج",
     next: "التالي",
     previous: "السابق",
@@ -14,16 +15,76 @@ export const ar = {
     ar: "العربية",
     en: "الإنجليزية"
   },
+  nav: {
+    marketplace: "السوق",
+    search: "البحث",
+    categories: "الأقسام",
+    myAds: "إعلاناتي",
+    profile: "الملف الشخصي",
+    favorites: "المفضلة",
+    chat: "المحادثة",
+    add: "+",
+    notifications: "الإشعارات",
+    account: "الحساب",
+    settings: "الإعدادات"
+  },
   auth: {
     signInTitle: "تسجيل الدخول",
     signUpTitle: "إنشاء حساب",
     subtitle: "بوابة الوصول إلى سوق سنعني",
+    signUpDescription: "اختر نوع الحساب المناسب لك.",
+    signUpAccountTypeLabel: "نوع الحساب",
+    signUpAccountType: {
+      individual: "فرد",
+      company: "شركة"
+    },
+    fullNameLabel: "الاسم الكامل",
+    fullNamePlaceholder: "مثال: محمد أحمد",
+    phoneLabel: "رقم الجوال",
+    phonePlaceholder: "مثال: 05XXXXXXXX",
+    cityLabel: "المدينة",
+    cityPlaceholder: "مثال: الرياض",
+    confirmPasswordLabel: "تأكيد كلمة المرور",
+    confirmPasswordPlaceholder: "أعد كتابة كلمة المرور",
+    termsAgreement: "أوافق على الشروط والأحكام",
     emailPlaceholder: "البريد الإلكتروني",
     passwordPlaceholder: "كلمة المرور",
     emailLabel: "البريد الإلكتروني",
     passwordLabel: "كلمة المرور",
     signInAction: "دخول",
     signUpAction: "تسجيل",
+    signUpIndividualAction: "إنشاء حساب فرد",
+    signUpCompanyAction: "إنشاء حساب شركة",
+    company: {
+      hint: "حساب الشركة مناسب للمعارض والمؤسسات ومقدمي الخدمات، ويمكنك استكمال بيانات التوثيق لاحقًا.",
+      companyNameLabel: "اسم الشركة",
+      companyNamePlaceholder: "مثال: مؤسسة سنعني التجارية",
+      representativeNameLabel: "اسم المسؤول",
+      representativeNamePlaceholder: "مثال: عبدالله محمد",
+      businessTypeLabel: "نوع النشاط",
+      customBusinessTypeLabel: "نشاط آخر",
+      customBusinessTypePlaceholder: "اكتب نوع النشاط",
+      commercialRegistrationLabel: "رقم السجل التجاري",
+      commercialRegistrationPlaceholder: "أدخل رقم السجل التجاري",
+      taxNumberLabel: "الرقم الضريبي (اختياري)",
+      taxNumberPlaceholder: "أدخل الرقم الضريبي",
+      websiteLabel: "الموقع الإلكتروني (اختياري)",
+      websitePlaceholder: "https://example.com",
+      descriptionLabel: "وصف الشركة (اختياري)",
+      descriptionPlaceholder: "نبذة مختصرة عن الشركة",
+      businessTypes: {
+        carShowroom: "معرض سيارات",
+        realEstate: "مكتب عقاري",
+        contracting: "شركة مقاولات",
+        trading: "مؤسسة تجارية",
+        store: "متجر",
+        services: "مقدم خدمات",
+        transport: "شركة نقل",
+        factory: "مصنع",
+        farm: "مزرعة",
+        other: "نشاط آخر"
+      }
+    },
     switchToSignUp: "ليس لديك حساب؟ سجل الآن",
     switchToSignIn: "لديك حساب بالفعل؟ سجل الدخول",
     emailConfirmationSent: "تم إنشاء الحساب. افحص بريدك الإلكتروني لتأكيد الحساب ثم سجّل الدخول.",
@@ -37,6 +98,19 @@ export const ar = {
       userExists: "يوجد حساب مسجل بهذا البريد الإلكتروني.",
       rateLimited: "تم تجاوز الحد المسموح به لإرسال البريد. انتظر قليلاً ثم حاول مجددًا.",
       passwordTooShort: "كلمة المرور قصيرة جداً. يجب أن تكون 6 أحرف على الأقل.",
+      passwordMismatch: "كلمة المرور وتأكيدها غير متطابقين.",
+      termsRequired: "يجب الموافقة على الشروط والأحكام.",
+      phoneRequired: "رقم الجوال مطلوب.",
+      cityRequired: "المدينة مطلوبة.",
+      fullNameRequired: "الاسم الكامل مطلوب.",
+      companyNameRequired: "اسم الشركة مطلوب.",
+      representativeNameRequired: "اسم المسؤول مطلوب.",
+      businessTypeRequired: "نوع النشاط مطلوب.",
+      customBusinessTypeRequired: "يرجى كتابة نوع النشاط.",
+      commercialRegistrationRequired: "رقم السجل التجاري مطلوب.",
+      invalidCommercialRegistration: "رقم السجل التجاري غير صالح.",
+      invalidTaxNumber: "الرقم الضريبي غير صالح.",
+      invalidWebsite: "الموقع الإلكتروني غير صالح.",
       unknown: "حدث خطأ غير متوقع أثناء المصادقة."
     }
   },
@@ -50,6 +124,7 @@ export const ar = {
       title: "أضف إعلان جديد",
       open: "أضف إعلاناً",
       close: "إغلاق",
+      defaultLocation: "الرياض",
       listingTitleLabel: "عنوان الإعلان",
       listingDescriptionLabel: "وصف الإعلان",
       listingPriceLabel: "السعر",
@@ -58,10 +133,319 @@ export const ar = {
       listingPricePlaceholder: "مثال: 180",
       submit: "نشر الإعلان",
       success: "تم نشر الإعلان بنجاح.",
+      draft: {
+        saveAndExit: "حفظ كمسودة وخروج",
+        saving: "جاري حفظ المسودة...",
+        savedAt: "آخر حفظ للمسودة {{value}}",
+        restored: "تم استرجاع المسودة ويمكنك متابعة التعديل.",
+        saveFailed: "تعذر مزامنة المسودة على الخادم. تم الاحتفاظ بنسخة محلية."
+      },
+      images: {
+        title: "أرفق صور الإعلان",
+        hint: "يمكنك إضافة حتى 10 صور.",
+        selectedCount: "الصور المحددة: {{count}} / 10",
+        idealCountHint: "لجودة أعلى للإعلان أضف {{count}} صور على الأقل.",
+        maxReached: "وصلت للحد الأقصى للصور ({{max}}).",
+        imageTooLarge: "بعض الصور كبيرة جدًا. الحد الأقصى للصورة الواحدة {{maxSizeMb}} MB.",
+        primaryBadge: "الرئيسية",
+        makePrimary: "تعيين رئيسية",
+        remove: "حذف",
+        moveUp: "أعلى",
+        moveDown: "أسفل",
+        imagePermissionDenied: "تم رفض إذن الوصول للصور. فعّل الإذن لاختيار الصور.",
+        imagePickFailed: "تعذر اختيار الصورة. حاول مجددًا.",
+        videoTitle: "أضف فيديو للإعلان",
+        videoHint: "المدة القصوى للفيديو: 1 دقيقة (60 ثانية).",
+        videoSelectCta: "اختيار فيديو",
+        videoReplaceCta: "استبدال الفيديو",
+        videoProcessing: "جاري تجهيز الفيديو وضغطه تلقائيًا...",
+        videoSelectedInfo: "الفيديو المحدد: {{duration}} ثانية • {{size}} MB",
+        videoCompressNote: "يتم تطبيق ضغط تلقائي لتقليل الحجم قبل الرفع.",
+        videoPermissionDenied: "تم رفض إذن الوصول للوسائط. فعّل الإذن لاختيار فيديو.",
+        videoDurationExceeded: "مدة الفيديو تتجاوز 60 ثانية. اختر فيديو أقصر.",
+        videoTooLargeAfterCompression: "حجم الفيديو بعد الضغط ما زال كبيرًا. الحد الأقصى {{maxSizeMb}} MB.",
+        videoProcessFailed: "تعذر تجهيز الفيديو. حاول مجددًا."
+      },
+      typeLabel: "نوع العرض",
+      offerTypes: {
+        service: "عرض خدمة",
+        request: "طلب",
+        sell: "عرض بيع",
+        rent: "عرض إيجار"
+      },
+      categories: {
+        carSale: "عرض سيارة للبيع أو للتنازل",
+        carPartsAndServices: "عرض قطع غيار أو خدمات سيارات أو إكسسوارات سيارات للبيع",
+        truckAndHeavy: "عرض شاحنة أو معدات ثقيلة للبيع أو الإيجار",
+        bikeSale: "عرض دباب للبيع",
+        propertySale: "عرض عقار للبيع",
+        propertyRent: "عرض عقار للإيجار",
+        deviceSale: "عرض جهاز للبيع",
+        furnitureSale: "عرض أثاث للبيع",
+        livestockSale: "عرض مواشي للبيع",
+        mobileSale: "عرض جوالات للبيع",
+        laptopSale: "عرض لابتوبات للبيع",
+        homeAppliancesSale: "عرض أجهزة منزلية للبيع",
+        toolsEquipmentSale: "عرض أدوات أو معدات للبيع",
+        clothingSale: "عرض ملابس للبيع",
+        kidsSuppliesSale: "عرض مستلزمات أطفال للبيع",
+        electronicPartsSale: "عرض قطع إلكترونية للبيع",
+        generalGoods: "عرض سلعة غير مصنفة أعلاه",
+        saleOther: "أخرى (بيع)",
+        carRent: "عرض سيارات للإيجار",
+        eventEquipmentRent: "عرض معدات مناسبات للإيجار",
+        constructionToolsRent: "عرض أدوات بناء للإيجار",
+        chaletRent: "عرض شاليهات أو استراحات للإيجار",
+        warehouseRent: "عرض مستودعات للإيجار",
+        cameraGearRent: "عرض أجهزة تصوير للإيجار",
+        rentOther: "أخرى (إيجار)",
+        serviceOffer: "إضافة خدمة",
+        cleaningService: "خدمة تنظيف",
+        homeMaintenanceService: "خدمة صيانة منزلية",
+        electricalPlumbingService: "خدمة كهرباء أو سباكة",
+        movingService: "خدمة نقل عفش",
+        designTechService: "خدمة تصميم أو تقنية",
+        photoVideoService: "خدمة تصوير أو مونتاج",
+        deliveryService: "خدمة توصيل",
+        womenServices: "خدمات نسائية",
+        studentServices: "خدمات طلابية",
+        serviceOther: "أخرى (خدمات)",
+        requestGoods: "طلب سلعة",
+        requestPurchase: "طلب شراء",
+        requestRent: "طلب استئجار",
+        requestHomeService: "طلب خدمة منزلية",
+        requestTechService: "طلب خدمة تقنية",
+        requestUrgentMaintenance: "طلب صيانة عاجلة",
+        requestOther: "أخرى (طلب)"
+      },
+      dynamicFields: {
+        service: {
+          label: "نطاق الخدمة",
+          placeholder: "مثال: شمال الرياض"
+        },
+        request: {
+          label: "تفاصيل الطلب",
+          placeholder: "مثال: أبحث عن آيفون 14 مستعمل"
+        },
+        sell: {
+          label: "حالة السلعة",
+          placeholder: "مثال: جديد / مستعمل / مجدد"
+        },
+        rent: {
+          label: "تفاصيل العقار",
+          placeholder: "مثال: شقة 3 غرف في العليا"
+        },
+        default: {
+          label: "تفاصيل إضافية",
+          placeholder: "أضف أي تفاصيل إضافية"
+        }
+      },
+      ai: {
+        title: "مساعد إنشاء الطلب بالذكاء الاصطناعي",
+        hint: "اكتب طلبك بشكل حر وسأقترح النوع والتصنيف وأعبئ الحقول تلقائيًا.",
+        inputLabel: "وصف سريع لطلبك",
+        inputPlaceholder: "مثال: أبحث عن فني تكييف بالرياض اليوم بميزانية 300 ريال",
+        runButton: "توليد اقتراح ذكي",
+        runningButton: "جاري التحليل...",
+        applied: "تم تحديث الحقول: {{fields}}",
+        noSignal: "لم يتم العثور على معلومات كافية للتعبئة التلقائية.",
+        emptyInput: "اكتب وصفًا للطلب أولًا.",
+        updatedType: "نوع العرض",
+        updatedCategory: "التصنيف",
+        updatedTitle: "العنوان",
+        updatedDescription: "الوصف",
+        updatedDetails: "تفاصيل الطلب",
+        updatedBudget: "الميزانية",
+        prefixes: {
+          request: "مطلوب",
+          service: "خدمة",
+          sell: "للبيع",
+          rent: "للإيجار"
+        }
+      },
+      carDetails: {
+        title: "تفاصيل المركبة",
+        brandLabel: "الماركة",
+        modelOptionLabel: "الفئة",
+        yearLabel: "سنة الصنع",
+        selectModelHint: "اختر الماركة ثم الفئة وسنة الصنع",
+        brands: {
+          toyota: "تويوتا",
+          nissan: "نيسان",
+          hyundai: "هيونداي",
+          kia: "كيا",
+          ford: "فورد",
+          chevrolet: "شيفروليه",
+          honda: "هوندا",
+          mazda: "مازدا",
+          mitsubishi: "ميتسوبيشي",
+          lexus: "لكزس",
+          bmw: "بي إم دبليو",
+          mercedes: "مرسيدس",
+          audi: "أودي",
+          volkswagen: "فولكس واجن",
+          porsche: "بورشه",
+          jeep: "جيب",
+          dodge: "دودج",
+          gmc: "جي إم سي",
+          cadillac: "كاديلاك",
+          landRover: "لاند روفر",
+          volvo: "فولفو",
+          tesla: "تسلا",
+          peugeot: "بيجو",
+          renault: "رينو",
+          suzuki: "سوزوكي",
+          isuzu: "ايسوزو",
+          infiniti: "إنفينيتي",
+          lincoln: "لينكون",
+          mini: "ميني",
+          subaru: "سوبارو",
+          geely: "جيلي",
+          haval: "هافال",
+          mg: "إم جي",
+          chery: "شيري",
+          byd: "بي واي دي",
+          gac: "جي إيه سي",
+          skoda: "سكودا",
+          seat: "سيات",
+          fiat: "فيات",
+          alfaRomeo: "ألفا روميو"
+        },
+        models: {
+          toyota: { camry: "كامري", corolla: "كورولا", yaris: "يارس", landCruiser: "لاندكروزر" },
+          nissan: { patrol: "باترول", altima: "التيما", sunny: "صني", xtrail: "إكس تريل" },
+          hyundai: { elantra: "النترا", sonata: "سوناتا", accent: "اكسنت", tucson: "توسان" },
+          kia: { sportage: "سبورتاج", cerato: "سيراتو", k5: "K5", picanto: "بيكانتو" },
+          ford: { taurus: "توروس", f150: "F-150", explorer: "إكسبلورر", edge: "إيدج" },
+          chevrolet: { tahoe: "تاهو", suburban: "سوبربان", malibu: "ماليبو", captiva: "كابتيفا" }
+        },
+        modelLabel: "الموديل",
+        modelPlaceholder: "اكتب موديل السيارة",
+        brandSearchPlaceholder: "ابحث عن الماركة بالعربية أو الإنجليزية",
+        modelSearchPlaceholder: "ابحث عن الفئة",
+        yearSearchPlaceholder: "ابحث عن سنة الصنع",
+        recentBrandsTitle: "آخر الماركات المستخدمة",
+        noBrandsFound: "لا توجد ماركات مطابقة.",
+        noModelsFound: "لا توجد فئات مطابقة.",
+        clearSelection: "مسح الاختيار",
+        selectBrandFirst: "اختر الماركة أولًا لتفعيل حقل الفئة.",
+        modelOtherOption: "موديل آخر",
+        modelOtherLabel: "اسم الموديل",
+        modelOtherPlaceholder: "اكتب اسم الموديل",
+        makeChangeConfirmTitle: "تغيير الماركة",
+        makeChangeConfirmMessage: "سيتم مسح الفئة المحددة عند تغيير الماركة. هل تريد المتابعة؟",
+        modelClearedHint: "تم مسح الفئة السابقة بعد تغيير الماركة.",
+        locationLabel: "الموقع",
+        locationPlaceholder: "الرياض، 2640",
+        locationDetecting: "جاري تحديد الموقع تلقائيًا...",
+        locationAutoDetected: "تم تعبئة الموقع تلقائيًا ويمكنك تعديله يدويًا أو من الخريطة.",
+        currentLocationLabel: "موقعي الحالي",
+        editLocationFromMap: "تعديل من الخرائط",
+        mapEditorTitle: "تعديل الموقع من الخريطة",
+        mapEditorHint: "حرّك الإحداثيات أو عدّل اسم الموقع ثم احفظ.",
+        latitudeLabel: "خط العرض",
+        longitudeLabel: "خط الطول",
+        saveMapLocation: "حفظ الموقع",
+        adTypeLabel: "نوع الإعلان",
+        adTypeOptions: {
+          sell: "بيع",
+          transfer: "تنازل",
+          lease: "تأجير"
+        },
+        conditionLabel: "حالة السيارة",
+        conditionOptions: {
+          new: "جديدة",
+          likeNew: "شبه جديدة",
+          used: "مستعملة"
+        },
+        fuelLabel: "الوقود",
+        fuelOptions: {
+          gasoline: "بنزين",
+          diesel: "ديزل",
+          hybrid: "هايبرد",
+          electric: "كهرباء"
+        },
+        mileageLabel: "الممشى",
+        mileagePlaceholder: "كم",
+        priceModeLabel: "تسعير الإعلان",
+        priceModeOptions: {
+          fixed: "سعر محدد",
+          bid: "على السوم",
+          byWork: "حسب العمل"
+        },
+        structuredTitle: "بيانات السيارة",
+        showAdvanced: "إظهار تفاصيل إضافية",
+        hideAdvanced: "إخفاء التفاصيل الإضافية"
+      },
+      flow: {
+        stepProgress: "الخطوة {{current}} من {{total}}",
+        categoryTitle: "اختر نوع العرض",
+        categoryHint: "ابدأ بنوع العرض ثم اختر التصنيف المناسب.",
+        offerTypeTitle: "نوع العرض",
+        subCategoryTitle: "التصنيف",
+        chooseCategoryCta: "اختر التصنيف المناسب",
+        selectedCategory: "التصنيف المختار: {{value}}",
+        categorySearchPlaceholder: "ابحث داخل التصنيفات",
+        popularCategoriesTitle: "الأكثر استخدامًا",
+        allCategoriesTitle: "كل التصنيفات",
+        noCategoryResults: "لا توجد تصنيفات مطابقة للبحث.",
+        detailsTitle: "تفاصيل الإعلان",
+        livePreviewTitle: "معاينة مباشرة",
+        previewTitle: "معاينة الإعلان",
+        previewHint: "راجع بيانات إعلانك قبل التأكيد.",
+        previewFallbackTitle: "إعلان بدون عنوان",
+        previewType: "النوع: {{value}}",
+        previewCategoryLabel: "التصنيف",
+        previewCategory: "القسم: {{value}}",
+        previewPrice: "سعر الإعلان: {{value}}",
+        previewPriceMode: "نمط التسعير: {{value}}",
+        previewCommission: "رسوم العمولة: {{value}}",
+        agreementTitle: "اتفاقية الرسوم",
+        agreementHint: "الرجاء قراءة اتفاقية الرسوم والموافقة عليها للمتابعة.",
+        agreementBasmala: "بسم الله الرحمن الرحيم",
+        agreementVerseLabel: "قال الله تعالى:",
+        agreementVerseText: "«وَأَوْفُوا بِعَهْدِ اللَّهِ إِذَا عَاهَدتُّمْ وَلَا تَنقُضُوا الْأَيْمَانَ بَعْدَ تَوْكِيدِهَا وَقَدْ جَعَلْتُمُ اللَّهَ عَلَيْكُمْ كَفِيلًا»",
+        agreementVerseCitation: "صدق الله العظيم",
+        agreementCommitPrimary: "أتعهد وأقسم بالله أنا المعلن أن أدفع رسوم الموقع وهي 1% من قيمة البيع سواء تم البيع عن طريق الموقع أو بسببه.",
+        agreementCommitSecondary: "* كما أتعهد بدفع الرسوم خلال 10 أيام من استلام كامل مبلغ المبايعة.",
+        agreementNoteTitle: "ملاحظة بشأن الرسوم",
+        agreementNoteBody: "رسوم الموقع هي على المعلن والتزام ذمة المعلن من الرسوم إلا في حال دفعها.",
+        paymentTitle: "الدفع أونلاين",
+        paymentHint: "ادفع رسوم النشر لإكمال نشر إعلانك.",
+        paymentMethods: {
+          mada: "مدى",
+          card: "بطاقة ائتمانية / مدى",
+          applePay: "Apple Pay"
+        },
+        summaryPrice: "قيمة الإعلان",
+        summaryCommission: "رسوم العمولة",
+        summarySellerGets: "صافي ما تستلمه",
+        summaryTotal: "المبلغ المطلوب الآن",
+        priceValue: "{{value}} ريال",
+        paymentDone: "تم الدفع. جاري نشر الإعلان...",
+        next: "متابعة",
+        back: "رجوع",
+        publishAndPay: "ادفع وانشر"
+      },
       errors: {
         authRequired: "يجب تسجيل الدخول لإضافة إعلان.",
         titleRequired: "عنوان الإعلان مطلوب.",
-        priceInvalid: "السعر يجب أن يكون رقمًا صحيحًا أكبر من صفر."
+        priceInvalid: "السعر يجب أن يكون رقمًا صحيحًا أكبر من صفر.",
+        offerTypeRequired: "يرجى اختيار نوع العرض.",
+        categoryRequired: "يرجى اختيار التصنيف.",
+        carModelRequired: "يرجى إدخال موديل السيارة.",
+        carBrandRequired: "يرجى اختيار ماركة السيارة.",
+        carModelOptionRequired: "يرجى اختيار فئة السيارة.",
+        carModelOtherRequired: "يرجى إدخال اسم الموديل.",
+        carYearRequired: "يرجى اختيار سنة الصنع.",
+        carYearInvalidRange: "سنة الصنع خارج النطاق المسموح.",
+        carLocationRequired: "يرجى إدخال موقع السيارة.",
+        carMileageInvalid: "يرجى إدخال ممشى صحيح.",
+        carMileageTooHigh: "الممشى أعلى من الحد المنطقي المسموح.",
+        priceOutOfRange: "السعر خارج النطاق المسموح (500 - 20,000,000).",
+        imagesMinimumRequired: "يرجى إضافة صورة واحدة على الأقل قبل المتابعة.",
+        imagesProcessing: "انتظر حتى يكتمل تجهيز الصور.",
+        agreementRequired: "يجب الموافقة على اتفاقية الرسوم."
       }
     },
     sort: {
@@ -71,8 +455,22 @@ export const ar = {
       priceLow: "الأقل سعراً"
     },
     searchPlaceholder: "ابحث في العروض",
+    searchByLocation: "حسب الموقع",
+    quickFiltersTitle: "فلاتر سريعة",
+    quickFilters: {
+      all: "الكل",
+      available: "المتاح",
+      reserved: "المحجوز",
+      withImages: "مع صور",
+      newest: "الأحدث",
+      priceLow: "الأقل سعر"
+    },
+    featuredTitle: "مميز لك",
+    featuredSubtitle: "إعلانات مقترحة حسب تفضيلاتك ونشاطك",
+    listSectionTitle: "كل الإعلانات",
     filters: {
       all: "كل العروض",
+      draft: "المسودات",
       available: "المتاح فقط",
       reserved: "المحجوز فقط"
     },
@@ -80,15 +478,271 @@ export const ar = {
     loadError: "تعذر تحميل العروض.",
     signOutHint: "تم تسجيل الدخول عبر {{email}}",
     status: {
+      draft: "مسودة",
       available: "متاح",
-      reserved: "محجوز"
+      reserved: "محجوز",
+      inactive: "غير نشط"
+    },
+    favorite: {
+      add: "إضافة إلى المفضلة",
+      remove: "إزالة من المفضلة"
     },
     detail: {
       pageTitle: "تفاصيل الإعلان",
       back: "رجوع للسوق",
       description: "وصف الإعلان",
       noDescription: "لا يوجد وصف لهذا الإعلان.",
-      notFound: "الإعلان غير موجود."
+      notFound: "الإعلان غير موجود.",
+      locationTitle: "موقع الإعلان",
+      openInMaps: "فتح في الخرائط",
+      approximateLocation: "موقع تقريبي",
+      imagesCount: "{{count}} صورة",
+      viewsCount: "{{count}} مشاهدة",
+      share: "مشاركة",
+      favorite: "تفضيل",
+      report: "تبليغ",
+      deleteAction: "حذف",
+      favoriteAdded: "تمت إضافة الإعلان إلى المفضلة.",
+      favoriteRemoved: "تمت إزالة الإعلان من المفضلة.",
+      shared: "تمت مشاركة رابط الإعلان.",
+      shareFailed: "تعذر مشاركة الإعلان.",
+      reported: "تم استلام التبليغ.",
+      deleteConfirmTitle: "حذف الإعلان",
+      deleteConfirmMessage: "هل أنت متأكد من حذف هذا الإعلان؟ لا يمكن التراجع عن هذا الإجراء.",
+      deleteConfirmButton: "حذف",
+      deleteFailed: "تعذر حذف الإعلان الآن. حاول مرة أخرى.",
+      call: "اتصال",
+      chat: "محادثة",
+      contactUnavailable: "معلومات التواصل غير متاحة لهذا الإعلان.",
+      advertiserTitle: "بيانات المعلن",
+      advertiserName: "معلن SANANY-{{id}}",
+      advertiserRole: "عضو موثق في سنعني",
+      similarAdsTitle: "إعلانات مشابهة",
+      similarAdsSubtitle: "قد تهمك هذه الإعلانات أيضًا"
+    }
+  },
+  search: {
+    pageTitle: "البحث المتقدم",
+    pageSubtitle: "ابحث عن الإعلان المناسب بسرعة وبدقة",
+    mapTitle: "خريطة الإعلانات حسب الموقع",
+    mapSubtitle: "استعرض الدبابيس حسب انتشار الإعلانات في المناطق",
+    backFromMap: "رجوع"
+  },
+  categories: {
+    pageTitle: "الأقسام",
+    pageSubtitle: "تصفح الإعلانات حسب القسم",
+    explore: "استعرض الإعلانات",
+    items: {
+      cars: "سيارات",
+      realestate: "عقارات",
+      electronics: "أجهزة إلكترونية",
+      services: "خدمات",
+      furniture: "أثاث",
+      jobs: "وظائف"
+    }
+  },
+  myAds: {
+    pageTitle: "إعلاناتي",
+    pageSubtitle: "إدارة مسوداتك وإعلاناتك المنشورة من مكان واحد",
+    searchPlaceholder: "ابحث داخل إعلاناتك",
+    statusAll: "كل الحالات",
+    statusDraft: "المسودات",
+    statusAvailable: "المنشور",
+    statusReserved: "المحجوز",
+    emptyState: "لا توجد لديك إعلانات حتى الآن.",
+    emptyTitle: "لا توجد إعلانات منشورة",
+    emptyHint: "ابدأ من السوق واستعرض الإعلانات الحالية ثم أضف أول إعلان لك عندما تكون جاهزًا.",
+    exploreMarketplace: "استعرض السوق",
+    deleteAction: "حذف الإعلان",
+    deleteConfirmTitle: "حذف الإعلان",
+    deleteConfirmMessage: "هل أنت متأكد من حذف هذا الإعلان؟ لا يمكن التراجع عن هذا الإجراء.",
+    deleteConfirmButton: "حذف",
+    deleteFailed: "تعذر حذف الإعلان الآن. حاول مرة أخرى."
+  },
+  sellerProfile: {
+    pageTitle: "الملف الشخصي",
+    pageSubtitle: "ملف البائع العام داخل سنعني",
+    back: "رجوع",
+    more: "المزيد",
+    verifiedShort: "موثّق",
+    unknownCity: "مدينة غير محددة",
+    memberSince: "عضو منذ {{value}}",
+    companyBusinessType: "النشاط: {{value}}",
+    lastSeen: "آخر ظهور {{value}}",
+    ratingCount: "{{count}} تقييم",
+    editProfile: "تعديل الملف الشخصي",
+    follow: "متابعة",
+    unfollow: "إلغاء المتابعة",
+    message: "مراسلة",
+    call: "اتصال",
+    share: "مشاركة",
+    shareSuccess: "تم نسخ/مشاركة رابط الملف الشخصي.",
+    shareFailed: "تعذر مشاركة الملف الشخصي الآن.",
+    followSuccess: "تمت المتابعة بنجاح.",
+    unfollowSuccess: "تم إلغاء المتابعة.",
+    followFailed: "تعذر تحديث المتابعة الآن.",
+    phoneUnavailable: "رقم الهاتف غير متاح.",
+    errorLoad: "تعذر تحميل الملف الشخصي.",
+    notFound: "هذا الحساب غير موجود أو غير متاح.",
+    emptyListings: "لا توجد إعلانات لهذا المستخدم حاليًا.",
+    emptyMyListings: "لم تضف أي إعلان بعد.",
+    noRatings: "لا توجد تقييمات حتى الآن.",
+    anonymousRater: "مستخدم سنعني",
+    tabs: {
+      all: "الكل",
+      available: "المعروضة",
+      sold: "المباعة",
+      ratings: "التقييمات"
+    },
+    sortListings: {
+      newest: "الأحدث",
+      oldest: "الأقدم",
+      priceLow: "الأقل سعرًا",
+      priceHigh: "الأعلى سعرًا"
+    },
+    sortRatings: {
+      newest: "الأحدث",
+      highest: "الأعلى",
+      lowest: "الأقل"
+    },
+    stats: {
+      listings: "الإعلانات",
+      sold: "المباعة",
+      followers: "المتابعون",
+      following: "يتابع",
+      ratings: "التقييمات"
+    },
+    accountType: {
+      individual: "فرد",
+      company: "شركة",
+      dealer: "معرض",
+      business: "مؤسسة",
+      store: "متجر"
+    }
+  },
+  profile: {
+    pageTitle: "الملف الشخصي",
+    pageSubtitle: "إدارة حسابك وتفضيلاتك داخل سنعني",
+    accountNameFallback: "مستخدم سنعني",
+    accountSectionTitle: "بيانات الحساب",
+    quickActionsTitle: "إجراءات سريعة",
+    emailLabel: "البريد الإلكتروني",
+    stats: {
+      ads: "إعلان",
+      purchases: "حالة شراء"
+    },
+    accountInfo: {
+      title: "بيانات الحساب",
+      subtitle: "تعديل البيانات"
+    },
+    myAds: {
+      title: "إعلاناتي",
+      subtitle: "تابع إعلاناتك الحالية"
+    },
+    publicProfile: {
+      title: "ملفي العام",
+      subtitle: "عرض الصفحة العامة كبائع"
+    },
+    language: {
+      title: "لغة التطبيق"
+    },
+    promoNotifications: {
+      title: "الإشعارات الترويجية",
+      subtitle: "احصل على إشعارات خاصة بالعروض والخصومات"
+    },
+    showPhone: {
+      title: "إظهار رقم الجوال",
+      subtitle: "في تفاصيل إعلاناتك"
+    },
+    contact: {
+      title: "تواصل معنا",
+      subtitle: "تعديل البيانات"
+    },
+    terms: {
+      title: "الشروط والأحكام",
+      subtitle: "سياسة الاستخدام في سنعني"
+    },
+    actions: {
+      myAds: "إعلاناتي",
+      favorites: "المفضلة",
+      notifications: "الإشعارات",
+      chat: "المحادثة",
+      settings: "الإعدادات"
+    },
+    settings: {
+      title: "الإعدادات",
+      subtitle: "إدارة تفضيلات التطبيق",
+      languageTitle: "لغة التطبيق",
+      languageHint: "اختر اللغة المناسبة لك من الخيارات التالية.",
+      backToProfile: "العودة للملف الشخصي"
+    },
+    accountDetails: {
+      title: "بيانات الحساب",
+      subtitle: "معلومات مرتبطة بحسابك",
+      usernameLabel: "اسم المستخدم",
+      emailLabel: "البريد الإلكتروني",
+      phoneLabel: "رقم الجوال",
+      userIdLabel: "معرّف الحساب",
+      createdAtLabel: "تاريخ إنشاء الحساب",
+      notProvided: "غير متوفر"
+    }
+  },
+  favorites: {
+    pageTitle: "المفضلة",
+    pageSubtitle: "كل الإعلانات التي حفظتها للرجوع لها لاحقًا",
+    emptyTitle: "لا توجد إعلانات مفضلة بعد",
+    emptyHint: "عند إضافة أي إعلان للمفضلة سيظهر هنا."
+  },
+  notifications: {
+    pageTitle: "الإشعارات",
+    pageSubtitle: "تنبيهات الحساب والإعلانات في مكان واحد",
+    emptyTitle: "لا توجد إشعارات جديدة",
+    emptyHint: "ستظهر هنا آخر التحديثات والتنبيهات فور وصولها."
+  },
+  chat: {
+    pageTitle: "المحادثة",
+    pageSubtitle: "رسائلك مع المعلنين ومقدمي الخدمات",
+    emptyTitle: "لا توجد محادثات بعد",
+    emptyHint: "ابدأ محادثة من صفحة الإعلان وستظهر هنا.",
+    openListing: "فتح الإعلان",
+    headerSubtitle: "محادثة الإعلان",
+    send: "إرسال",
+    noThreadSelected: "اختر محادثة للبدء.",
+    loadError: "تعذر تحميل المحادثات.",
+    unreadOnly: "الرسائل غير المقروءة",
+    deleteAction: "حذف",
+    minutesAgo: "{{count}} دقيقة",
+    threadName: "مستخدم {{id}}",
+    listingMessage: "استفسار عن هذا الإعلان",
+    filters: {
+      all: "الكل",
+      seller: "تريد بيعها",
+      buyer: "تريد شرائها"
+    },
+    official: {
+      name: "سنعني",
+      title: "مرحبا لدينا الآن للبيع اليوم ارض...",
+      lastMessage: "",
+      logoTitle: "سنعني",
+      logoSubtitle: "sanany"
+    },
+    sample: {
+      name: "abdulrhman",
+      listingTitle: "سيارة جيب تويوتا 2020",
+      lastMessage: "كم سعرها؟"
+    },
+    detail: {
+      inputPlaceholder: "اكتب رسالة...",
+      quickReplies: {
+        duration: "كم مدة استخدامك؟",
+        finalPrice: "كم وصل السوم؟",
+        latest: "آخرين ونس تقريباً"
+      },
+      messages: {
+        other1: "كم مدة استخدامك؟",
+        me1: "شهرين ونس تقريباً",
+        other2: "ليش"
+      }
     }
   }
 } as const;
