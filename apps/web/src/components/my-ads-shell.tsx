@@ -176,6 +176,14 @@ function updateSelectedImageState(items: SelectedImage[], localId: string, patch
   return normalizeImages(items.map((item) => (item.localId === localId ? { ...item, ...patch } : item)));
 }
 
+function isStorageRlsError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const message = error.message.toLowerCase();
+  return message.includes("row-level security policy");
+}
+
 function parseImageFilesToDataUrls(files: File[]): Promise<Array<{ uri: string; fileSize: number; mimeType: string }>> {
   return Promise.all(
     files.map(
@@ -561,7 +569,11 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
         });
         setSelectedImages(nextItems);
       } catch (error) {
-        const message = error instanceof Error ? error.message : t("marketplace.create.images.imagePickFailed");
+        const message = isStorageRlsError(error)
+          ? t("marketplace.create.images.storagePolicyMissing")
+          : error instanceof Error
+            ? error.message
+            : t("marketplace.create.images.imagePickFailed");
         nextItems = updateSelectedImageState(nextItems, item.localId, {
           status: "failed",
           progress: 0,

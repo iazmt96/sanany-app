@@ -255,6 +255,7 @@ export const en = {
         moveDown: "Down",
         imagePermissionDenied: "Photos permission is denied. Enable permission to pick images.",
         imagePickFailed: "Failed to pick image. Please try again.",
+        storagePolicyMissing: "Storage upload policy is not configured for authenticated users. Apply the listing_images storage migration/policies.",
         uploadPending: "Image uploads are still pending.",
         uploadFailed: "Some images failed to upload. Retry before publishing.",
         retry: "Retry upload",

@@ -255,6 +255,7 @@ export const ar = {
         moveDown: "أسفل",
         imagePermissionDenied: "تم رفض إذن الوصول للصور. فعّل الإذن لاختيار الصور.",
         imagePickFailed: "تعذر اختيار الصورة. حاول مجددًا.",
+        storagePolicyMissing: "سياسات رفع الصور في Storage غير مفعلة للمستخدمين المسجلين. طبّق migration وسياسات listing_images الخاصة بالتخزين.",
         uploadPending: "لا تزال بعض الصور قيد الرفع.",
         uploadFailed: "فشل رفع بعض الصور. أعد المحاولة قبل النشر.",
         retry: "إعادة الرفع",

@@ -470,6 +470,13 @@ function normalizeSelectedImages(items: SelectedImage[]): SelectedImage[] {
   return normalizeListingImageOrder(items.map((item, index) => ({ ...item, isPrimary: index === 0, sortOrder: index })));
 }
 
+function isStorageRlsError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return error.message.toLowerCase().includes("row-level security policy");
+}
+
 async function uploadMobileListingImage(input: {
   ownerId: string;
   image: SelectedImage;
@@ -753,7 +760,11 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
         );
         setSelectedImages(nextItems);
       } catch (error) {
-        const message = error instanceof Error ? error.message : t("marketplace.create.images.imagePickFailed");
+        const message = isStorageRlsError(error)
+          ? t("marketplace.create.images.storagePolicyMissing")
+          : error instanceof Error
+            ? error.message
+            : t("marketplace.create.images.imagePickFailed");
         nextItems = normalizeSelectedImages(
           nextItems.map((current) => (current.localId === item.localId ? { ...current, status: "failed", progress: 0, error: message } : current))
         );
