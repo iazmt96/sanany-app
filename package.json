@@ -10,6 +10,8 @@
     "build": "npm run build --workspaces --if-present",
     "dev:web": "npm run dev -w @sanany/web",
     "dev:mobile": "npm run dev -w @sanany/mobile",
+    "deploy:web:prod": "npx vercel deploy --prod --cwd apps/web",
+    "vercel:link:web": "npx vercel link --cwd apps/web",
     "setup:supabase": "powershell -ExecutionPolicy Bypass -File scripts\\setup-supabase-env.ps1",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
