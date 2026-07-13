@@ -7,6 +7,7 @@ export type AuthService = {
   getSession(): Promise<Session | null>;
   signIn(payload: AuthPayload): Promise<void>;
   signUp(payload: AuthPayload): Promise<Session | null>;
+  requestPasswordReset(email: string, redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
   onAuthStateChange(listener: (session: Session | null, event: AuthChangeEvent) => void): AuthSubscription;
 };
@@ -22,13 +23,38 @@ export function createSupabaseAuthService(client: SupabaseClient): AuthService {
       return data.session;
     },
     async signIn(payload) {
-      const { error } = await client.auth.signInWithPassword(payload);
+      const { error } = await client.auth.signInWithPassword({
+        email: payload.email,
+        password: payload.password
+      });
       if (error) {
         throw error;
       }
     },
     async signUp(payload) {
-      const { data, error } = await client.auth.signUp(payload);
+      const { data, error } = await client.auth.signUp({
+        email: payload.email,
+        password: payload.password,
+        options:
+          payload.accountType || payload.metadata
+            ? {
+                data: {
+                  ...(payload.accountType ? { account_type: payload.accountType } : {}),
+                  ...(payload.metadata?.displayName ? { display_name: payload.metadata.displayName, full_name: payload.metadata.displayName } : {}),
+                  ...(payload.metadata?.phone ? { phone: payload.metadata.phone } : {}),
+                  ...(payload.metadata?.city ? { city: payload.metadata.city } : {}),
+                  ...(payload.metadata?.companyName ? { company_name: payload.metadata.companyName } : {}),
+                  ...(payload.metadata?.representativeName ? { representative_name: payload.metadata.representativeName } : {}),
+                  ...(payload.metadata?.businessType ? { business_type: payload.metadata.businessType } : {}),
+                  ...(payload.metadata?.customBusinessType ? { custom_business_type: payload.metadata.customBusinessType } : {}),
+                  ...(payload.metadata?.commercialRegistration ? { commercial_registration: payload.metadata.commercialRegistration } : {}),
+                  ...(payload.metadata?.taxNumber ? { tax_number: payload.metadata.taxNumber } : {}),
+                  ...(payload.metadata?.website ? { website: payload.metadata.website } : {}),
+                  ...(payload.metadata?.companyDescription ? { company_description: payload.metadata.companyDescription } : {})
+                }
+              }
+            : undefined
+      });
       if (error) {
         throw error;
       }
@@ -37,6 +63,12 @@ export function createSupabaseAuthService(client: SupabaseClient): AuthService {
     },
     async signOut() {
       const { error } = await client.auth.signOut();
+      if (error) {
+        throw error;
+      }
+    },
+    async requestPasswordReset(email, redirectTo) {
+      const { error } = await client.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
       if (error) {
         throw error;
       }

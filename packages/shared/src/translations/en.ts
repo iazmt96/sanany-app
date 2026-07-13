@@ -9,7 +9,12 @@ export const en = {
     signOut: "Sign out",
     next: "Next",
     previous: "Previous",
-    page: "Page {{current}} of {{total}}"
+    page: "Page {{current}} of {{total}}",
+    notFound: {
+      title: "Page not found",
+      description: "The link you requested is currently unavailable.",
+      backToHome: "Back to home"
+    }
   },
   language: {
     ar: "Arabic",
@@ -27,6 +32,83 @@ export const en = {
     notifications: "Notifications",
     account: "Account",
     settings: "Settings"
+  },
+  siteLayout: {
+    skipToContent: "Skip to content",
+    auth: {
+      signIn: "Sign in",
+      signUp: "Create account"
+    },
+    header: {
+      searchLabel: "Search",
+      searchPlaceholder: "Search listings, services, or products",
+      cityLabel: "City",
+      addListing: "Add listing",
+      mainNavigationAriaLabel: "Main navigation"
+    },
+    mobileMenu: {
+      open: "Open menu",
+      ariaLabel: "Mobile menu"
+    },
+    breadcrumbs: {
+      ariaLabel: "Breadcrumbs",
+      listing: "Listing details",
+      seller: "Seller"
+    },
+    sidebar: {
+      ariaLabel: "Sidebar links",
+      title: "Shortcuts"
+    },
+    cities: {
+      riyadh: "Riyadh",
+      jeddah: "Jeddah",
+      dammam: "Dammam",
+      makkah: "Makkah",
+      madinah: "Madinah"
+    },
+    footer: {
+      linksTitle: "SANANY links",
+      about: "About SANANY",
+      terms: "Terms & Conditions",
+      privacy: "Privacy Policy",
+      help: "Help",
+      contact: "Contact us",
+      appsTitle: "SANANY apps",
+      ios: "iOS app",
+      android: "Android app",
+      languageTitle: "Language",
+      aboutDescription: "SANANY is a digital marketplace that helps individuals and businesses publish listings and manage engagement with confidence.",
+      copyright: "© {{year}} SANANY. All rights reserved."
+    }
+  },
+  home: {
+    metaTitle: "SANANY Marketplace | Buy, sell, and discover services",
+    metaDescription: "Browse SANANY listings by city and category, discover verified sellers, and start posting your listing with a localized web experience.",
+    hero: {
+      title: "SANANY marketplace for listings and services",
+      subtitle: "Search quickly in your city, explore categories, and start publishing with a professional flow.",
+      addListing: "Add listing"
+    },
+    sections: {
+      featured: "Featured listings",
+      latest: "Latest listings",
+      byCity: "Listings in {{city}}",
+      byCategory: "Listings by category",
+      verifiedSellers: "Verified companies and sellers"
+    },
+    cta: {
+      title: "Ready to sell a product or offer a service?",
+      subtitle: "Create your listing now and reach SANANY customers.",
+      action: "Start posting a listing"
+    },
+    seeAll: "See all",
+    cityEmpty: "Not enough listings in {{city}} right now.",
+    categoryEmpty: "No listings for this category yet.",
+    verifiedBadge: "Verified account",
+    empty: {
+      title: "No listings yet",
+      description: "Try reloading or check back later."
+    }
   },
   auth: {
     signInTitle: "Sign in",
@@ -57,6 +139,13 @@ export const en = {
     signUpCompanyAction: "Create company account",
     company: {
       hint: "Company accounts are for showrooms, businesses, and service providers. You can complete verification details later.",
+      webPanelTitle: "Company account benefits",
+      webPanelSubtitle: "Set up your business profile with official details for better marketplace trust.",
+      webPanelItems: {
+        verification: "Business verification and trust signals",
+        profile: "Professional company profile",
+        team: "Better communication for your sales team"
+      },
       companyNameLabel: "Company name",
       companyNamePlaceholder: "Example: SANANY Trading Co.",
       representativeNameLabel: "Representative name",
@@ -87,7 +176,15 @@ export const en = {
     },
     switchToSignUp: "Don't have an account? Sign up now",
     switchToSignIn: "Already have an account? Sign in",
+    forgotPasswordTitle: "Reset your password",
+    forgotPasswordSubtitle: "Enter your email and we will send a reset link.",
+    forgotPasswordLink: "Forgot password?",
+    forgotPasswordAction: "Send reset link",
+    backToSignIn: "Back to sign in",
+    passwordResetSent: "Password reset link sent. Check your inbox.",
     emailConfirmationSent: "Account created. Check your email to confirm your account, then sign in.",
+    verificationHint: "Verification follows the current system settings (email confirmation currently enabled).",
+    legacyAccountHint: "Legacy accounts without account type are treated as individual accounts.",
     configError: "Authentication is unavailable due to missing configuration.",
     errors: {
       emailRequired: "Email is required.",
@@ -138,7 +235,11 @@ export const en = {
         saving: "Saving draft...",
         savedAt: "Draft saved at {{value}}",
         restored: "Draft restored. You can continue editing.",
-        saveFailed: "Failed to sync draft. Local copy is kept."
+        saveFailed: "Failed to sync draft. Local copy is kept.",
+        queuePending: "Pending draft sync actions: {{count}}",
+        conflictDetected: "A newer remote draft was detected. Choose whether to overwrite it or keep this version local only.",
+        overwriteRemote: "Overwrite remote draft",
+        keepLocalOnly: "Keep local only"
       },
       images: {
         title: "Attach listing photos",
@@ -154,6 +255,16 @@ export const en = {
         moveDown: "Down",
         imagePermissionDenied: "Photos permission is denied. Enable permission to pick images.",
         imagePickFailed: "Failed to pick image. Please try again.",
+        uploadPending: "Image uploads are still pending.",
+        uploadFailed: "Some images failed to upload. Retry before publishing.",
+        retry: "Retry upload",
+        status: {
+          pending: "Pending",
+          compressing: "Preparing",
+          uploading: "Uploading",
+          uploaded: "Uploaded",
+          failed: "Failed"
+        },
         videoTitle: "Add listing video",
         videoHint: "Maximum video duration: 1 minute (60 seconds).",
         videoSelectCta: "Select video",
@@ -491,11 +602,16 @@ export const en = {
       pageTitle: "Listing details",
       back: "Back to marketplace",
       description: "Listing description",
+      specificationsTitle: "Specifications",
+      noSpecifications: "No structured specifications available.",
       noDescription: "This listing has no description.",
       notFound: "Listing not found.",
       locationTitle: "Listing location",
       openInMaps: "Open in maps",
       approximateLocation: "Approximate location",
+      locationPrivacyHint: "Exact coordinates are hidden for privacy and safety.",
+      noImage: "No image available for this listing.",
+      imageThumb: "Image {{index}}",
       imagesCount: "{{count}} photos",
       viewsCount: "{{count}} views",
       share: "Share",
@@ -517,6 +633,17 @@ export const en = {
       advertiserTitle: "Advertiser",
       advertiserName: "SANANY seller {{id}}",
       advertiserRole: "Verified SANANY member",
+      listingNumber: "Listing number",
+      listingDate: "Listing date",
+      noSimilarAds: "No similar listings found right now.",
+      availability: {
+        active: "Available",
+        self: "Your listing",
+        sold: "Sold",
+        reserved: "Reserved",
+        unavailable: "Unavailable",
+        expired: "Expired"
+      },
       similarAdsTitle: "Similar ads",
       similarAdsSubtitle: "You may also be interested in these listings"
     },
@@ -527,12 +654,48 @@ export const en = {
     pageSubtitle: "Find the right listing faster with precise controls",
     mapTitle: "Listings map by location",
     mapSubtitle: "Explore ad pins based on listing spread across areas",
-    backFromMap: "Back"
+    backFromMap: "Back",
+    share: "Share search",
+    shareCopied: "Search link copied.",
+    shareFailed: "Could not copy the link.",
+    view: {
+      grid: "Grid",
+      list: "List"
+    },
+    filters: {
+      title: "Filters",
+      open: "Filters ({{count}})",
+      activeCount: "{{count}} active filters",
+      clearAll: "Clear all filters",
+      category: "Category",
+      anyCategory: "Any category",
+      city: "City",
+      anyCity: "Any city",
+      minPrice: "Min price",
+      maxPrice: "Max price",
+      brand: "Brand",
+      model: "Model",
+      year: "Year",
+      condition: "Condition",
+      anyCondition: "Any condition",
+      fuel: "Fuel type",
+      anyFuel: "Any fuel type",
+      adType: "Ad type",
+      anyAdType: "Any ad type",
+      priceMode: "Price mode",
+      anyPriceMode: "Any price mode"
+    }
   },
   categories: {
+    metaTitle: "Categories | SANANY Marketplace",
+    metaDescription: "Browse SANANY main and sub categories with direct links to listings and up-to-date category counts.",
     pageTitle: "Categories",
     pageSubtitle: "Browse listings by category",
     explore: "Explore listings",
+    countLabel: "{{count}} listings",
+    openCategory: "Open category",
+    emptyTitle: "No categories available",
+    emptyDescription: "Could not load categories right now.",
     items: {
       cars: "Cars",
       realestate: "Real estate",
@@ -558,7 +721,45 @@ export const en = {
     deleteConfirmTitle: "Delete listing",
     deleteConfirmMessage: "Are you sure you want to delete this listing? This action cannot be undone.",
     deleteConfirmButton: "Delete",
-    deleteFailed: "Could not delete the listing right now. Please try again."
+    deleteFailed: "Could not delete the listing right now. Please try again.",
+    sections: {
+      active: "Active",
+      drafts: "Drafts",
+      pending: "Pending",
+      sold: "Sold",
+      rejected: "Rejected",
+      expired: "Expired"
+    },
+    form: {
+      summaryTitle: "Listing summary",
+      qualityScore: "Quality {{value}}%",
+      summaryType: "Type: {{value}}",
+      summaryCategory: "Category: {{value}}",
+      summaryImages: "Images: {{count}}",
+      summaryPrice: "Price: {{value}}",
+      dragDropHint: "Drag and drop images here, or click to upload multiple images.",
+      reviewBeforePublish: "Move to the review and agreement steps before publishing.",
+      draftRestored: "A saved draft was restored.",
+      lastDraftMinutes: "Last draft save: {{value}} min ago"
+    },
+    management: {
+      createNew: "Post new listing",
+      editing: "Editing: {{title}}",
+      markedSold: "Listing marked as sold.",
+      republished: "Listing republished.",
+      deleted: "Listing deleted.",
+      shared: "Listing link shared/copied.",
+      shareFailed: "Could not share listing link right now.",
+      mobileStatusOnlyHint: "Pending and rejected sections are shown for parity, but current mobile logic does not provide dedicated statuses for them.",
+      actions: {
+        edit: "Edit",
+        delete: "Delete",
+        preview: "Preview",
+        markSold: "Mark as sold",
+        republish: "Republish",
+        share: "Share"
+      }
+    }
   },
   sellerProfile: {
     pageTitle: "Profile",
@@ -588,7 +789,20 @@ export const en = {
     emptyListings: "No listings for this user yet.",
     emptyMyListings: "You have not posted any listings yet.",
     noRatings: "No ratings yet.",
+    noConnections: "No users found.",
     anonymousRater: "SANANY user",
+    connectionsFailed: "Could not load follow lists right now.",
+    ratingDistributionTitle: "Rating distribution",
+    addRatingTitle: "Add your rating",
+    ratingCommentPlaceholder: "Share your experience with this seller",
+    submitRating: "Submit rating",
+    ratingSaved: "Your rating has been saved.",
+    ratingSaveFailed: "Could not save rating right now.",
+    signInToRate: "Sign in to add a rating.",
+    selfRatingBlocked: "You cannot rate your own account.",
+    reportRating: "Report rating",
+    ratingReported: "Reported",
+    ratingReportSaved: "Rating report has been recorded.",
     tabs: {
       all: "All",
       available: "Available",
@@ -624,6 +838,8 @@ export const en = {
   profile: {
     pageTitle: "Profile",
     pageSubtitle: "Manage your account and SANANY preferences",
+    errorLoad: "Could not load your profile right now.",
+    notProvided: "Not provided",
     accountNameFallback: "SANANY user",
     accountSectionTitle: "Account",
     quickActionsTitle: "Quick actions",
@@ -675,7 +891,88 @@ export const en = {
       subtitle: "Manage app preferences",
       languageTitle: "App language",
       languageHint: "Choose your preferred language from the options below.",
-      backToProfile: "Back to profile"
+      backToProfile: "Back to profile",
+      sidebar: {
+        account: "Account",
+        company: "Company",
+        privacy: "Privacy",
+        notifications: "Notifications",
+        language: "Language",
+        password: "Password",
+        blocked: "Blocked users",
+        verification: "Verification",
+        delete: "Delete account"
+      },
+      account: {
+        hint: "Update your basic account data and sign out from this device.",
+        signOut: "Sign out"
+      },
+      company: {
+        hint: "Company profile summary and status.",
+        accountType: "Account type",
+        businessType: "Business type",
+        verification: "Verification",
+        sensitiveHint: "Sensitive company data (commercial registration, tax details, legal identifiers) is hidden in web profile settings."
+      },
+      privacy: {
+        showPhone: "Show phone number on public profile and listings",
+        showLastSeen: "Show last seen on public profile"
+      },
+      notifications: {
+        marketing: "Marketing and promotions",
+        messages: "Messages and chat updates",
+        listingUpdates: "Listing status updates"
+      },
+      language: {
+        hint: "Choose your preferred language for SANANY web."
+      },
+      password: {
+        hint: "Send a secure password reset link to your account email.",
+        action: "Send password reset link",
+        sent: "Password reset link sent.",
+        missingEmail: "No email found for this account."
+      },
+      blocked: {
+        empty: "No blocked users yet."
+      },
+      verification: {
+        current: "Current verification status: {{value}}",
+        hint: "Verification status is synchronized with your account records.",
+        status: {
+          unverified: "Unverified",
+          pending: "Pending",
+          verified: "Verified",
+          rejected: "Rejected"
+        }
+      },
+      delete: {
+        hint: "Account deletion requests are processed by support after identity confirmation.",
+        action: "Request account deletion"
+      }
+    },
+    sidebar: {
+      title: "Profile menu",
+      overview: "Overview"
+    },
+    listingSections: {
+      active: "Active listings",
+      drafts: "Draft listings",
+      sold: "Sold listings",
+      expired: "Expired listings",
+      favorites: "Favorites"
+    },
+    edit: {
+      title: "Edit profile data",
+      displayName: "Display name",
+      city: "City",
+      phone: "Phone number",
+      bio: "Bio",
+      save: "Save changes"
+    },
+    messages: {
+      profileSaved: "Profile updated successfully.",
+      privacySaved: "Privacy settings saved.",
+      notificationsSaved: "Notification settings saved."
     },
     accountDetails: {
       title: "Account details",
@@ -698,7 +995,25 @@ export const en = {
     pageTitle: "Notifications",
     pageSubtitle: "Account and listing updates in one place",
     emptyTitle: "No new notifications",
-    emptyHint: "Latest alerts and updates will appear here."
+    emptyHint: "Latest alerts and updates will appear here.",
+    loadError: "Failed to load notifications.",
+    markAllRead: "Mark all as read",
+    viewAll: "View all notifications",
+    kind: {
+      message: "Messages",
+      follow: "Follows",
+      rating: "Ratings",
+      listing_status: "Listing status",
+      admin_announcement: "Admin announcement"
+    },
+    templates: {
+      messageTitle: "New message",
+      imageMessage: "Image message",
+      followTitle: "{{actor}} started following you.",
+      ratingTitle: "{{actor}} rated you {{rating}}/5.",
+      listingStatusTitle: "{{listing}} changed from {{oldStatus}} to {{newStatus}}.",
+      adminAnnouncementTitle: "New announcement from SANANY admin"
+    }
   },
   chat: {
     pageTitle: "Chat",
@@ -710,6 +1025,24 @@ export const en = {
     send: "Send",
     noThreadSelected: "Select a conversation to start chatting.",
     loadError: "Failed to load chats.",
+    loadMessagesError: "Failed to load conversation messages.",
+    ensureConversationFailed: "Unable to open this conversation right now.",
+    sendFailed: "Failed to send your message.",
+    noMessagesYet: "No messages yet.",
+    openImage: "Open image",
+    openSeller: "Open seller profile",
+    imageUrlPlaceholder: "Image URL (optional)",
+    blockAction: "Block user",
+    unblockAction: "Unblock user",
+    reportedAction: "Reported",
+    reportAction: "Report conversation",
+    blockedByYou: "You blocked this conversation. Unblock to send new messages.",
+    blockedByOther: "This conversation is currently blocked.",
+    blockedSuccess: "Conversation blocked.",
+    unblockedSuccess: "Conversation unblocked.",
+    blockFailed: "Failed to update block status.",
+    reportedSuccess: "Conversation reported.",
+    reportFailed: "Failed to report conversation.",
     unreadOnly: "Unread messages",
     deleteAction: "Delete",
     minutesAgo: "{{count}} min",
@@ -732,6 +1065,9 @@ export const en = {
       listingTitle: "Toyota Jeep 2020",
       lastMessage: "How much?"
     },
+    detailsPanel: {
+      title: "Conversation details"
+    },
     detail: {
       inputPlaceholder: "Write a message...",
       quickReplies: {
@@ -744,6 +1080,556 @@ export const en = {
         me1: "About two months.",
         other2: "Why?"
       }
+    }
+  },
+  admin: {
+    title: "Admin",
+    dashboard: {
+      title: "Admin dashboard",
+      subtitle: "Live platform overview",
+      unavailable: "Unavailable",
+      cards: {
+        totalUsers: "Total users",
+        usersToday: "New users today",
+        usersMonth: "New users this month",
+        totalCompanies: "Total companies",
+        companiesPendingVerification: "Companies pending verification",
+        totalListings: "Total listings",
+        listingsAvailable: "Published listings",
+        listingsReserved: "Reserved listings",
+        listingsDraft: "Draft listings",
+        listingsInactive: "Inactive listings",
+        openReports: "Open reports"
+      }
+    },
+    sidebar: {
+      dashboard: "Dashboard",
+      users: "Users",
+      companies: "Companies",
+      listings: "Listings",
+      categories: "Categories",
+      reports: "Reports",
+      reviews: "Reviews",
+      verifications: "Verifications",
+      notifications: "Notifications",
+      settings: "Settings",
+      auditLogs: "Audit logs",
+      signOut: "Sign out"
+    },
+    header: {
+      welcome: "Welcome",
+      role: "Admin role",
+      languageAr: "العربية",
+      languageEn: "English"
+    },
+    search: {
+      placeholder: "Global search (users, companies, listings, reports, reviews)",
+      submit: "Search",
+      title: "Global search results",
+      resultsFor: "Results for: {query}",
+      emptyPrompt: "Enter a search term from the top search bar.",
+      noResults: "No matching results.",
+      openSection: "Open section",
+      ratingLabel: "Rating",
+      groups: {
+        users: "Users",
+        companies: "Companies",
+        listings: "Listings",
+        reports: "Reports",
+        reviews: "Reviews"
+      }
+    },
+    range: {
+      today: "Today",
+      days7: "7 days",
+      days30: "30 days",
+      months3: "3 months",
+      year1: "1 year"
+    },
+    charts: {
+      usersAndListings: "Users and listings trend",
+      usersShort: "Users",
+      listingsShort: "Listings"
+    },
+    activities: {
+      title: "Recent activity",
+      view: "View",
+      types: {
+        user_signup: "New user signup",
+        listing_created: "New listing created",
+        listing_status: "Listing status updated"
+      }
+    },
+    users: {
+      title: "Users management",
+      subtitle: "Monitor and review account details in one place",
+      columns: {
+        name: "Name",
+        username: "Username",
+        phone: "Phone (masked)",
+        accountType: "Account type",
+        city: "City",
+        listings: "Listings count",
+        verification: "Verification",
+        accessState: "Access state",
+        joinedAt: "Joined at",
+        actions: "Actions"
+      },
+      filters: {
+        search: "Search by name or username",
+        city: "City",
+        anyAccountType: "Any account type",
+        anyVerification: "Any verification status",
+        anyAccessState: "Any access state"
+      },
+      accountType: {
+        individual: "Individual",
+        company: "Company"
+      },
+      verification: {
+        verified: "Verified",
+        unverified: "Unverified"
+      },
+      access: {
+        active: "Active",
+        suspended: "Suspended"
+      },
+      actions: {
+        view: "View details",
+        suspend: "Suspend",
+        restore: "Restore"
+      },
+      messages: {
+        suspended: "Account suspended successfully.",
+        restored: "Account restored successfully.",
+        suspensionFailed: "Failed to update the account access state."
+      }
+    },
+    userDetails: {
+      account: "Account details",
+      company: "Company details",
+      listings: "Recent listings",
+      ratings: "Recent ratings",
+      lastSeenAt: "Last seen",
+      commercialRegistration: "Commercial registration (masked)",
+      taxNumber: "Tax number (masked)"
+    },
+    userAccess: {
+      title: "User access and permissions",
+      subtitle: "Manage this account's admin role and sign-in access directly from the admin panel.",
+      fields: {
+        email: "Email",
+        lastSignInAt: "Last sign-in",
+        adminRole: "Admin role",
+        accessState: "Access state",
+        bannedUntil: "Suspended until"
+      },
+      roles: {
+        none: "No admin role",
+        super_admin: "Super admin",
+        admin: "Admin",
+        moderator: "Moderator",
+        support: "Support",
+        content_manager: "Content manager",
+        finance: "Finance"
+      },
+      states: {
+        active: "Active",
+        suspended: "Suspended"
+      },
+      notes: {
+        tokenRefresh: "Admin role changes rely on app_metadata and may only apply fully after the user's session refreshes or they sign in again."
+      },
+      actions: {
+        title: "Management actions",
+        saveRole: "Save admin role",
+        suspendAccess: "Suspend account",
+        restoreAccess: "Restore access"
+      },
+      messages: {
+        roleUpdated: "Admin role updated successfully.",
+        suspended: "Account suspended successfully.",
+        restored: "Account access restored successfully.",
+        forbidden: "You cannot perform this action on this account."
+      }
+    },
+    companies: {
+      title: "Company accounts",
+      subtitle: "Manage companies and verification status",
+      dataSourceUnavailable: "Company data source is currently unavailable",
+      columns: {
+        companyName: "Company name",
+        representative: "Representative",
+        verification: "Verification status",
+        joinedAt: "Joined at"
+      },
+      filters: {
+        search: "Search by company or representative",
+        anyStatus: "Any verification status"
+      },
+      fields: {
+        userId: "User ID",
+        accessState: "Access state",
+        joinedAt: "Joined at",
+        requestedAt: "Verification requested at"
+      },
+      sections: {
+        account: "Account overview",
+        company: "Company profile",
+        listings: "Recent listings",
+        ratings: "Recent ratings"
+      },
+      moderation: {
+        title: "Verification controls",
+        subtitle: "Update the company verification status directly from the company account view."
+      },
+      actions: {
+        view: "View company",
+        back: "Back to companies",
+        openUser: "Open user account",
+        openVerification: "Open verification review",
+        openListings: "Open all listings"
+      },
+      messages: {
+        updated: "Company verification status updated successfully."
+      }
+    },
+    listings: {
+      title: "Listings management",
+      subtitle: "Monitor listings and apply moderation decisions",
+      filters: {
+        search: "Search by listing title or description",
+        owner: "Owner (name or id)",
+        anyStatus: "Any status"
+      },
+      columns: {
+        title: "Title",
+        owner: "Owner",
+        status: "Status",
+        price: "Price",
+        location: "Location",
+        createdAt: "Created at",
+        actions: "Actions"
+      },
+      status: {
+        draft: "Draft",
+        available: "Published",
+        reserved: "Reserved",
+        inactive: "Inactive"
+      },
+      actions: {
+        view: "View details",
+        back: "Back to listings",
+        approve: "Approve listing",
+        reject: "Reject listing"
+      },
+      moderation: {
+        title: "Moderation actions",
+        subtitle: "Approve to publish or reject to move the listing to inactive."
+      },
+      fields: {
+        listingId: "Listing ID",
+        description: "Description",
+        coordinates: "Coordinates",
+        images: "Listing images",
+        sortOrder: "Sort order",
+        primaryImage: "Primary image",
+        secondaryImage: "Secondary image",
+        legacyImageUrl: "Legacy image URL",
+        statusHistory: "Status history"
+      },
+      messages: {
+        approved: "Listing approved and status updated to published.",
+        rejected: "Listing rejected and status updated to inactive."
+      }
+    },
+    reports: {
+      title: "Reports management",
+      subtitle: "Review incoming reports and track their status",
+      detailsTitle: "Report details",
+      dataSourceUnavailable: "Reports data source is currently unavailable",
+      filters: {
+        search: "Search by report type, reason, or id",
+        anyStatus: "Any status",
+        type: "Report type"
+      },
+      status: {
+        open: "Open",
+        reviewed: "Reviewed",
+        closed: "Closed"
+      },
+      columns: {
+        type: "Type",
+        status: "Status",
+        reporter: "Reporter",
+        targetUser: "Reported user",
+        targetListing: "Reported listing",
+        reason: "Reason",
+        createdAt: "Created at",
+        actions: "Actions"
+      },
+      fields: {
+        reportId: "Report ID"
+      },
+      moderation: {
+        title: "Report actions",
+        subtitle: "Update report status based on moderation outcome."
+      },
+      actions: {
+        view: "View details",
+        back: "Back to reports",
+        markReviewed: "Mark as reviewed",
+        close: "Close report",
+        reopen: "Reopen report"
+      },
+      messages: {
+        updated: "Report status was updated successfully."
+      }
+    },
+    reviews: {
+      title: "Reviews management",
+      subtitle: "Monitor user ratings and review content",
+      detailsTitle: "Review details",
+      dataSourceUnavailable: "Reviews data source is currently unavailable",
+      filters: {
+        search: "Search by comment text",
+        anyRating: "Any rating"
+      },
+      columns: {
+        rating: "Rating",
+        comment: "Comment",
+        rater: "Rater",
+        seller: "Seller",
+        listing: "Listing",
+        createdAt: "Created at",
+        actions: "Actions"
+      },
+      fields: {
+        reviewId: "Review ID",
+        sellerCity: "Seller city",
+        raterCity: "Rater city"
+      },
+      moderation: {
+        title: "Review moderation",
+        subtitle: "Inspect the review context before taking a destructive moderation action."
+      },
+      actions: {
+        view: "View details",
+        back: "Back to reviews",
+        delete: "Delete review"
+      },
+      messages: {
+        deleted: "Review deleted successfully.",
+        deleteFailed: "Failed to delete the review."
+      }
+    },
+    verifications: {
+      title: "Verifications management",
+      subtitle: "Review company verification requests and update their status",
+      dataSourceUnavailable: "Verification data source is currently unavailable",
+      filters: {
+        search: "Search by company, representative, or business type",
+        anyStatus: "Any verification status"
+      },
+      status: {
+        unverified: "Unverified",
+        pending: "Pending review",
+        verified: "Verified",
+        rejected: "Rejected"
+      },
+      columns: {
+        companyName: "Company name",
+        representative: "Representative",
+        businessType: "Business type",
+        status: "Verification status",
+        city: "City",
+        listings: "Listings count",
+        requestedAt: "Requested at",
+        actions: "Actions"
+      },
+      fields: {
+        userId: "User ID",
+        commercialRegistration: "Commercial registration (masked)",
+        taxNumber: "Tax number (masked)",
+        website: "Website",
+        companyDescription: "Company description"
+      },
+      moderation: {
+        title: "Verification actions",
+        subtitle: "Update verification status based on review outcome."
+      },
+      actions: {
+        review: "Review",
+        back: "Back to verifications",
+        openUser: "Open user account",
+        markVerified: "Approve verification",
+        markRejected: "Reject verification",
+        markPending: "Mark as pending",
+        markUnverified: "Set unverified"
+      },
+      messages: {
+        updated: "Verification status was updated successfully."
+      }
+    },
+    auditLogs: {
+      title: "Audit logs",
+      subtitle: "Track key administrative activities across the platform",
+      dataSourceUnavailable: "Audit logs data source is currently unavailable",
+      filters: {
+        search: "Search by title, actor, or target",
+        anyType: "Any type"
+      },
+      types: {
+        listing_status: "Listing status change",
+        report_created: "Report created",
+        rating_created: "Rating created",
+        admin_announcement_sent: "Admin announcement sent",
+        report_status_updated: "Report status updated",
+        verification_status_updated: "Verification status updated",
+        user_role_updated: "User role updated",
+        user_access_updated: "User access updated",
+        review_deleted: "Review deleted"
+      },
+      columns: {
+        type: "Type",
+        title: "Title",
+        actor: "Actor",
+        target: "Target",
+        createdAt: "Timestamp",
+        actions: "Actions"
+      },
+      actions: {
+        open: "Open"
+      }
+    },
+    notificationsPanel: {
+      title: "Notifications management",
+      subtitle: "Monitor user notifications and send targeted admin announcements from the control panel.",
+      dataSourceUnavailable: "Notifications data source is currently unavailable",
+      filters: {
+        search: "Search by recipient, actor, or target",
+        anyKind: "Any notification kind",
+        allReadStates: "All read states",
+        unreadOnly: "Unread only"
+      },
+      kinds: {
+        follow: "Follow",
+        rating: "Rating",
+        listing_status: "Listing status change",
+        admin_announcement: "Admin announcement"
+      },
+      labels: {
+        read: "Read",
+        unread: "Unread"
+      },
+      readStates: {
+        read: "Read",
+        unread: "Unread"
+      },
+      columns: {
+        kind: "Kind",
+        recipient: "Recipient",
+        actor: "Actor",
+        target: "Target",
+        readState: "Read state",
+        createdAt: "Sent at",
+        actions: "Actions"
+      },
+      actions: {
+        open: "Open"
+      },
+      composer: {
+        title: "Send admin announcement",
+        subtitle: "Create a notification that is delivered directly to the selected users' notification center.",
+        audienceLabel: "Audience",
+        audienceUserIdLabel: "Target user ID",
+        titleLabel: "Announcement title",
+        bodyLabel: "Announcement body",
+        submit: "Send announcement",
+        audienceOptions: {
+          all: "All users",
+          individual: "Individual accounts",
+          company: "Company accounts",
+          user: "Specific user"
+        },
+        placeholders: {
+          userId: "Enter the target user ID",
+          title: "Example: Publishing policy update",
+          body: "Write the announcement text that users will receive"
+        }
+      },
+      messages: {
+        sent: "Admin announcement sent successfully.",
+        invalidAudience: "The selected notification audience is invalid.",
+        missingTargetUser: "A target user ID is required for this audience.",
+        failed: "Failed to send the admin announcement."
+      }
+    },
+    categoriesPanel: {
+      title: "Categories management",
+      subtitle: "Review current category coverage by listing distribution and jump directly into matching listings.",
+      dataSourceUnavailable: "Categories data source is currently unavailable",
+      filters: {
+        anyGroup: "All groups"
+      },
+      summary: {
+        totalListings: "Total classified listings: {{count}}",
+        subcategories: "{{count}} subcategories"
+      },
+      columns: {
+        mainCategory: "Main group",
+        subcategory: "Subcategory",
+        listingsCount: "Listings count",
+        keywords: "Match keywords",
+        actions: "Actions"
+      },
+      actions: {
+        openListings: "Open listings"
+      }
+    },
+    settingsPanel: {
+      title: "System settings",
+      subtitle: "Track configuration readiness, data indicators, and the current admin permission summary.",
+      sections: {
+        configuration: "Configuration status",
+        metrics: "Table metrics",
+        roles: "Roles and permissions"
+      },
+      flags: {
+        supabaseUrl: "Supabase URL",
+        publishableKey: "Publishable key",
+        serviceRoleKey: "Service role key",
+        adminWhitelist: "Admin allowlist",
+        defaultLanguage: "Default language",
+        supportedLanguages: "Supported languages"
+      },
+      status: {
+        configured: "Configured",
+        missing: "Missing"
+      },
+      values: {
+        adminWhitelist: "{{count}} email(s)",
+        statusOnly: "This card shows readiness only and does not reveal the secret value."
+      },
+      metrics: {
+        profiles: "Profiles",
+        companies: "Companies",
+        listings: "Listings",
+        reports: "Reports"
+      },
+      columns: {
+        role: "Role",
+        permissionsCount: "Permissions count",
+        permissions: "Permissions"
+      }
+    },
+    status: {
+      unauthorizedTitle: "Sign in required",
+      unauthorizedHint: "Please sign in with an admin account to access the admin panel.",
+      forbiddenTitle: "Forbidden",
+      forbiddenHint: "Your account does not have access to the admin panel.",
+      backToMarketplace: "Back to marketplace",
+      phaseOnePlaceholder: "This page will be implemented in the next phase."
     }
   }
 } as const;

@@ -9,7 +9,12 @@ export const ar = {
     signOut: "تسجيل الخروج",
     next: "التالي",
     previous: "السابق",
-    page: "الصفحة {{current}} من {{total}}"
+    page: "الصفحة {{current}} من {{total}}",
+    notFound: {
+      title: "الصفحة غير موجودة",
+      description: "الرابط الذي طلبته غير متوفر حاليًا.",
+      backToHome: "العودة للرئيسية"
+    }
   },
   language: {
     ar: "العربية",
@@ -27,6 +32,83 @@ export const ar = {
     notifications: "الإشعارات",
     account: "الحساب",
     settings: "الإعدادات"
+  },
+  siteLayout: {
+    skipToContent: "تجاوز إلى المحتوى",
+    auth: {
+      signIn: "تسجيل الدخول",
+      signUp: "إنشاء حساب"
+    },
+    header: {
+      searchLabel: "بحث",
+      searchPlaceholder: "ابحث عن إعلان أو خدمة أو منتج",
+      cityLabel: "المدينة",
+      addListing: "أضف إعلانًا",
+      mainNavigationAriaLabel: "التنقل الرئيسي"
+    },
+    mobileMenu: {
+      open: "فتح القائمة",
+      ariaLabel: "قائمة الجوال"
+    },
+    breadcrumbs: {
+      ariaLabel: "مسار التنقل",
+      listing: "تفاصيل الإعلان",
+      seller: "البائع"
+    },
+    sidebar: {
+      ariaLabel: "روابط جانبية",
+      title: "اختصارات"
+    },
+    cities: {
+      riyadh: "الرياض",
+      jeddah: "جدة",
+      dammam: "الدمام",
+      makkah: "مكة المكرمة",
+      madinah: "المدينة المنورة"
+    },
+    footer: {
+      linksTitle: "روابط SANANY",
+      about: "عن SANANY",
+      terms: "الشروط والأحكام",
+      privacy: "سياسة الخصوصية",
+      help: "المساعدة",
+      contact: "تواصل معنا",
+      appsTitle: "تطبيقات SANANY",
+      ios: "تطبيق iOS",
+      android: "تطبيق Android",
+      languageTitle: "اللغة",
+      aboutDescription: "SANANY منصة سوق رقمية تساعد الأفراد والشركات على عرض الإعلانات وإدارة التفاعل بثقة وسهولة.",
+      copyright: "© {{year}} SANANY. جميع الحقوق محفوظة."
+    }
+  },
+  home: {
+    metaTitle: "سوق SANANY | بيع واشتري واكتشف الخدمات",
+    metaDescription: "تصفح إعلانات SANANY حسب المدينة والقسم، واكتشف البائعين الموثقين، وابدأ إضافة إعلانك عبر تجربة ويب محلية.",
+    hero: {
+      title: "منصة SANANY لإعلانات البيع والخدمات",
+      subtitle: "ابحث بسرعة في مدينتك، استكشف الأقسام، وابدأ عرض إعلانك بطريقة احترافية.",
+      addListing: "أضف إعلانًا"
+    },
+    sections: {
+      featured: "الإعلانات المميزة",
+      latest: "أحدث الإعلانات",
+      byCity: "إعلانات في {{city}}",
+      byCategory: "إعلانات حسب القسم",
+      verifiedSellers: "شركات وبائعون موثقون"
+    },
+    cta: {
+      title: "جاهز لبيع منتجك أو عرض خدمتك؟",
+      subtitle: "أنشئ إعلانك الآن وابدأ الوصول لعملاء SANANY.",
+      action: "ابدأ بإضافة إعلان"
+    },
+    seeAll: "عرض الكل",
+    cityEmpty: "لا توجد إعلانات كافية في {{city}} حاليًا.",
+    categoryEmpty: "لا توجد إعلانات لهذا القسم حاليًا.",
+    verifiedBadge: "حساب موثق",
+    empty: {
+      title: "لا توجد إعلانات بعد",
+      description: "جرّب إعادة التحميل أو عد لاحقًا."
+    }
   },
   auth: {
     signInTitle: "تسجيل الدخول",
@@ -57,6 +139,13 @@ export const ar = {
     signUpCompanyAction: "إنشاء حساب شركة",
     company: {
       hint: "حساب الشركة مناسب للمعارض والمؤسسات ومقدمي الخدمات، ويمكنك استكمال بيانات التوثيق لاحقًا.",
+      webPanelTitle: "مزايا حساب الشركة",
+      webPanelSubtitle: "أكمل ملف شركتك بالبيانات الرسمية لزيادة الثقة داخل السوق.",
+      webPanelItems: {
+        verification: "توثيق الشركة وإشارات الثقة",
+        profile: "ملف شركة احترافي",
+        team: "تنسيق أفضل لتواصل فريق المبيعات"
+      },
       companyNameLabel: "اسم الشركة",
       companyNamePlaceholder: "مثال: مؤسسة سنعني التجارية",
       representativeNameLabel: "اسم المسؤول",
@@ -87,7 +176,15 @@ export const ar = {
     },
     switchToSignUp: "ليس لديك حساب؟ سجل الآن",
     switchToSignIn: "لديك حساب بالفعل؟ سجل الدخول",
+    forgotPasswordTitle: "استعادة كلمة المرور",
+    forgotPasswordSubtitle: "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة التعيين.",
+    forgotPasswordLink: "نسيت كلمة المرور؟",
+    forgotPasswordAction: "إرسال رابط الاستعادة",
+    backToSignIn: "العودة لتسجيل الدخول",
+    passwordResetSent: "تم إرسال رابط استعادة كلمة المرور. افحص بريدك.",
     emailConfirmationSent: "تم إنشاء الحساب. افحص بريدك الإلكتروني لتأكيد الحساب ثم سجّل الدخول.",
+    verificationHint: "يتم التحقق حسب إعداد النظام الحالي (تأكيد البريد الإلكتروني مفعّل حاليًا).",
+    legacyAccountHint: "الحسابات القديمة بدون نوع حساب تُعامل كحسابات فرد.",
     configError: "المصادقة غير متاحة بسبب نقص الإعدادات.",
     errors: {
       emailRequired: "البريد الإلكتروني مطلوب.",
@@ -138,7 +235,11 @@ export const ar = {
         saving: "جاري حفظ المسودة...",
         savedAt: "آخر حفظ للمسودة {{value}}",
         restored: "تم استرجاع المسودة ويمكنك متابعة التعديل.",
-        saveFailed: "تعذر مزامنة المسودة على الخادم. تم الاحتفاظ بنسخة محلية."
+        saveFailed: "تعذر مزامنة المسودة على الخادم. تم الاحتفاظ بنسخة محلية.",
+        queuePending: "عمليات مزامنة المسودة المعلقة: {{count}}",
+        conflictDetected: "تم العثور على مسودة أحدث على الخادم. اختر هل تريد الكتابة فوقها أو الاحتفاظ بهذه النسخة محليًا فقط.",
+        overwriteRemote: "الكتابة فوق المسودة البعيدة",
+        keepLocalOnly: "الاحتفاظ بالمحلية فقط"
       },
       images: {
         title: "أرفق صور الإعلان",
@@ -154,6 +255,16 @@ export const ar = {
         moveDown: "أسفل",
         imagePermissionDenied: "تم رفض إذن الوصول للصور. فعّل الإذن لاختيار الصور.",
         imagePickFailed: "تعذر اختيار الصورة. حاول مجددًا.",
+        uploadPending: "لا تزال بعض الصور قيد الرفع.",
+        uploadFailed: "فشل رفع بعض الصور. أعد المحاولة قبل النشر.",
+        retry: "إعادة الرفع",
+        status: {
+          pending: "معلق",
+          compressing: "جاري التجهيز",
+          uploading: "جاري الرفع",
+          uploaded: "تم الرفع",
+          failed: "فشل"
+        },
         videoTitle: "أضف فيديو للإعلان",
         videoHint: "المدة القصوى للفيديو: 1 دقيقة (60 ثانية).",
         videoSelectCta: "اختيار فيديو",
@@ -491,11 +602,16 @@ export const ar = {
       pageTitle: "تفاصيل الإعلان",
       back: "رجوع للسوق",
       description: "وصف الإعلان",
+      specificationsTitle: "المواصفات",
+      noSpecifications: "لا توجد مواصفات منظمة لهذا الإعلان.",
       noDescription: "لا يوجد وصف لهذا الإعلان.",
       notFound: "الإعلان غير موجود.",
       locationTitle: "موقع الإعلان",
       openInMaps: "فتح في الخرائط",
       approximateLocation: "موقع تقريبي",
+      locationPrivacyHint: "تم إخفاء الإحداثيات الدقيقة حفاظًا على الخصوصية والأمان.",
+      noImage: "لا توجد صورة لهذا الإعلان.",
+      imageThumb: "الصورة {{index}}",
       imagesCount: "{{count}} صورة",
       viewsCount: "{{count}} مشاهدة",
       share: "مشاركة",
@@ -517,6 +633,17 @@ export const ar = {
       advertiserTitle: "بيانات المعلن",
       advertiserName: "معلن SANANY-{{id}}",
       advertiserRole: "عضو موثق في سنعني",
+      listingNumber: "رقم الإعلان",
+      listingDate: "تاريخ الإعلان",
+      noSimilarAds: "لا توجد إعلانات مشابهة حاليًا.",
+      availability: {
+        active: "متاح",
+        self: "إعلانك",
+        sold: "مباع",
+        reserved: "محجوز",
+        unavailable: "غير متاح",
+        expired: "منتهي"
+      },
       similarAdsTitle: "إعلانات مشابهة",
       similarAdsSubtitle: "قد تهمك هذه الإعلانات أيضًا"
     }
@@ -526,12 +653,48 @@ export const ar = {
     pageSubtitle: "ابحث عن الإعلان المناسب بسرعة وبدقة",
     mapTitle: "خريطة الإعلانات حسب الموقع",
     mapSubtitle: "استعرض الدبابيس حسب انتشار الإعلانات في المناطق",
-    backFromMap: "رجوع"
+    backFromMap: "رجوع",
+    share: "مشاركة البحث",
+    shareCopied: "تم نسخ رابط البحث.",
+    shareFailed: "تعذر نسخ الرابط.",
+    view: {
+      grid: "شبكة",
+      list: "قائمة"
+    },
+    filters: {
+      title: "الفلاتر",
+      open: "الفلاتر ({{count}})",
+      activeCount: "{{count}} فلتر نشط",
+      clearAll: "مسح كل الفلاتر",
+      category: "القسم",
+      anyCategory: "كل الأقسام",
+      city: "المدينة",
+      anyCity: "كل المدن",
+      minPrice: "أقل سعر",
+      maxPrice: "أعلى سعر",
+      brand: "الماركة",
+      model: "الموديل",
+      year: "السنة",
+      condition: "الحالة",
+      anyCondition: "كل الحالات",
+      fuel: "نوع الوقود",
+      anyFuel: "كل أنواع الوقود",
+      adType: "نوع العرض",
+      anyAdType: "كل أنواع العرض",
+      priceMode: "وضع السعر",
+      anyPriceMode: "كل أوضاع السعر"
+    }
   },
   categories: {
+    metaTitle: "الأقسام | سوق SANANY",
+    metaDescription: "تصفح أقسام SANANY الرئيسية والفرعية مع روابط مباشرة للإعلانات وعدّادات محدثة.",
     pageTitle: "الأقسام",
     pageSubtitle: "تصفح الإعلانات حسب القسم",
     explore: "استعرض الإعلانات",
+    countLabel: "{{count}} إعلان",
+    openCategory: "فتح القسم",
+    emptyTitle: "لا توجد أقسام متاحة",
+    emptyDescription: "تعذر تحميل الأقسام حاليًا.",
     items: {
       cars: "سيارات",
       realestate: "عقارات",
@@ -557,7 +720,45 @@ export const ar = {
     deleteConfirmTitle: "حذف الإعلان",
     deleteConfirmMessage: "هل أنت متأكد من حذف هذا الإعلان؟ لا يمكن التراجع عن هذا الإجراء.",
     deleteConfirmButton: "حذف",
-    deleteFailed: "تعذر حذف الإعلان الآن. حاول مرة أخرى."
+    deleteFailed: "تعذر حذف الإعلان الآن. حاول مرة أخرى.",
+    sections: {
+      active: "النشطة",
+      drafts: "المسودات",
+      pending: "المعلقة",
+      sold: "المباعة",
+      rejected: "المرفوضة",
+      expired: "المنتهية"
+    },
+    form: {
+      summaryTitle: "ملخص الإعلان",
+      qualityScore: "جودة الإعلان {{value}}%",
+      summaryType: "النوع: {{value}}",
+      summaryCategory: "القسم: {{value}}",
+      summaryImages: "الصور: {{count}}",
+      summaryPrice: "السعر: {{value}}",
+      dragDropHint: "اسحب الصور وأفلتها هنا، أو اضغط لرفع صور متعددة.",
+      reviewBeforePublish: "انتقل إلى خطوة المراجعة والاتفاق قبل النشر.",
+      draftRestored: "تم استرجاع مسودة محفوظة.",
+      lastDraftMinutes: "آخر حفظ للمسودة قبل {{value}} دقيقة"
+    },
+    management: {
+      createNew: "أضف إعلانًا جديدًا",
+      editing: "جاري التعديل: {{title}}",
+      markedSold: "تم تعليم الإعلان كمباع.",
+      republished: "تمت إعادة نشر الإعلان.",
+      deleted: "تم حذف الإعلان.",
+      shared: "تم نسخ/مشاركة رابط الإعلان.",
+      shareFailed: "تعذر مشاركة رابط الإعلان الآن.",
+      mobileStatusOnlyHint: "أقسام المعلقة والمرفوضة معروضة للتوافق، لكن منطق الجوال الحالي لا يوفر لهما حالات مستقلة.",
+      actions: {
+        edit: "تعديل",
+        delete: "حذف",
+        preview: "معاينة",
+        markSold: "تعليم كمباع",
+        republish: "إعادة نشر",
+        share: "مشاركة"
+      }
+    }
   },
   sellerProfile: {
     pageTitle: "الملف الشخصي",
@@ -587,7 +788,20 @@ export const ar = {
     emptyListings: "لا توجد إعلانات لهذا المستخدم حاليًا.",
     emptyMyListings: "لم تضف أي إعلان بعد.",
     noRatings: "لا توجد تقييمات حتى الآن.",
+    noConnections: "لا يوجد مستخدمون في هذه القائمة.",
     anonymousRater: "مستخدم سنعني",
+    connectionsFailed: "تعذر تحميل قوائم المتابعة الآن.",
+    ratingDistributionTitle: "توزيع التقييمات",
+    addRatingTitle: "أضف تقييمك",
+    ratingCommentPlaceholder: "اكتب تجربتك مع هذا البائع",
+    submitRating: "إرسال التقييم",
+    ratingSaved: "تم حفظ تقييمك بنجاح.",
+    ratingSaveFailed: "تعذر حفظ التقييم الآن.",
+    signInToRate: "سجّل الدخول لإضافة تقييم.",
+    selfRatingBlocked: "لا يمكنك تقييم حسابك الخاص.",
+    reportRating: "الإبلاغ عن التقييم",
+    ratingReported: "تم الإبلاغ",
+    ratingReportSaved: "تم تسجيل بلاغ التقييم.",
     tabs: {
       all: "الكل",
       available: "المعروضة",
@@ -623,6 +837,8 @@ export const ar = {
   profile: {
     pageTitle: "الملف الشخصي",
     pageSubtitle: "إدارة حسابك وتفضيلاتك داخل سنعني",
+    errorLoad: "تعذر تحميل ملفك الشخصي الآن.",
+    notProvided: "غير متوفر",
     accountNameFallback: "مستخدم سنعني",
     accountSectionTitle: "بيانات الحساب",
     quickActionsTitle: "إجراءات سريعة",
@@ -674,7 +890,88 @@ export const ar = {
       subtitle: "إدارة تفضيلات التطبيق",
       languageTitle: "لغة التطبيق",
       languageHint: "اختر اللغة المناسبة لك من الخيارات التالية.",
-      backToProfile: "العودة للملف الشخصي"
+      backToProfile: "العودة للملف الشخصي",
+      sidebar: {
+        account: "الحساب",
+        company: "الشركة",
+        privacy: "الخصوصية",
+        notifications: "الإشعارات",
+        language: "اللغة",
+        password: "كلمة المرور",
+        blocked: "الحظر",
+        verification: "التوثيق",
+        delete: "حذف الحساب"
+      },
+      account: {
+        hint: "حدّث بيانات حسابك الأساسية وسجّل الخروج من هذا الجهاز.",
+        signOut: "تسجيل الخروج"
+      },
+      company: {
+        hint: "ملخص حالة ملف الشركة.",
+        accountType: "نوع الحساب",
+        businessType: "نوع النشاط",
+        verification: "حالة التوثيق",
+        sensitiveHint: "البيانات الحساسة للشركة (السجل التجاري، البيانات الضريبية، المعرفات القانونية) لا تُعرض في إعدادات الويب."
+      },
+      privacy: {
+        showPhone: "إظهار رقم الجوال في الملف العام والإعلانات",
+        showLastSeen: "إظهار آخر ظهور في الملف العام"
+      },
+      notifications: {
+        marketing: "التسويق والعروض",
+        messages: "الرسائل وتحديثات المحادثة",
+        listingUpdates: "تحديثات حالة الإعلانات"
+      },
+      language: {
+        hint: "اختر اللغة المفضلة لك في موقع سنعني."
+      },
+      password: {
+        hint: "إرسال رابط آمن لإعادة تعيين كلمة المرور إلى بريد حسابك.",
+        action: "إرسال رابط إعادة التعيين",
+        sent: "تم إرسال رابط إعادة تعيين كلمة المرور.",
+        missingEmail: "لا يوجد بريد إلكتروني مرتبط بهذا الحساب."
+      },
+      blocked: {
+        empty: "لا يوجد مستخدمون محظورون حتى الآن."
+      },
+      verification: {
+        current: "حالة التوثيق الحالية: {{value}}",
+        hint: "حالة التوثيق متزامنة مع بيانات حسابك.",
+        status: {
+          unverified: "غير موثّق",
+          pending: "قيد المراجعة",
+          verified: "موثّق",
+          rejected: "مرفوض"
+        }
+      },
+      delete: {
+        hint: "طلبات حذف الحساب تُنفذ عبر الدعم بعد التحقق من الهوية.",
+        action: "طلب حذف الحساب"
+      }
+    },
+    sidebar: {
+      title: "قائمة الملف الشخصي",
+      overview: "نظرة عامة"
+    },
+    listingSections: {
+      active: "الإعلانات النشطة",
+      drafts: "المسودات",
+      sold: "الإعلانات المباعة",
+      expired: "الإعلانات المنتهية",
+      favorites: "المفضلة"
+    },
+    edit: {
+      title: "تعديل بيانات الملف",
+      displayName: "الاسم الظاهر",
+      city: "المدينة",
+      phone: "رقم الجوال",
+      bio: "نبذة",
+      save: "حفظ التغييرات"
+    },
+    messages: {
+      profileSaved: "تم تحديث الملف الشخصي بنجاح.",
+      privacySaved: "تم حفظ إعدادات الخصوصية.",
+      notificationsSaved: "تم حفظ إعدادات الإشعارات."
     },
     accountDetails: {
       title: "بيانات الحساب",
@@ -697,7 +994,25 @@ export const ar = {
     pageTitle: "الإشعارات",
     pageSubtitle: "تنبيهات الحساب والإعلانات في مكان واحد",
     emptyTitle: "لا توجد إشعارات جديدة",
-    emptyHint: "ستظهر هنا آخر التحديثات والتنبيهات فور وصولها."
+    emptyHint: "ستظهر هنا آخر التحديثات والتنبيهات فور وصولها.",
+    loadError: "تعذر تحميل الإشعارات.",
+    markAllRead: "تعيين الكل كمقروء",
+    viewAll: "عرض كل الإشعارات",
+    kind: {
+      message: "الرسائل",
+      follow: "المتابعات",
+      rating: "التقييمات",
+      listing_status: "حالة الإعلان",
+      admin_announcement: "إعلان إداري"
+    },
+    templates: {
+      messageTitle: "رسالة جديدة",
+      imageMessage: "رسالة تحتوي صورة",
+      followTitle: "{{actor}} بدأ بمتابعتك.",
+      ratingTitle: "{{actor}} قيّمك بـ {{rating}}/5.",
+      listingStatusTitle: "{{listing}} تغيّرت حالته من {{oldStatus}} إلى {{newStatus}}.",
+      adminAnnouncementTitle: "إعلان جديد من إدارة SANANY"
+    }
   },
   chat: {
     pageTitle: "المحادثة",
@@ -709,6 +1024,24 @@ export const ar = {
     send: "إرسال",
     noThreadSelected: "اختر محادثة للبدء.",
     loadError: "تعذر تحميل المحادثات.",
+    loadMessagesError: "تعذر تحميل رسائل المحادثة.",
+    ensureConversationFailed: "تعذر فتح هذه المحادثة الآن.",
+    sendFailed: "تعذر إرسال رسالتك.",
+    noMessagesYet: "لا توجد رسائل بعد.",
+    openImage: "فتح الصورة",
+    openSeller: "فتح ملف البائع",
+    imageUrlPlaceholder: "رابط صورة (اختياري)",
+    blockAction: "حظر المستخدم",
+    unblockAction: "إلغاء حظر المستخدم",
+    reportedAction: "تم الإبلاغ",
+    reportAction: "الإبلاغ عن المحادثة",
+    blockedByYou: "لقد قمت بحظر هذه المحادثة. ألغِ الحظر للمتابعة.",
+    blockedByOther: "هذه المحادثة محظورة حاليًا.",
+    blockedSuccess: "تم حظر المحادثة.",
+    unblockedSuccess: "تم إلغاء حظر المحادثة.",
+    blockFailed: "تعذر تحديث حالة الحظر.",
+    reportedSuccess: "تم الإبلاغ عن المحادثة.",
+    reportFailed: "تعذر الإبلاغ عن المحادثة.",
     unreadOnly: "الرسائل غير المقروءة",
     deleteAction: "حذف",
     minutesAgo: "{{count}} دقيقة",
@@ -731,6 +1064,9 @@ export const ar = {
       listingTitle: "سيارة جيب تويوتا 2020",
       lastMessage: "كم سعرها؟"
     },
+    detailsPanel: {
+      title: "تفاصيل المحادثة"
+    },
     detail: {
       inputPlaceholder: "اكتب رسالة...",
       quickReplies: {
@@ -743,6 +1079,556 @@ export const ar = {
         me1: "شهرين ونس تقريباً",
         other2: "ليش"
       }
+    }
+  },
+  admin: {
+    title: "لوحة التحكم",
+    dashboard: {
+      title: "لوحة التحكم الإدارية",
+      subtitle: "ملخص مباشر لحالة المنصة",
+      unavailable: "غير متوفر",
+      cards: {
+        totalUsers: "إجمالي المستخدمين",
+        usersToday: "مستخدمون جدد اليوم",
+        usersMonth: "مستخدمون جدد هذا الشهر",
+        totalCompanies: "إجمالي الشركات",
+        companiesPendingVerification: "شركات بانتظار التوثيق",
+        totalListings: "إجمالي الإعلانات",
+        listingsAvailable: "الإعلانات المنشورة",
+        listingsReserved: "الإعلانات المحجوزة",
+        listingsDraft: "الإعلانات كمسودة",
+        listingsInactive: "الإعلانات غير النشطة",
+        openReports: "البلاغات المفتوحة"
+      }
+    },
+    sidebar: {
+      dashboard: "الرئيسية",
+      users: "المستخدمون",
+      companies: "الشركات",
+      listings: "الإعلانات",
+      categories: "الأقسام",
+      reports: "البلاغات",
+      reviews: "التقييمات",
+      verifications: "التوثيق",
+      notifications: "الإشعارات",
+      settings: "الإعدادات",
+      auditLogs: "سجل العمليات",
+      signOut: "تسجيل الخروج"
+    },
+    header: {
+      welcome: "مرحبًا",
+      role: "الدور الإداري",
+      languageAr: "العربية",
+      languageEn: "English"
+    },
+    search: {
+      placeholder: "بحث عام (مستخدم، شركة، إعلان، بلاغ، تقييم)",
+      submit: "بحث",
+      title: "نتائج البحث العام",
+      resultsFor: "نتائج البحث عن: {query}",
+      emptyPrompt: "اكتب مصطلح بحث من شريط البحث العلوي.",
+      noResults: "لا توجد نتائج مطابقة.",
+      openSection: "فتح القسم",
+      ratingLabel: "التقييم",
+      groups: {
+        users: "المستخدمون",
+        companies: "الشركات",
+        listings: "الإعلانات",
+        reports: "البلاغات",
+        reviews: "التقييمات"
+      }
+    },
+    range: {
+      today: "اليوم",
+      days7: "7 أيام",
+      days30: "30 يومًا",
+      months3: "3 أشهر",
+      year1: "سنة"
+    },
+    charts: {
+      usersAndListings: "اتجاه المستخدمين والإعلانات",
+      usersShort: "مستخدمون",
+      listingsShort: "إعلانات"
+    },
+    activities: {
+      title: "النشاطات الأخيرة",
+      view: "عرض",
+      types: {
+        user_signup: "تسجيل مستخدم جديد",
+        listing_created: "إضافة إعلان جديد",
+        listing_status: "تحديث حالة إعلان"
+      }
+    },
+    users: {
+      title: "إدارة المستخدمين",
+      subtitle: "متابعة الحسابات وتفاصيلها من مكان واحد",
+      columns: {
+        name: "الاسم",
+        username: "اسم المستخدم",
+        phone: "الجوال (مخفي)",
+        accountType: "نوع الحساب",
+        city: "المدينة",
+        listings: "عدد الإعلانات",
+        verification: "التوثيق",
+        accessState: "حالة الوصول",
+        joinedAt: "تاريخ التسجيل",
+        actions: "الإجراءات"
+      },
+      filters: {
+        search: "ابحث بالاسم أو اسم المستخدم",
+        city: "المدينة",
+        anyAccountType: "كل أنواع الحسابات",
+        anyVerification: "كل حالات التوثيق",
+        anyAccessState: "كل حالات الوصول"
+      },
+      accountType: {
+        individual: "فرد",
+        company: "شركة"
+      },
+      verification: {
+        verified: "موثق",
+        unverified: "غير موثق"
+      },
+      access: {
+        active: "نشط",
+        suspended: "معلّق"
+      },
+      actions: {
+        view: "عرض التفاصيل",
+        suspend: "تعليق",
+        restore: "استعادة"
+      },
+      messages: {
+        suspended: "تم تعليق الحساب بنجاح.",
+        restored: "تمت استعادة الحساب بنجاح.",
+        suspensionFailed: "تعذر تحديث حالة الحساب."
+      }
+    },
+    userDetails: {
+      account: "بيانات الحساب",
+      company: "بيانات الشركة",
+      listings: "الإعلانات الأخيرة",
+      ratings: "التقييمات الأخيرة",
+      lastSeenAt: "آخر ظهور",
+      commercialRegistration: "السجل التجاري (مخفي)",
+      taxNumber: "الرقم الضريبي (مخفي)"
+    },
+    userAccess: {
+      title: "وصول المستخدم والصلاحيات",
+      subtitle: "إدارة الدور الإداري وحالة الدخول لهذا الحساب من لوحة التحكم.",
+      fields: {
+        email: "البريد الإلكتروني",
+        lastSignInAt: "آخر تسجيل دخول",
+        adminRole: "الدور الإداري",
+        accessState: "حالة الوصول",
+        bannedUntil: "التعليق حتى"
+      },
+      roles: {
+        none: "بدون دور إداري",
+        super_admin: "مشرف عام",
+        admin: "مدير",
+        moderator: "مشرف",
+        support: "دعم",
+        content_manager: "مدير محتوى",
+        finance: "مالي"
+      },
+      states: {
+        active: "نشط",
+        suspended: "معلّق"
+      },
+      notes: {
+        tokenRefresh: "تغييرات الدور الإداري تعتمد على app_metadata وقد تظهر بالكامل بعد تحديث الجلسة أو تسجيل الدخول مجددًا."
+      },
+      actions: {
+        title: "إجراءات الإدارة",
+        saveRole: "حفظ الدور الإداري",
+        suspendAccess: "تعليق الحساب",
+        restoreAccess: "إلغاء التعليق"
+      },
+      messages: {
+        roleUpdated: "تم تحديث الدور الإداري بنجاح.",
+        suspended: "تم تعليق الحساب بنجاح.",
+        restored: "تمت إعادة تفعيل الحساب.",
+        forbidden: "لا يمكنك تنفيذ هذا الإجراء على هذا الحساب."
+      }
+    },
+    companies: {
+      title: "حسابات الشركات",
+      subtitle: "إدارة الشركات وحالة التوثيق",
+      dataSourceUnavailable: "مصدر بيانات الشركات غير متاح حاليًا",
+      columns: {
+        companyName: "اسم الشركة",
+        representative: "المسؤول",
+        verification: "حالة التوثيق",
+        joinedAt: "تاريخ التسجيل"
+      },
+      filters: {
+        search: "ابحث باسم الشركة أو المسؤول",
+        anyStatus: "كل حالات التوثيق"
+      },
+      fields: {
+        userId: "معرف المستخدم",
+        accessState: "حالة الوصول",
+        joinedAt: "تاريخ التسجيل",
+        requestedAt: "تاريخ طلب التوثيق"
+      },
+      sections: {
+        account: "ملخص الحساب",
+        company: "ملف الشركة",
+        listings: "أحدث الإعلانات",
+        ratings: "أحدث التقييمات"
+      },
+      moderation: {
+        title: "ضوابط التوثيق",
+        subtitle: "يمكنك تحديث حالة توثيق الشركة مباشرة من صفحة حساب الشركة."
+      },
+      actions: {
+        view: "عرض الشركة",
+        back: "العودة للشركات",
+        openUser: "فتح حساب المستخدم",
+        openVerification: "فتح مراجعة التوثيق",
+        openListings: "فتح كل الإعلانات"
+      },
+      messages: {
+        updated: "تم تحديث حالة توثيق الشركة بنجاح."
+      }
+    },
+    listings: {
+      title: "إدارة الإعلانات",
+      subtitle: "متابعة الإعلانات وتنفيذ قرارات المراجعة",
+      filters: {
+        search: "ابحث بعنوان الإعلان أو وصفه",
+        owner: "المالك (اسم أو معرف)",
+        anyStatus: "كل الحالات"
+      },
+      columns: {
+        title: "العنوان",
+        owner: "المالك",
+        status: "الحالة",
+        price: "السعر",
+        location: "الموقع",
+        createdAt: "تاريخ الإنشاء",
+        actions: "الإجراءات"
+      },
+      status: {
+        draft: "مسودة",
+        available: "منشور",
+        reserved: "محجوز",
+        inactive: "غير نشط"
+      },
+      actions: {
+        view: "عرض التفاصيل",
+        back: "العودة لقائمة الإعلانات",
+        approve: "اعتماد الإعلان",
+        reject: "رفض الإعلان"
+      },
+      moderation: {
+        title: "إجراءات المراجعة",
+        subtitle: "يمكنك اعتماد الإعلان للنشر أو رفضه وتحويله إلى غير نشط."
+      },
+      fields: {
+        listingId: "معرف الإعلان",
+        description: "الوصف",
+        coordinates: "الإحداثيات",
+        images: "صور الإعلان",
+        sortOrder: "الترتيب",
+        primaryImage: "صورة رئيسية",
+        secondaryImage: "صورة إضافية",
+        legacyImageUrl: "رابط الصورة القديم",
+        statusHistory: "سجل تغييرات الحالة"
+      },
+      messages: {
+        approved: "تم اعتماد الإعلان وتحديث حالته إلى منشور.",
+        rejected: "تم رفض الإعلان وتحديث حالته إلى غير نشط."
+      }
+    },
+    reports: {
+      title: "إدارة البلاغات",
+      subtitle: "مراجعة البلاغات ومتابعة حالاتها",
+      detailsTitle: "تفاصيل البلاغ",
+      dataSourceUnavailable: "مصدر بيانات البلاغات غير متاح حاليًا",
+      filters: {
+        search: "ابحث بنوع البلاغ أو السبب أو المعرف",
+        anyStatus: "كل الحالات",
+        type: "نوع البلاغ"
+      },
+      status: {
+        open: "مفتوح",
+        reviewed: "قيد المراجعة",
+        closed: "مغلق"
+      },
+      columns: {
+        type: "النوع",
+        status: "الحالة",
+        reporter: "المبلّغ",
+        targetUser: "المستخدم المُبلّغ عنه",
+        targetListing: "الإعلان المُبلّغ عنه",
+        reason: "السبب",
+        createdAt: "تاريخ البلاغ",
+        actions: "الإجراءات"
+      },
+      fields: {
+        reportId: "معرف البلاغ"
+      },
+      moderation: {
+        title: "إجراءات البلاغ",
+        subtitle: "يمكنك تحديث حالة البلاغ حسب نتيجة المراجعة."
+      },
+      actions: {
+        view: "عرض التفاصيل",
+        back: "العودة لقائمة البلاغات",
+        markReviewed: "تعيين قيد المراجعة",
+        close: "إغلاق البلاغ",
+        reopen: "إعادة فتح البلاغ"
+      },
+      messages: {
+        updated: "تم تحديث حالة البلاغ بنجاح."
+      }
+    },
+    reviews: {
+      title: "إدارة التقييمات",
+      subtitle: "متابعة تقييمات المستخدمين ومحتواها",
+      detailsTitle: "تفاصيل التقييم",
+      dataSourceUnavailable: "مصدر بيانات التقييمات غير متاح حاليًا",
+      filters: {
+        search: "ابحث بنص التعليق",
+        anyRating: "كل التقييمات"
+      },
+      columns: {
+        rating: "التقييم",
+        comment: "التعليق",
+        rater: "المُقيِّم",
+        seller: "صاحب الحساب",
+        listing: "الإعلان",
+        createdAt: "تاريخ التقييم",
+        actions: "الإجراءات"
+      },
+      fields: {
+        reviewId: "معرف التقييم",
+        sellerCity: "مدينة صاحب الحساب",
+        raterCity: "مدينة المُقيِّم"
+      },
+      moderation: {
+        title: "مراجعة التقييم",
+        subtitle: "راجع سياق التقييم قبل تنفيذ إجراء حذف نهائي."
+      },
+      actions: {
+        view: "عرض التفاصيل",
+        back: "العودة للتقييمات",
+        delete: "حذف التقييم"
+      },
+      messages: {
+        deleted: "تم حذف التقييم بنجاح.",
+        deleteFailed: "تعذر حذف التقييم."
+      }
+    },
+    verifications: {
+      title: "إدارة التوثيق",
+      subtitle: "مراجعة طلبات توثيق الشركات وتحديث حالتها",
+      dataSourceUnavailable: "مصدر بيانات التوثيق غير متاح حاليًا",
+      filters: {
+        search: "ابحث باسم الشركة أو الممثل أو النشاط",
+        anyStatus: "كل حالات التوثيق"
+      },
+      status: {
+        unverified: "غير موثق",
+        pending: "قيد المراجعة",
+        verified: "موثق",
+        rejected: "مرفوض"
+      },
+      columns: {
+        companyName: "اسم الشركة",
+        representative: "الممثل",
+        businessType: "نوع النشاط",
+        status: "حالة التوثيق",
+        city: "المدينة",
+        listings: "عدد الإعلانات",
+        requestedAt: "تاريخ الطلب",
+        actions: "الإجراءات"
+      },
+      fields: {
+        userId: "معرف المستخدم",
+        commercialRegistration: "السجل التجاري (مخفي)",
+        taxNumber: "الرقم الضريبي (مخفي)",
+        website: "الموقع الإلكتروني",
+        companyDescription: "وصف الشركة"
+      },
+      moderation: {
+        title: "إجراءات التوثيق",
+        subtitle: "يمكنك تحديث حالة التوثيق حسب نتيجة المراجعة."
+      },
+      actions: {
+        review: "مراجعة",
+        back: "العودة لقائمة التوثيق",
+        openUser: "فتح حساب المستخدم",
+        markVerified: "اعتماد التوثيق",
+        markRejected: "رفض التوثيق",
+        markPending: "إعادة قيد المراجعة",
+        markUnverified: "إرجاع لغير موثق"
+      },
+      messages: {
+        updated: "تم تحديث حالة التوثيق بنجاح."
+      }
+    },
+    auditLogs: {
+      title: "سجل العمليات",
+      subtitle: "تتبّع الأنشطة الإدارية المهمة عبر المنصة",
+      dataSourceUnavailable: "مصدر بيانات سجل العمليات غير متاح حاليًا",
+      filters: {
+        search: "ابحث في العنوان أو المنفذ أو الهدف",
+        anyType: "كل الأنواع"
+      },
+      types: {
+        listing_status: "تغيير حالة إعلان",
+        report_created: "إنشاء بلاغ",
+        rating_created: "إضافة تقييم",
+        admin_announcement_sent: "إرسال إعلان إداري",
+        report_status_updated: "تحديث حالة البلاغ",
+        verification_status_updated: "تحديث حالة التوثيق",
+        user_role_updated: "تحديث دور المستخدم",
+        user_access_updated: "تحديث وصول المستخدم",
+        review_deleted: "حذف التقييم"
+      },
+      columns: {
+        type: "النوع",
+        title: "العنوان",
+        actor: "المنفذ",
+        target: "الهدف",
+        createdAt: "وقت العملية",
+        actions: "الإجراءات"
+      },
+      actions: {
+        open: "فتح"
+      }
+    },
+    notificationsPanel: {
+      title: "إدارة الإشعارات",
+      subtitle: "مراقبة إشعارات المستخدمين، وإرسال إعلانات إدارية موجهة من لوحة التحكم.",
+      dataSourceUnavailable: "مصدر بيانات الإشعارات غير متاح حاليًا",
+      filters: {
+        search: "ابحث بالمستلم أو المنفذ أو الهدف",
+        anyKind: "كل أنواع الإشعارات",
+        allReadStates: "كل حالات القراءة",
+        unreadOnly: "غير المقروء فقط"
+      },
+      kinds: {
+        follow: "متابعة",
+        rating: "تقييم",
+        listing_status: "تغيير حالة إعلان",
+        admin_announcement: "إعلان إداري"
+      },
+      labels: {
+        read: "مقروء",
+        unread: "غير مقروء"
+      },
+      readStates: {
+        read: "مقروء",
+        unread: "غير مقروء"
+      },
+      columns: {
+        kind: "نوع الإشعار",
+        recipient: "المستلم",
+        actor: "المنفذ",
+        target: "الهدف",
+        readState: "حالة القراءة",
+        createdAt: "وقت الإرسال",
+        actions: "الإجراءات"
+      },
+      actions: {
+        open: "فتح"
+      },
+      composer: {
+        title: "إرسال إعلان إداري",
+        subtitle: "أنشئ إشعارًا يصل مباشرة إلى المستخدمين المستهدفين داخل مركز الإشعارات.",
+        audienceLabel: "الجمهور",
+        audienceUserIdLabel: "معرّف المستخدم المستهدف",
+        titleLabel: "عنوان الإعلان",
+        bodyLabel: "نص الإعلان",
+        submit: "إرسال الإعلان",
+        audienceOptions: {
+          all: "كل المستخدمين",
+          individual: "الحسابات الفردية",
+          company: "حسابات الشركات",
+          user: "مستخدم محدد"
+        },
+        placeholders: {
+          userId: "أدخل معرّف المستخدم",
+          title: "مثال: تحديث على سياسات النشر",
+          body: "اكتب نص الإعلان الذي سيصل إلى المستخدمين"
+        }
+      },
+      messages: {
+        sent: "تم إرسال الإعلان الإداري بنجاح.",
+        invalidAudience: "تعذر فهم الجمهور المستهدف للإشعار.",
+        missingTargetUser: "معرّف المستخدم المستهدف مطلوب لهذا النوع من الإرسال.",
+        failed: "تعذر إرسال الإعلان الإداري."
+      }
+    },
+    categoriesPanel: {
+      title: "إدارة الفئات",
+      subtitle: "مراجعة الفئات الحالية حسب توزيع الإعلانات وربطها السريع مع قائمة الإعلانات.",
+      dataSourceUnavailable: "مصدر بيانات الفئات غير متاح حاليًا",
+      filters: {
+        anyGroup: "كل المجموعات"
+      },
+      summary: {
+        totalListings: "إجمالي الإعلانات المصنفة: {{count}}",
+        subcategories: "{{count}} فئة فرعية"
+      },
+      columns: {
+        mainCategory: "المجموعة الرئيسية",
+        subcategory: "الفئة الفرعية",
+        listingsCount: "عدد الإعلانات",
+        keywords: "كلمات المطابقة",
+        actions: "الإجراءات"
+      },
+      actions: {
+        openListings: "فتح الإعلانات"
+      }
+    },
+    settingsPanel: {
+      title: "إعدادات النظام",
+      subtitle: "متابعة حالة التهيئة العامة، مؤشرات البيانات، وملخص الصلاحيات الإدارية.",
+      sections: {
+        configuration: "حالة التهيئة",
+        metrics: "مؤشرات الجداول",
+        roles: "ملخص الأدوار والصلاحيات"
+      },
+      flags: {
+        supabaseUrl: "رابط Supabase",
+        publishableKey: "المفتاح العام",
+        serviceRoleKey: "مفتاح الخدمة",
+        adminWhitelist: "قائمة المديرين المسموحين",
+        defaultLanguage: "اللغة الافتراضية",
+        supportedLanguages: "اللغات المدعومة"
+      },
+      status: {
+        configured: "مُعد",
+        missing: "مفقود"
+      },
+      values: {
+        adminWhitelist: "{{count}} بريد/بريدات",
+        statusOnly: "تعرض البطاقة حالة التهيئة فقط دون كشف القيمة."
+      },
+      metrics: {
+        profiles: "الملفات الشخصية",
+        companies: "الشركات",
+        listings: "الإعلانات",
+        reports: "البلاغات"
+      },
+      columns: {
+        role: "الدور",
+        permissionsCount: "عدد الصلاحيات",
+        permissions: "الصلاحيات"
+      }
+    },
+    status: {
+      unauthorizedTitle: "تسجيل الدخول مطلوب",
+      unauthorizedHint: "يرجى تسجيل الدخول بحساب إداري للوصول إلى لوحة التحكم.",
+      forbiddenTitle: "غير مصرح",
+      forbiddenHint: "حسابك لا يملك صلاحية دخول لوحة التحكم.",
+      backToMarketplace: "العودة إلى السوق",
+      phaseOnePlaceholder: "سيتم تنفيذ هذه الصفحة في المرحلة التالية."
     }
   }
 } as const;

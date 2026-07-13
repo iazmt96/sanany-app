@@ -18,6 +18,7 @@ export type AuthController = {
   getSnapshot(): AuthSnapshot;
   signIn(payload: AuthPayload): Promise<void>;
   signUp(payload: AuthPayload): Promise<Session | null>;
+  requestPasswordReset(email: string, redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
 };
 
@@ -87,6 +88,9 @@ export function createAuthController(service: AuthService): AuthController {
     },
     async signUp(payload) {
       return service.signUp(payload);
+    },
+    async requestPasswordReset(email, redirectTo) {
+      await service.requestPasswordReset(email, redirectTo);
     },
     async signOut() {
       await service.signOut();

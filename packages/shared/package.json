@@ -8,7 +8,8 @@
     "@sanany/types": "file:../types"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types \"tests/**/*.test.ts\""
   },
   "devDependencies": {
     "typescript": "^5.8.0"

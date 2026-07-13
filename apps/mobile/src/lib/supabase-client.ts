@@ -1,9 +1,30 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, SupportedStorage } from "@supabase/supabase-js";
+import { Platform } from "react-native";
 import { createSupabaseClient } from "@sanany/api";
 import { getMobileSupabaseEnv } from "../config/env";
 
 let client: SupabaseClient | null = null;
+
+function getSupabaseStorage(): SupportedStorage | undefined {
+  if (Platform.OS !== "web") {
+    return AsyncStorage;
+  }
+
+  if (typeof window === "undefined" || !window.localStorage) {
+    return undefined;
+  }
+
+  return {
+    getItem: async (key: string) => window.localStorage.getItem(key),
+    setItem: async (key: string, value: string) => {
+      window.localStorage.setItem(key, value);
+    },
+    removeItem: async (key: string) => {
+      window.localStorage.removeItem(key);
+    }
+  };
+}
 
 export function getMobileSupabaseClient(): SupabaseClient {
   if (client) {
@@ -11,10 +32,10 @@ export function getMobileSupabaseClient(): SupabaseClient {
   }
 
   client = createSupabaseClient(getMobileSupabaseEnv(), {
-    storage: AsyncStorage,
-    detectSessionInUrl: false
+    storage: getSupabaseStorage(),
+    detectSessionInUrl: false,
+    storageKey: "sanany-mobile-auth"
   });
 
   return client;
 }
-

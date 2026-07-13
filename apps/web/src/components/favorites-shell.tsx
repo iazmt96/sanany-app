@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListing } from "@sanany/types";
+import { FAVORITES_STORAGE_KEY, parseStoredIdList, removeStoredId } from "@sanany/shared";
 import { Card } from "@sanany/ui";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { RequireAuth } from "../auth/guards";
@@ -15,8 +16,6 @@ import { ListingCard } from "./listing-card";
 type FavoritesShellProps = {
   language: string;
 };
-
-const FAVORITES_STORAGE_KEY = "sanany:favorites";
 
 export function FavoritesShell({ language }: FavoritesShellProps) {
   const { t } = useTranslation();
@@ -32,7 +31,7 @@ export function FavoritesShell({ language }: FavoritesShellProps) {
     const run = async () => {
       try {
         const raw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
-        const ids = raw ? (JSON.parse(raw) as string[]) : [];
+        const ids = parseStoredIdList(raw);
         if (!ids.length) {
           if (active) {
             setItems([]);
@@ -60,9 +59,8 @@ export function FavoritesShell({ language }: FavoritesShellProps) {
 
   const removeFavorite = (id: string) => {
     const raw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
-    const ids = raw ? (JSON.parse(raw) as string[]) : [];
-    const nextIds = ids.filter((item) => item !== id);
-    window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(nextIds));
+    const next = removeStoredId(raw, id);
+    window.localStorage.setItem(FAVORITES_STORAGE_KEY, next.serialized);
     setItems((current) => current.filter((item) => item.id !== id));
   };
 

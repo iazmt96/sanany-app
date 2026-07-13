@@ -7,6 +7,7 @@ type AuthContextValue = {
   snapshot: AuthSnapshot;
   signIn(payload: AuthPayload): Promise<void>;
   signUp(payload: AuthPayload): Promise<AuthSnapshot["session"]>;
+  requestPasswordReset(email: string, redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
 };
 
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       snapshot,
       signIn: (payload) => controller.signIn(payload),
       signUp: (payload) => controller.signUp(payload),
+      requestPasswordReset: (email, redirectTo) => controller.requestPasswordReset(email, redirectTo),
       signOut: () => controller.signOut()
     }),
     [controller, snapshot]
