@@ -1,402 +1,503 @@
-"use client";
+﻿"use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { Fragment, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import type { AuthAccountType, AuthSignUpMetadata } from "@sanany/types";
-import { BUSINESS_TYPE_KEYS, buildSignUpMetadata, resolveAuthErrorKey, validateAuthFormInput } from "@sanany/shared";
+import { OTP_LENGTH, createUsernameSuggestions, isValidPhoneNumber, normalizePhoneNumber, resolveAuthErrorKey, validateUsername } from "@sanany/shared";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
-import { Button, Card, TextInput } from "@sanany/ui";
 import { RedirectIfAuthenticated } from "../auth/guards";
 import { useAuth } from "../auth/auth-context";
 import { LanguageSwitcher } from "./language-switcher";
 
-type AuthShellProps = {
-  language: string;
-};
+type AuthShellProps = { language: string };
+type AuthMode = "phone" | "email";
+type OnboardingStep = "phone" | "otp" | "profile";
+const PHONE_ONBOARDING_STEPS: readonly OnboardingStep[] = ["phone", "otp", "profile"];
 
-type IndividualFields = {
-  fullName: string;
-};
+const COUNTRIES = [
+  { id: "sa", code: "+966" },
+  { id: "ae", code: "+971" },
+  { id: "kw", code: "+965" },
+  { id: "qa", code: "+974" },
+  { id: "bh", code: "+973" },
+] as const;
 
-type CompanyFields = {
-  companyName: string;
-  representativeName: string;
-  businessType: string;
-  customBusinessType: string;
-  commercialRegistration: string;
-  taxNumber: string;
-  website: string;
-  companyDescription: string;
-};
+function formatSaudiPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+}
+
+function maskPhone(value: string): string {
+  if (value.length <= 4) return value;
+  return `${value.slice(0, 4)} ••• ${value.slice(-3)}`;
+}
 
 export function AuthShell({ language }: AuthShellProps) {
   const { t } = useTranslation();
-  const router = useRouter();
-  const { signIn, signUp, requestPasswordReset } = useAuth();
-  const [isSignIn, setIsSignIn] = useState(true);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [accountType, setAccountType] = useState<AuthAccountType>("individual");
+  const {
+    accountProfile, checkUsernameAvailability, completeBasicProfile,
+    profileError, profileStatus, refreshAccountProfile, requestPasswordReset,
+    requestPhoneOtp, signIn, snapshot, verifyPhoneOtp,
+  } = useAuth();
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
+  const isRtl = resolvedLanguage === "ar";
+  const [mode, setMode] = useState<AuthMode>("phone");
+  const [step, setStep] = useState<OnboardingStep>("phone");
+  const [selectedCountryId, setSelectedCountryId] = useState<(typeof COUNTRIES)[number]["id"]>("sa");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [individualFields, setIndividualFields] = useState<IndividualFields>({ fullName: "" });
-  const [companyFields, setCompanyFields] = useState<CompanyFields>({
-    companyName: "",
-    representativeName: "",
-    businessType: "",
-    customBusinessType: "",
-    commercialRegistration: "",
-    taxNumber: "",
-    website: "",
-    companyDescription: ""
-  });
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [infoKey, setInfoKey] = useState<string | null>(null);
+  const [usernameState, setUsernameState] = useState<{
+    checking: boolean; isAvailable: boolean; suggestions: string[]; errorKey: string | null;
+  }>({ checking: false, isAvailable: false, suggestions: [], errorKey: null });
+  const [previewScreen, setPreviewScreen] = useState<"auth" | "splash">("auth");
 
-  const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
-  const selectedBusinessTypeIsOther = companyFields.businessType === "other";
-  const businessTypes = useMemo(
-    () =>
-      BUSINESS_TYPE_KEYS.map((item) => ({
-        value: item,
-        label: t(`auth.company.businessTypes.${item}`)
-      })),
-    [t]
-  );
+  const selectedCountry = COUNTRIES.find((c) => c.id === selectedCountryId) ?? COUNTRIES[0];
+  const normalizedPhone = useMemo(() => {
+    const digits = phoneInput.replace(/\D/g, "");
+    if (!digits) return "";
+    const local = digits.startsWith("0") ? digits.slice(1) : digits;
+    return normalizePhoneNumber(`${selectedCountry.code}${local}`);
+  }, [phoneInput, selectedCountry.code]);
 
-  const clearFeedback = () => {
-    setErrorKey(null);
-    setInfoKey(null);
-  };
-
-  const onRequestPasswordReset = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    clearFeedback();
-    if (!email.trim()) {
-      setErrorKey("auth.errors.emailRequired");
-      return;
+  useEffect(() => {
+    if (profileStatus === "required" && snapshot.user?.id) {
+      setMode("phone"); setStep("profile");
+      setDisplayName(accountProfile?.displayName ?? "");
+      setUsername(accountProfile?.username ?? "");
+      setInfoKey("auth.phoneOnboarding.basicInfoRequired");
     }
+  }, [accountProfile?.displayName, accountProfile?.username, profileStatus, snapshot.user?.id]);
 
-    setIsSubmitting(true);
-    try {
-      await requestPasswordReset(email.trim());
-      setInfoKey("auth.passwordResetSent");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("auth.errors.unknown");
-      setErrorKey(resolveAuthErrorKey(message));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setInterval(() => setResendSeconds((c) => (c > 0 ? c - 1 : 0)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendSeconds]);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    clearFeedback();
-
-    const formErrorKey = validateAuthFormInput({
-      isSignIn,
-      accountType,
-      email,
-      password,
-      confirmPassword,
-      acceptTerms,
-      phone,
-      city,
-      individualFields,
-      companyFields
-    });
-    if (formErrorKey) {
-      setErrorKey(formErrorKey);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      if (isSignIn) {
-        await signIn({ email: email.trim(), password });
-        router.replace(`/${resolvedLanguage}`);
-      } else {
-        const metadata: AuthSignUpMetadata = buildSignUpMetadata({
-          accountType,
-          phone,
-          city,
-          individualFields,
-          companyFields
-        });
-
-        const session = await signUp({
-          email: email.trim(),
-          password,
-          accountType,
-          metadata
-        });
-        if (!session) {
-          setInfoKey("auth.emailConfirmationSent");
-          return;
-        }
-        router.replace(`/${resolvedLanguage}`);
+  useEffect(() => {
+    if (step !== "profile" || !username) return;
+    const handle = window.setTimeout(() => {
+      const validation = validateUsername(username);
+      if (!validation.isValid) {
+        setUsernameState({ checking: false, isAvailable: false, suggestions: createUsernameSuggestions(displayName, username), errorKey: validation.errorKey });
+        return;
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t("auth.errors.unknown");
-      setErrorKey(resolveAuthErrorKey(message));
-    } finally {
-      setIsSubmitting(false);
+      setUsernameState((c) => ({ ...c, checking: true, errorKey: null }));
+      void checkUsernameAvailability(username, displayName)
+        .then((av) => {
+          setUsernameState({
+            checking: false, isAvailable: av.isAvailable, suggestions: av.suggestions,
+            errorKey: av.reason === "taken" ? "auth.phoneOnboarding.errors.usernameTaken" : av.reason === "invalid" ? "auth.phoneOnboarding.errors.usernameInvalid" : null,
+          });
+        })
+        .catch((err) => {
+          setUsernameState({ checking: false, isAvailable: false, suggestions: [], errorKey: resolveAuthErrorKey(err instanceof Error ? err.message : t("auth.errors.unknown")) });
+        });
+    }, 350);
+    return () => window.clearTimeout(handle);
+  }, [checkUsernameAvailability, displayName, step, t, username]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const previewStep = params.get("previewStep");
+    const previewState = params.get("previewState");
+    const previewScreenParam = params.get("previewScreen");
+    const previewKeyboard = params.get("previewKeyboard");
+    if (previewScreenParam === "splash") { setPreviewScreen("splash"); return; }
+    if (previewStep === "phone" || previewStep === "otp" || previewStep === "profile") {
+      setMode("phone"); setStep(previewStep); setPhoneInput("055 123 4567"); setAcceptedTerms(true);
+      if (previewStep === "profile") { setDisplayName("مستخدم سنعني"); setUsername("sanany_user"); }
+    }
+    if (previewState === "error") {
+      setErrorKey(previewStep === "otp" ? "auth.phoneOnboarding.errors.otpIncomplete" : previewStep === "profile" ? "auth.phoneOnboarding.errors.usernameTaken" : "auth.phoneOnboarding.errors.phoneInvalid");
+      setInfoKey(null); setIsSubmitting(false);
+    } else if (previewState === "success") {
+      setInfoKey(previewStep === "otp" ? "auth.phoneOnboarding.otpVerified" : previewStep === "profile" ? "auth.phoneOnboarding.accountCreated" : "auth.phoneOnboarding.otpSent");
+      setErrorKey(null); setIsSubmitting(false);
+    } else if (previewState === "loading") {
+      setIsSubmitting(true); setErrorKey(null); setInfoKey(null);
+    }
+    if (previewKeyboard === "1") {
+      window.setTimeout(() => {
+        const input = window.document.querySelector("input");
+        if (input instanceof HTMLInputElement) input.focus();
+      }, 120);
+    }
+  }, []);
+
+  const clearFeedback = () => { setErrorKey(null); setInfoKey(null); };
+
+  const submitPhone = async () => {
+    clearFeedback();
+    if (!acceptedTerms) { setErrorKey("auth.errors.termsRequired"); return; }
+    if (!normalizedPhone || !isValidPhoneNumber(normalizedPhone)) { setErrorKey("auth.phoneOnboarding.errors.phoneInvalid"); return; }
+    setIsSubmitting(true);
+    try {
+      await requestPhoneOtp({ phone: normalizedPhone });
+      setOtpValue(""); setStep("otp"); setResendSeconds(60); setInfoKey("auth.phoneOnboarding.otpSent");
+      window.setTimeout(() => otpRefs.current[0]?.focus(), 120);
+    } catch (err) {
+      setErrorKey(resolveAuthErrorKey(err instanceof Error ? err.message : t("auth.errors.unknown")));
+    } finally { setIsSubmitting(false); }
+  };
+
+  const submitOtp = async () => {
+    clearFeedback();
+    if (otpValue.length !== OTP_LENGTH) { setErrorKey("auth.phoneOnboarding.errors.otpIncomplete"); return; }
+    setIsSubmitting(true);
+    try {
+      await verifyPhoneOtp({ phone: normalizedPhone, token: otpValue });
+      await refreshAccountProfile();
+      setInfoKey("auth.phoneOnboarding.otpVerified");
+    } catch (err) {
+      setErrorKey(resolveAuthErrorKey(err instanceof Error ? err.message : t("auth.errors.unknown")));
+    } finally { setIsSubmitting(false); }
+  };
+
+  const submitBasicProfile = async () => {
+    clearFeedback();
+    if (!displayName.trim()) { setErrorKey("auth.phoneOnboarding.errors.displayNameRequired"); return; }
+    const validation = validateUsername(username);
+    if (!validation.isValid) { setErrorKey(validation.errorKey); return; }
+    if (!usernameState.isAvailable) { setErrorKey(usernameState.errorKey ?? "auth.phoneOnboarding.errors.usernameTaken"); return; }
+    setIsSubmitting(true);
+    try {
+      await completeBasicProfile({ displayName, username: validation.normalizedUsername });
+      setInfoKey("auth.phoneOnboarding.accountCreated");
+    } catch (err) {
+      setErrorKey(resolveAuthErrorKey(err instanceof Error ? err.message : t("auth.errors.unknown")));
+    } finally { setIsSubmitting(false); }
+  };
+
+  const submitEmail = async (event: FormEvent) => {
+    event.preventDefault();
+    clearFeedback();
+    if (isForgotPassword) {
+      if (!email.trim()) { setErrorKey("auth.errors.emailRequired"); return; }
+      setIsSubmitting(true);
+      try { await requestPasswordReset(email.trim()); setInfoKey("auth.passwordResetSent"); }
+      catch (err) { setErrorKey(resolveAuthErrorKey(err instanceof Error ? err.message : t("auth.errors.unknown"))); }
+      finally { setIsSubmitting(false); }
+      return;
+    }
+    if (!email.trim()) { setErrorKey("auth.errors.emailRequired"); return; }
+    if (!password.trim()) { setErrorKey("auth.errors.passwordRequired"); return; }
+    setIsSubmitting(true);
+    try { await signIn({ email: email.trim(), password }); }
+    catch (err) { setErrorKey(resolveAuthErrorKey(err instanceof Error ? err.message : t("auth.errors.unknown"))); }
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleOtpInput = (index: number, value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (!digits) { setOtpValue(otpValue.slice(0, index) + otpValue.slice(index + 1)); return; }
+    if (digits.length > 1) {
+      const next = digits.slice(0, OTP_LENGTH);
+      setOtpValue(next);
+      otpRefs.current[Math.min(next.length, OTP_LENGTH - 1)]?.focus();
+      return;
+    }
+    const arr = Array.from({ length: OTP_LENGTH }, (_, i) => otpValue[i] ?? "");
+    arr[index] = digits;
+    const next = arr.join("").slice(0, OTP_LENGTH);
+    setOtpValue(next);
+    if (index === OTP_LENGTH - 1 && next.length === OTP_LENGTH) {
+      window.setTimeout(() => void submitOtp(), 100);
+    } else if (index < OTP_LENGTH - 1) {
+      otpRefs.current[index + 1]?.focus();
     }
   };
+
+  const otpDigits = Array.from({ length: OTP_LENGTH }, (_, i) => otpValue[i] ?? "");
+  const currentStepIndex = PHONE_ONBOARDING_STEPS.indexOf(step) + 1;
+
+  if (previewScreen === "splash") {
+    return (
+      <main dir={isRtl ? "rtl" : "ltr"} className="flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-900 via-teal-800 to-slate-900">
+        <div className="flex flex-col items-center gap-5">
+          <Image src="/brand/sanany-logo.png" alt={t("app.title")} width={500} height={220} className="h-12 w-auto brightness-0 invert" priority />
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-200 opacity-80">{t("auth.phoneOnboarding.sidePanel.eyebrow")}</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <RedirectIfAuthenticated language={resolvedLanguage}>
-      <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Image src="/brand/sanany-logo.png" alt={t("app.title")} width={500} height={220} className="h-10 w-auto" priority />
-            <h1 className="text-2xl font-bold text-slate-900">{t("app.title")}</h1>
-          </div>
+      <main dir={isRtl ? "rtl" : "ltr"} className="flex min-h-screen flex-col bg-slate-50">
+        {/* Minimal header */}
+        <header className="flex items-center justify-between px-6 py-4">
+          <Image src="/brand/sanany-logo.png" alt={t("app.title")} width={500} height={220} className="h-8 w-auto" priority />
           <LanguageSwitcher />
         </header>
 
-        <Card className="w-full">
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            <section className="space-y-4">
-              <div className="space-y-1">
-                <h2 className="text-xl font-semibold text-slate-900">
-                  {t(isForgotPassword ? "auth.forgotPasswordTitle" : isSignIn ? "auth.signInTitle" : "auth.signUpTitle")}
-                </h2>
-                <p className="text-sm text-slate-600">
-                  {t(isForgotPassword ? "auth.forgotPasswordSubtitle" : isSignIn ? "auth.subtitle" : "auth.signUpDescription")}
+        {/* Centered card */}
+        <div className="flex flex-1 items-start justify-center px-4 py-6 sm:items-center">
+          <div className="w-full max-w-sm">
+            {/* Mode selector */}
+            <div className="mb-4 flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+              {(["phone", "email"] as AuthMode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => { setMode(m); clearFeedback(); }}
+                  className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-all duration-150 ${mode === m ? "bg-teal-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                  {t(m === "phone" ? "auth.phoneOnboarding.primaryTab" : "auth.phoneOnboarding.secondaryTab")}
+                </button>
+              ))}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
+              {/* Title */}
+              <div className="mb-5">
+                <h1 className="text-[1.35rem] font-bold leading-tight text-slate-900">
+                  {t(mode === "phone" ? step === "phone" ? "auth.phoneOnboarding.title" : step === "otp" ? "auth.phoneOnboarding.otpTitle" : "auth.phoneOnboarding.profileTitle" : isForgotPassword ? "auth.forgotPasswordTitle" : "auth.signInTitle")}
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  {t(mode === "phone" ? step === "phone" ? "auth.phoneOnboarding.subtitle" : step === "otp" ? "auth.phoneOnboarding.otpSubtitle" : "auth.phoneOnboarding.profileSubtitle" : isForgotPassword ? "auth.forgotPasswordSubtitle" : "auth.subtitle")}
                 </p>
-                {!isForgotPassword && isSignIn ? <p className="text-xs text-slate-500">{t("auth.legacyAccountHint")}</p> : null}
-                {!isForgotPassword && !isSignIn ? <p className="text-xs text-slate-500">{t("auth.verificationHint")}</p> : null}
               </div>
 
-              {!isForgotPassword ? (
-                <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
-                  {!isSignIn ? (
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium text-slate-700">{t("auth.signUpAccountTypeLabel")}</span>
-                      <div className="grid grid-cols-2 gap-2" role="tablist" aria-label={t("auth.signUpAccountTypeLabel")}>
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={accountType === "individual"}
-                          className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                            accountType === "individual" ? "border-teal-600 bg-teal-50 text-teal-700" : "border-slate-200 bg-white text-slate-700"
-                          }`}
-                          onClick={() => setAccountType("individual")}
-                        >
-                          {t("auth.signUpAccountType.individual")}
-                        </button>
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={accountType === "company"}
-                          className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                            accountType === "company" ? "border-teal-600 bg-teal-50 text-teal-700" : "border-slate-200 bg-white text-slate-700"
-                          }`}
-                          onClick={() => setAccountType("company")}
-                        >
-                          {t("auth.signUpAccountType.company")}
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {!isSignIn && accountType === "individual" ? (
-                    <label className="block space-y-1">
-                      <span className="text-sm font-medium text-slate-700">{t("auth.fullNameLabel")}</span>
-                      <TextInput value={individualFields.fullName} onChange={(event) => setIndividualFields({ fullName: event.target.value })} placeholder={t("auth.fullNamePlaceholder")} />
-                    </label>
-                  ) : null}
-
-                  {!isSignIn && accountType === "company" ? (
-                    <>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="block space-y-1">
-                          <span className="text-sm font-medium text-slate-700">{t("auth.company.companyNameLabel")}</span>
-                          <TextInput value={companyFields.companyName} onChange={(event) => setCompanyFields((current) => ({ ...current, companyName: event.target.value }))} placeholder={t("auth.company.companyNamePlaceholder")} />
-                        </label>
-                        <label className="block space-y-1">
-                          <span className="text-sm font-medium text-slate-700">{t("auth.company.representativeNameLabel")}</span>
-                          <TextInput value={companyFields.representativeName} onChange={(event) => setCompanyFields((current) => ({ ...current, representativeName: event.target.value }))} placeholder={t("auth.company.representativeNamePlaceholder")} />
-                        </label>
-                      </div>
-                      <div className="space-y-2">
-                        <span className="text-sm font-medium text-slate-700">{t("auth.company.businessTypeLabel")}</span>
-                        <div className="flex flex-wrap gap-2">
-                          {businessTypes.map((item) => {
-                            const selected = companyFields.businessType === item.value;
-                            return (
-                              <button
-                                key={item.value}
-                                type="button"
-                                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                                  selected ? "border-teal-600 bg-teal-50 text-teal-700" : "border-slate-200 bg-white text-slate-600"
-                                }`}
-                                onClick={() => setCompanyFields((current) => ({ ...current, businessType: item.value }))}
-                              >
-                                {item.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      {selectedBusinessTypeIsOther ? (
-                        <label className="block space-y-1">
-                          <span className="text-sm font-medium text-slate-700">{t("auth.company.customBusinessTypeLabel")}</span>
-                          <TextInput value={companyFields.customBusinessType} onChange={(event) => setCompanyFields((current) => ({ ...current, customBusinessType: event.target.value }))} placeholder={t("auth.company.customBusinessTypePlaceholder")} />
-                        </label>
-                      ) : null}
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="block space-y-1">
-                          <span className="text-sm font-medium text-slate-700">{t("auth.company.commercialRegistrationLabel")}</span>
-                          <TextInput value={companyFields.commercialRegistration} onChange={(event) => setCompanyFields((current) => ({ ...current, commercialRegistration: event.target.value }))} placeholder={t("auth.company.commercialRegistrationPlaceholder")} />
-                        </label>
-                        <label className="block space-y-1">
-                          <span className="text-sm font-medium text-slate-700">{t("auth.company.taxNumberLabel")}</span>
-                          <TextInput value={companyFields.taxNumber} onChange={(event) => setCompanyFields((current) => ({ ...current, taxNumber: event.target.value }))} placeholder={t("auth.company.taxNumberPlaceholder")} />
-                        </label>
-                      </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="block space-y-1">
-                          <span className="text-sm font-medium text-slate-700">{t("auth.company.websiteLabel")}</span>
-                          <TextInput value={companyFields.website} onChange={(event) => setCompanyFields((current) => ({ ...current, website: event.target.value }))} placeholder={t("auth.company.websitePlaceholder")} />
-                        </label>
-                        <label className="block space-y-1">
-                          <span className="text-sm font-medium text-slate-700">{t("auth.cityLabel")}</span>
-                          <TextInput value={city} onChange={(event) => setCity(event.target.value)} placeholder={t("auth.cityPlaceholder")} />
-                        </label>
-                      </div>
-                      <label className="block space-y-1">
-                        <span className="text-sm font-medium text-slate-700">{t("auth.company.descriptionLabel")}</span>
-                        <textarea
-                          className="min-h-20 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none ring-brand/30 transition focus:border-brand focus:ring"
-                          value={companyFields.companyDescription}
-                          onChange={(event) => setCompanyFields((current) => ({ ...current, companyDescription: event.target.value }))}
-                          placeholder={t("auth.company.descriptionPlaceholder")}
-                        />
-                      </label>
-                    </>
-                  ) : null}
-
-                  {!isSignIn && accountType === "individual" ? (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="block space-y-1">
-                        <span className="text-sm font-medium text-slate-700">{t("auth.phoneLabel")}</span>
-                        <TextInput value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t("auth.phonePlaceholder")} />
-                      </label>
-                      <label className="block space-y-1">
-                        <span className="text-sm font-medium text-slate-700">{t("auth.cityLabel")}</span>
-                        <TextInput value={city} onChange={(event) => setCity(event.target.value)} placeholder={t("auth.cityPlaceholder")} />
-                      </label>
-                    </div>
-                  ) : null}
-
-                  {!isSignIn && accountType === "company" ? (
-                    <label className="block space-y-1">
-                      <span className="text-sm font-medium text-slate-700">{t("auth.phoneLabel")}</span>
-                      <TextInput value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t("auth.phonePlaceholder")} />
-                    </label>
-                  ) : null}
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="block space-y-1 md:col-span-2">
-                      <span className="text-sm font-medium text-slate-700">{t("auth.emailLabel")}</span>
-                      <TextInput name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t("auth.emailPlaceholder")} />
-                    </label>
-                    <label className="block space-y-1">
-                      <span className="text-sm font-medium text-slate-700">{t("auth.passwordLabel")}</span>
-                      <TextInput name="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t("auth.passwordPlaceholder")} />
-                    </label>
-                    {!isSignIn ? (
-                      <label className="block space-y-1">
-                        <span className="text-sm font-medium text-slate-700">{t("auth.confirmPasswordLabel")}</span>
-                        <TextInput type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={t("auth.confirmPasswordPlaceholder")} />
-                      </label>
-                    ) : null}
-                  </div>
-
-                  {!isSignIn ? (
-                    <label className="flex items-center gap-2 text-sm text-slate-700">
-                      <input type="checkbox" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-teal-600" />
-                      <span>{t("auth.termsAgreement")}</span>
-                    </label>
-                  ) : null}
-
-                  {errorKey ? <p className="text-sm text-red-600">{t(errorKey)}</p> : null}
-                  {infoKey ? <p className="text-sm text-emerald-700">{t(infoKey)}</p> : null}
-
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting
-                      ? t("common.loading")
-                      : t(
-                          isSignIn
-                            ? "auth.signInAction"
-                            : accountType === "company"
-                              ? "auth.signUpCompanyAction"
-                              : "auth.signUpIndividualAction"
+              {/* Dot progress — phone mode only */}
+              {mode === "phone" && (
+                <div className="mb-6 flex items-center gap-1">
+                  {PHONE_ONBOARDING_STEPS.map((s, i) => {
+                    const done = i < currentStepIndex - 1;
+                    const active = s === step;
+                    return (
+                      <Fragment key={s}>
+                        <div className={`h-1.5 rounded-full transition-all duration-300 ${active ? "w-8 bg-teal-600" : done ? "w-2 bg-teal-400" : "w-2 bg-slate-200"}`} />
+                        {i < PHONE_ONBOARDING_STEPS.length - 1 && (
+                          <div className={`h-px w-5 transition-colors duration-300 ${done ? "bg-teal-300" : "bg-slate-200"}`} />
                         )}
-                  </Button>
-                </form>
-              ) : (
-                <form className="space-y-4" onSubmit={(event) => void onRequestPasswordReset(event)}>
-                  <label className="block space-y-1">
-                    <span className="text-sm font-medium text-slate-700">{t("auth.emailLabel")}</span>
-                    <TextInput name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t("auth.emailPlaceholder")} />
-                  </label>
-
-                  {errorKey ? <p className="text-sm text-red-600">{t(errorKey)}</p> : null}
-                  {infoKey ? <p className="text-sm text-emerald-700">{t(infoKey)}</p> : null}
-
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? t("common.loading") : t("auth.forgotPasswordAction")}
-                  </Button>
-                </form>
+                      </Fragment>
+                    );
+                  })}
+                </div>
               )}
 
-              <div className="flex flex-wrap items-center gap-4 text-sm">
-                {!isForgotPassword ? (
+              {/* ── Phone step ── */}
+              {mode === "phone" && step === "phone" && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">{t("auth.phoneOnboarding.phoneStepLabel")}</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedCountryId}
+                        onChange={(e) => setSelectedCountryId(e.target.value as typeof selectedCountryId)}
+                        className="w-24 rounded-xl border border-slate-200 bg-slate-50 px-2 py-3 text-sm font-semibold text-teal-700 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                        aria-label={t("auth.phoneOnboarding.countryCodeLabel")}
+                      >
+                        {COUNTRIES.map((c) => (
+                          <option key={c.id} value={c.id}>{c.code}</option>
+                        ))}
+                      </select>
+                      <input
+                        value={phoneInput}
+                        onChange={(e) => setPhoneInput(formatSaudiPhone(e.target.value))}
+                        placeholder={t("auth.phoneOnboarding.phonePlaceholder")}
+                        className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        autoFocus
+                        aria-label={t("auth.phoneOnboarding.phoneStepLabel")}
+                      />
+                    </div>
+                  </div>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={acceptedTerms}
+                      onChange={(e) => setAcceptedTerms(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-teal-600"
+                    />
+                    <span className="text-xs leading-5 text-slate-500">{t("auth.phoneOnboarding.termsNotice")}</span>
+                  </label>
+                  {errorKey && <p className="text-sm text-red-500" role="alert">{t(errorKey)}</p>}
+                  {infoKey && <p className="text-sm text-teal-700" role="status">{t(infoKey)}</p>}
                   <button
                     type="button"
-                    className="font-medium text-brand hover:text-brand-dark"
-                    onClick={() => {
-                      clearFeedback();
-                      setIsForgotPassword(true);
-                    }}
+                    onClick={() => void submitPhone()}
+                    disabled={isSubmitting || !acceptedTerms}
+                    className="w-full rounded-xl bg-teal-600 px-4 py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-teal-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {t("auth.forgotPasswordLink")}
+                    {isSubmitting ? t("common.loading") : t("auth.phoneOnboarding.continueAction")}
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="font-medium text-brand hover:text-brand-dark"
-                  onClick={() => {
-                    clearFeedback();
-                    setIsForgotPassword(false);
-                    setIsSignIn((value) => (isForgotPassword ? true : !value));
-                  }}
-                >
-                  {t(isForgotPassword ? "auth.backToSignIn" : isSignIn ? "auth.switchToSignUp" : "auth.switchToSignIn")}
-                </button>
-              </div>
-            </section>
+                  <p className="text-center text-xs text-slate-400">{t("auth.phoneOnboarding.trustHint")}</p>
+                </div>
+              )}
 
-            <aside className={`rounded-xl border border-slate-200 bg-slate-50 p-4 ${!isSignIn && accountType === "company" ? "block" : "hidden lg:block"}`}>
-              <h3 className="text-base font-semibold text-slate-900">{t("auth.company.webPanelTitle")}</h3>
-              <p className="mt-2 text-sm text-slate-600">{t("auth.company.webPanelSubtitle")}</p>
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                <li>• {t("auth.company.webPanelItems.verification")}</li>
-                <li>• {t("auth.company.webPanelItems.profile")}</li>
-                <li>• {t("auth.company.webPanelItems.team")}</li>
-              </ul>
-            </aside>
+              {/* ── OTP step ── */}
+              {mode === "phone" && step === "otp" && (
+                <div className="space-y-5">
+                  <p className="text-sm text-slate-500">{t("auth.phoneOnboarding.sentTo", { phone: maskPhone(normalizedPhone) })}</p>
+                  <div className="flex justify-between gap-2" dir="ltr" aria-label="OTP input">
+                    {otpDigits.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(r) => { otpRefs.current[index] = r; }}
+                        value={digit}
+                        onChange={(e) => handleOtpInput(index, e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Backspace" && !otpValue[index] && index > 0) otpRefs.current[index - 1]?.focus(); }}
+                        className={`h-14 w-11 rounded-xl border-2 text-center text-xl font-bold text-slate-900 outline-none transition-all duration-150 ${digit ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-slate-50 focus:border-teal-500 focus:bg-white"}`}
+                        inputMode="numeric"
+                        autoComplete={index === 0 ? "one-time-code" : "off"}
+                        maxLength={index === 0 ? OTP_LENGTH : 1}
+                        aria-label={`Digit ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <button type="button" onClick={() => { setStep("phone"); setOtpValue(""); setResendSeconds(0); clearFeedback(); }} className="text-teal-600 hover:underline">
+                      {t("auth.phoneOnboarding.changePhone")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resendSeconds > 0 || isSubmitting}
+                      onClick={() => void submitPhone()}
+                      className={`transition-colors ${resendSeconds > 0 ? "text-slate-400" : "text-teal-600 hover:underline"}`}
+                    >
+                      {resendSeconds > 0 ? t("auth.phoneOnboarding.resendCountdown", { seconds: resendSeconds }) : t("auth.phoneOnboarding.resend")}
+                    </button>
+                  </div>
+                  {errorKey && <p className="text-sm text-red-500" role="alert">{t(errorKey)}</p>}
+                  {infoKey && <p className="text-sm text-teal-700" role="status">{t(infoKey)}</p>}
+                  <button
+                    type="button"
+                    onClick={() => void submitOtp()}
+                    disabled={isSubmitting || otpValue.length < OTP_LENGTH}
+                    className="w-full rounded-xl bg-teal-600 px-4 py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-teal-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSubmitting ? t("common.loading") : t("auth.phoneOnboarding.verifyAction")}
+                  </button>
+                </div>
+              )}
+
+              {/* ── Profile step ── */}
+              {mode === "phone" && step === "profile" && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">{t("auth.phoneOnboarding.displayNameLabel")}</label>
+                    <input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder={t("auth.phoneOnboarding.displayNamePlaceholder")}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                      autoComplete="name"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <label className="text-sm font-medium text-slate-700">{t("auth.phoneOnboarding.usernameLabel")}</label>
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">a-z · 0-9 · _</span>
+                    </div>
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                      placeholder={t("auth.phoneOnboarding.usernamePlaceholder")}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+                    <div className="mt-1.5 min-h-[1.25rem]">
+                      {usernameState.checking && <p className="text-xs text-slate-400">{t("auth.phoneOnboarding.usernameChecking")}</p>}
+                      {!usernameState.checking && usernameState.isAvailable && (
+                        <p className="text-xs font-semibold text-teal-600">✓ {t("auth.phoneOnboarding.usernameAvailable")}</p>
+                      )}
+                      {!usernameState.checking && usernameState.errorKey && (
+                        <p className="text-xs text-red-500">{t(usernameState.errorKey)}</p>
+                      )}
+                    </div>
+                    {usernameState.suggestions.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {usernameState.suggestions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setUsername(s)}
+                            className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-100 active:scale-95"
+                          >
+                            @{s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {profileError && <p className="text-sm text-red-500" role="alert">{profileError}</p>}
+                  {errorKey && <p className="text-sm text-red-500" role="alert">{t(errorKey)}</p>}
+                  {infoKey && <p className="text-sm text-teal-700" role="status">{t(infoKey)}</p>}
+                  <button
+                    type="button"
+                    onClick={() => void submitBasicProfile()}
+                    disabled={isSubmitting || !displayName.trim() || !usernameState.isAvailable}
+                    className="w-full rounded-xl bg-teal-600 px-4 py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-teal-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSubmitting ? t("common.loading") : t("auth.phoneOnboarding.createAccountAction")}
+                  </button>
+                </div>
+              )}
+
+              {/* ── Email mode ── */}
+              {mode === "email" && (
+                <form className="space-y-4" onSubmit={(e) => void submitEmail(e)}>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">{t("auth.emailLabel")}</label>
+                    <input
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t("auth.emailPlaceholder")}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                      autoComplete="email"
+                      type="email"
+                    />
+                  </div>
+                  {!isForgotPassword && (
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">{t("auth.passwordLabel")}</label>
+                      <input
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={t("auth.passwordPlaceholder")}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                        type="password"
+                        autoComplete="current-password"
+                      />
+                    </div>
+                  )}
+                  <button type="button" onClick={() => setIsForgotPassword((c) => !c)} className="text-xs font-semibold text-teal-600 hover:underline">
+                    {t(isForgotPassword ? "auth.backToSignIn" : "auth.forgotPasswordLink")}
+                  </button>
+                  {errorKey && <p className="text-sm text-red-500" role="alert">{t(errorKey)}</p>}
+                  {infoKey && <p className="text-sm text-teal-700" role="status">{t(infoKey)}</p>}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full rounded-xl bg-teal-600 px-4 py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-teal-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSubmitting ? t("common.loading") : t(isForgotPassword ? "auth.forgotPasswordAction" : "auth.signInAction")}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
-        </Card>
+        </div>
       </main>
     </RedirectIfAuthenticated>
   );

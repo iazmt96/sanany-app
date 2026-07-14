@@ -21,6 +21,7 @@ Phase 2 baseline for a production-oriented SANANY marketplace stack.
    1. Copy `.env.example` values into `apps/web/.env.local` and `apps/mobile/.env`.
    2. Fill in real Supabase project values.
    3. For web and mobile, use `*_SUPABASE_PUBLISHABLE_KEY` as the primary key.
+   4. To deliver OTP by WhatsApp, set `NEXT_PUBLIC_SUPABASE_PHONE_OTP_CHANNEL=whatsapp` and `EXPO_PUBLIC_SUPABASE_PHONE_OTP_CHANNEL=whatsapp`.
 3. Run web:
    `npm run dev:web`
 4. Run mobile:
@@ -66,6 +67,28 @@ These enforce:
 
 Both apps fail fast with explicit errors when required Supabase environment variables are missing.
 
+Phone OTP channel defaults to `sms`. Supported values:
+
+- `sms`
+- `whatsapp`
+
+If `whatsapp` is selected, Supabase must be configured with a supported provider for that channel. Current Supabase support is limited to Twilio / Twilio Verify for WhatsApp delivery.
+
+## Supabase auth email branding
+
+The hosted Supabase auth emails can be synced to the SANANY-branded design with:
+
+- `npm run supabase:email-templates`
+
+Required environment variables before running it:
+
+- `SUPABASE_ACCESS_TOKEN`
+- Optional: `SUPABASE_PROJECT_REF`
+- Optional: `SANANY_SITE_URL` (defaults to `https://sanany.com/ar`)
+- Optional: `SANANY_BRAND_HOME_URL` (defaults to `https://sanany.com`)
+
+If you also want the visible sender name itself to become `SANANY`, Supabase requires a custom SMTP provider to be configured first.
+
 ## Production deployment (sanany.com)
 
 ### 1. Vercel deployment target
@@ -106,3 +129,31 @@ Then set DNS at your registrar:
 - `www` CNAME -> `cname.vercel-dns.com`
 
 Current DNS for `sanany.com` is parked and must be changed to Vercel records for the site to go live.
+
+## Mobile release (Android + iOS)
+
+The mobile app is configured for EAS release builds in:
+
+- `apps/mobile/app.json`
+- `apps/mobile/eas.json`
+
+### 1. Sign in to Expo
+
+From `apps/mobile`:
+
+- `npm exec eas-cli -- login`
+
+### 2. Build production binaries
+
+- Android AAB: `npm run build:android -w @sanany/mobile`
+- iOS IPA: `npm run build:ios -w @sanany/mobile`
+
+### 3. Submit to stores
+
+- Google Play: `npm run submit:android -w @sanany/mobile`
+- App Store Connect: `npm run submit:ios -w @sanany/mobile`
+
+### 4. Required store accounts
+
+- Google Play Console account + app created under package `com.sanany.mobile`
+- Apple Developer account + app created under bundle id `com.sanany.mobile`

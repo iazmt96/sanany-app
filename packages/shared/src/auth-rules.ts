@@ -48,11 +48,41 @@ export function resolveAuthErrorKey(message: string): string {
   if (loweredMessage.includes("invalid login credentials")) {
     return "auth.errors.invalidCredentials";
   }
+  if (
+    (loweredMessage.includes("phone") || loweredMessage.includes("whatsapp")) &&
+    (loweredMessage.includes("disabled") ||
+      loweredMessage.includes("sms provider") ||
+      loweredMessage.includes("whatsapp provider") ||
+      loweredMessage.includes("twilio") ||
+      loweredMessage.includes("unsupported phone provider") ||
+      loweredMessage.includes("unsupported channel") ||
+      loweredMessage.includes("error sending sms") ||
+      loweredMessage.includes("error sending whatsapp"))
+  ) {
+    return "auth.phoneOnboarding.errors.phoneAuthUnavailable";
+  }
+  if (loweredMessage.includes("otp") && (loweredMessage.includes("expired") || loweredMessage.includes("token has expired"))) {
+    return "auth.phoneOnboarding.errors.otpExpired";
+  }
+  if (
+    loweredMessage.includes("otp") ||
+    loweredMessage.includes("token") ||
+    loweredMessage.includes("verification code") ||
+    loweredMessage.includes("sms") ||
+    loweredMessage.includes("whatsapp")
+  ) {
+    if (loweredMessage.includes("invalid") || loweredMessage.includes("should be")) {
+      return "auth.phoneOnboarding.errors.otpInvalid";
+    }
+  }
   if (loweredMessage.includes("email not confirmed")) {
     return "auth.errors.emailNotConfirmed";
   }
   if (loweredMessage.includes("email address") && loweredMessage.includes("is invalid")) {
     return "auth.errors.invalidEmail";
+  }
+  if (loweredMessage.includes("phone number") && loweredMessage.includes("invalid")) {
+    return "auth.phoneOnboarding.errors.phoneInvalid";
   }
   if (loweredMessage.includes("already registered") || loweredMessage.includes("user already registered")) {
     return "auth.errors.userExists";

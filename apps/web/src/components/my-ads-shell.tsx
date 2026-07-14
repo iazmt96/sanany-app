@@ -632,6 +632,8 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
     const remoteDraft = await repository.saveDraft({
       id: editingListingId ?? undefined,
       ownerId: snapshot.user.id,
+      offerType: offerType ?? null,
+      categorySlug: category ?? null,
       title: title.trim() || t("marketplace.create.flow.previewFallbackTitle"),
       description: listingDescriptionForSubmit || "-",
       price: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : 1,
@@ -877,6 +879,8 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
       await repository.publishDraft({
         id: editingListingId ?? undefined,
         ownerId: snapshot.user.id,
+        offerType: offerType ?? null,
+        categorySlug: category ?? null,
         title: title.trim(),
         description: listingDescriptionForSubmit || "-",
         price: shouldShowPriceInput ? parsedPrice : 1,
@@ -913,8 +917,8 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
     setTitle(listing.title);
     setDescription(listing.description ?? "");
     setPrice(String(Math.max(1, listing.price)));
-    setOfferType(null);
-    setCategory(null);
+    setOfferType(listing.offerType ?? null);
+    setCategory(listing.categorySlug ?? null);
     setExtraDetails("");
     const existingImages = parseListingImageUrls(listing.imageUrl).map((uri) => ({
       ...createListingImageUploadItem({
@@ -942,6 +946,8 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
       await repository.publishDraft({
         id: listing.id,
         ownerId: snapshot.user.id,
+        offerType: listing.offerType ?? null,
+        categorySlug: listing.categorySlug ?? null,
         title: listing.title,
         description: listing.description ?? "-",
         price: listing.price,

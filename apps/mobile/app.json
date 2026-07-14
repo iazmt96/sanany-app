@@ -1,11 +1,30 @@
 {
   "expo": {
     "name": "سنعني",
-    "slug": "sanany-mobile",
+    "slug": "sanany",
     "version": "1.0.0",
+    "scheme": "sanany",
     "orientation": "default",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sanany.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.sanany.mobile",
+      "versionCode": 5
+    },
     "assetBundlePatterns": [
       "**/*"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0a1c4931-da92-426e-ab7a-ef31be5777ef"
+      }
+    },
+    "owner": "sananyapps-team"
   }
 }

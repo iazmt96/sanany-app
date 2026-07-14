@@ -1,288 +1,295 @@
-import { useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { formatDayMonthYear, readMetadataText } from "@sanany/shared";
+import { getProfileCompletionPercentage } from "@sanany/shared";
+import type { MarketplaceListing, PaginatedResult, SellerProfile, SellerProfileListingsTab, SellerRating } from "@sanany/types";
+import { formatMonthYear } from "@sanany/shared";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
-import { LanguageSwitcher } from "../components/language-switcher";
 import { MobileIcon } from "../components/mobile-icons";
-import { MobileSectionHeader } from "../components/mobile-section-header";
+import { MobileListingTile } from "../components/mobile-listing-tile";
+import { getMobileSellersRepository } from "../lib/sellers-repository";
 
 type ProfileScreenProps = {
   direction: Direction;
-  onOpenMyAds(): void;
-  onOpenPublicProfile(): void;
-  initialView?: "profile" | "settings";
+  onBack(): void;
+  onOpenListing(listing: MarketplaceListing): void;
+  onOpenVerification(): void;
 };
 
-export function ProfileScreen({ direction, onOpenMyAds, onOpenPublicProfile, initialView = "profile" }: ProfileScreenProps) {
+type ProfileTab = "all" | "active" | "sold" | "ratings";
+
+const PAGE_SIZE = 8;
+
+function getRatingStars(value: number): string {
+  const rounded = Math.round(value);
+  return `${"★".repeat(Math.max(0, rounded))}${"☆".repeat(Math.max(0, 5 - rounded))}`;
+}
+
+export function ProfileScreen({ direction, onBack, onOpenListing, onOpenVerification }: ProfileScreenProps) {
   const { t, i18n } = useTranslation();
-  const { snapshot, signOut } = useAuth();
-  const textAlign = direction === "rtl" ? "right" : "left";
+  const { accountProfile, snapshot, updateOptionalProfile } = useAuth();
+  const repository = useMemo(() => getMobileSellersRepository(), []);
   const isRtl = direction === "rtl";
-  const [isSettingsOpen, setIsSettingsOpen] = useState(initialView === "settings");
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-  const [isPromoEnabled, setIsPromoEnabled] = useState(true);
-  const [isPhoneVisible, setIsPhoneVisible] = useState(true);
-  const languageLabel = t(`language.${(i18n.language || "ar").startsWith("ar") ? "ar" : "en"}`);
-  const accountId = snapshot.user?.id ? snapshot.user.id.slice(0, 8).toUpperCase() : "00000000";
-  const accountName =
-    readMetadataText(snapshot.user?.user_metadata, ["full_name", "name", "display_name", "username"]) ??
-    snapshot.user?.email?.split("@")[0] ??
-    t("profile.accountNameFallback");
-  const phoneNumber =
-    (snapshot.user?.phone && snapshot.user.phone.trim().length > 0 ? snapshot.user.phone : null) ??
-    readMetadataText(snapshot.user?.user_metadata, ["phone", "phone_number", "mobile"]) ??
-    t("profile.accountDetails.notProvided");
-  const createdAtLabel =
-    snapshot.user?.created_at && !Number.isNaN(Date.parse(snapshot.user.created_at))
-      ? formatDayMonthYear(snapshot.user.created_at, i18n.language || "ar")
-      : t("profile.accountDetails.notProvided");
+  const textAlign = isRtl ? "right" : "left";
+  const [tab, setTab] = useState<ProfileTab>("all");
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<SellerProfile | null>(null);
+  const [listingsData, setListingsData] = useState<PaginatedResult<MarketplaceListing>>({
+    items: [],
+    totalItems: 0,
+    page: 1,
+    pageSize: PAGE_SIZE,
+    totalPages: 1
+  });
+  const [ratingsData, setRatingsData] = useState<PaginatedResult<SellerRating>>({
+    items: [],
+    totalItems: 0,
+    page: 1,
+    pageSize: PAGE_SIZE,
+    totalPages: 1
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [optionalProfile, setOptionalProfile] = useState({
+    city: "",
+    birthDate: "",
+    gender: "",
+    preferredContactMethod: "",
+    bio: ""
+  });
 
-  if (isSettingsOpen) {
-    const detailsRows: Array<{ key: string; label: string; value: string }> = [
-      {
-        key: "username",
-        label: t("profile.accountDetails.usernameLabel"),
-        value: accountName
-      },
-      {
-        key: "email",
-        label: t("profile.accountDetails.emailLabel"),
-        value: snapshot.user?.email ?? t("profile.accountDetails.notProvided")
-      },
-      {
-        key: "phone",
-        label: t("profile.accountDetails.phoneLabel"),
-        value: phoneNumber
-      },
-      {
-        key: "userId",
-        label: t("profile.accountDetails.userIdLabel"),
-        value: snapshot.user?.id ?? t("profile.accountDetails.notProvided")
-      },
-      {
-        key: "createdAt",
-        label: t("profile.accountDetails.createdAtLabel"),
-        value: createdAtLabel
-      }
-    ];
+  useEffect(() => {
+    setPage(1);
+  }, [tab]);
 
-    return (
-      <View style={styles.container}>
-        <View style={styles.headerCard}>
-          <View style={[styles.headerRow, isRtl ? styles.headerRowRtl : undefined]}>
-            <View style={styles.headerIdentity}>
-              <Text style={[styles.headerName, { textAlign }]} numberOfLines={1}>
-                {accountName}
-              </Text>
-              <Text style={[styles.headerId, { textAlign }]}>{accountId}</Text>
-            </View>
-            <View style={styles.avatarLarge}>
-              <MobileIcon name="profile" size={44} color="#ffffff" focused />
-            </View>
-          </View>
-        </View>
+  useEffect(() => {
+    setOptionalProfile({
+      city: accountProfile?.city ?? "",
+      birthDate: accountProfile?.birthDate ?? "",
+      gender: accountProfile?.gender ?? "",
+      preferredContactMethod: accountProfile?.preferredContactMethod ?? "",
+      bio: accountProfile?.bio ?? ""
+    });
+  }, [accountProfile?.bio, accountProfile?.birthDate, accountProfile?.city, accountProfile?.gender, accountProfile?.preferredContactMethod]);
 
-        <MobileSectionHeader direction={direction} title={t("profile.accountDetails.title")} subtitle={t("profile.accountDetails.subtitle")} />
+  useEffect(() => {
+    if (!snapshot.user?.id) {
+      setIsLoading(false);
+      return;
+    }
 
-        <View style={styles.detailsCard}>
-          {detailsRows.map((row, index) => (
-            <View key={row.key}>
-              <View style={styles.detailsRow}>
-                <Text style={[styles.detailsLabel, { textAlign }]}>{row.label}</Text>
-                <Text style={[styles.detailsValue, { textAlign }]} numberOfLines={1}>
-                  {row.value}
-                </Text>
-              </View>
-              {index < detailsRows.length - 1 ? <View style={styles.rowDivider} /> : null}
-            </View>
-          ))}
-        </View>
+    let active = true;
+    setIsLoading(true);
+    setError(null);
+    const listingsTab: SellerProfileListingsTab = tab === "sold" ? "sold" : tab === "active" ? "available" : "all";
 
-        {initialView === "profile" ? (
-          <Pressable
-            style={[styles.action, direction === "rtl" ? styles.actionRtl : undefined]}
-            onPress={() => {
-              setIsSettingsOpen(false);
-            }}
-          >
-            <View style={styles.actionLead}>
-              <MobileIcon name="chevron" size={18} color="#0f766e" />
-              <Text style={styles.actionLabel}>{t("profile.settings.backToProfile")}</Text>
-            </View>
-          </Pressable>
-        ) : null}
-      </View>
-    );
-  }
+    void Promise.all([
+      repository.getProfile(snapshot.user.id, snapshot.user.id),
+      repository.listSellerListings({ sellerId: snapshot.user.id, viewerId: snapshot.user.id, tab: listingsTab, sort: "newest", page, pageSize: PAGE_SIZE }),
+      repository.listSellerRatings({ sellerId: snapshot.user.id, sort: "newest", page, pageSize: PAGE_SIZE })
+    ])
+      .then(([profileResult, listingsResult, ratingsResult]) => {
+        if (!active) return;
+        setProfile(profileResult);
+        setListingsData(listingsResult);
+        setRatingsData(ratingsResult);
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError instanceof Error ? requestError.message : t("sellerProfile.errorLoad"));
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [page, repository, snapshot.user?.id, t, tab]);
+
+  const joinedLabel = profile?.joinedAt ? formatMonthYear(profile.joinedAt, i18n.language || "ar", "-") : "-";
+  const completionPercentage = getProfileCompletionPercentage(accountProfile, snapshot.user?.email);
+
+  const saveOptionalDetails = async () => {
+    setIsSavingProfile(true);
+    setProfileMessage(null);
+    try {
+      await updateOptionalProfile({
+        city: optionalProfile.city,
+        birthDate: optionalProfile.birthDate || null,
+        gender: optionalProfile.gender ? (optionalProfile.gender as "male" | "female" | "prefer_not_to_say") : null,
+        preferredContactMethod: optionalProfile.preferredContactMethod
+          ? (optionalProfile.preferredContactMethod as "phone" | "chat" | "whatsapp" | "email")
+          : null,
+        bio: optionalProfile.bio
+      });
+      setProfileMessage(t("profile.messages.profileSaved"));
+    } catch (saveError) {
+      setProfileMessage(saveError instanceof Error ? saveError.message : t("auth.errors.unknown"));
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerCard}>
-        <View style={[styles.headerRow, isRtl ? styles.headerRowRtl : undefined]}>
-          <View style={styles.headerIdentity}>
-            <Text style={[styles.headerName, { textAlign }]} numberOfLines={1}>
-              {accountName}
-            </Text>
-            <Text style={[styles.headerId, { textAlign }]}>{accountId}</Text>
-          </View>
-          <View style={styles.avatarLarge}>
-            <MobileIcon name="profile" size={44} color="#ffffff" focused />
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.statsCard}>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>{t("profile.stats.ads")}</Text>
-        </View>
-        <View style={styles.statsDivider} />
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>{t("profile.stats.purchases")}</Text>
-        </View>
-      </View>
-
-      <View style={styles.listCard}>
-        <Pressable
-          style={[styles.row, isRtl ? styles.rowRtl : undefined]}
-          onPress={() => {
-            setIsSettingsOpen(true);
-          }}
-        >
-          <View style={styles.rowIcon}>
-            <MobileIcon name="profile" size={16} color="#0f766e" />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { textAlign }]}>{t("profile.accountInfo.title")}</Text>
-            <Text style={[styles.rowSubtitle, { textAlign }]}>{t("profile.accountInfo.subtitle")}</Text>
-          </View>
-          <MobileIcon name="chevron" size={18} color="#94a3b8" />
-        </Pressable>
-
-        <View style={styles.rowDivider} />
-
-        <Pressable style={[styles.row, isRtl ? styles.rowRtl : undefined]} onPress={onOpenMyAds}>
-          <View style={styles.rowIcon}>
-            <MobileIcon name="myAds" size={16} color="#0f766e" />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { textAlign }]}>{t("profile.myAds.title")}</Text>
-            <Text style={[styles.rowSubtitle, { textAlign }]}>{t("profile.myAds.subtitle")}</Text>
-          </View>
-          <MobileIcon name="chevron" size={18} color="#94a3b8" />
-        </Pressable>
-
-        <View style={styles.rowDivider} />
-
-        <Pressable style={[styles.row, isRtl ? styles.rowRtl : undefined]} onPress={onOpenPublicProfile}>
-          <View style={styles.rowIcon}>
-            <MobileIcon name="profile" size={16} color="#0f766e" />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { textAlign }]}>{t("profile.publicProfile.title")}</Text>
-            <Text style={[styles.rowSubtitle, { textAlign }]}>{t("profile.publicProfile.subtitle")}</Text>
-          </View>
-          <MobileIcon name="chevron" size={18} color="#94a3b8" />
-        </Pressable>
-
-        <View style={styles.rowDivider} />
-
-        <Pressable
-          style={[styles.row, isRtl ? styles.rowRtl : undefined]}
-          onPress={() => {
-            setIsLanguageOpen((value) => !value);
-          }}
-        >
-          <View style={styles.rowIcon}>
-            <MobileIcon name="settings" size={16} color="#0f766e" />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { textAlign }]}>{t("profile.language.title")}</Text>
-            <Text style={[styles.rowSubtitle, { textAlign }]}>{languageLabel}</Text>
-          </View>
-          <MobileIcon name="chevron" size={18} color="#94a3b8" />
-        </Pressable>
-        {isLanguageOpen ? (
-          <View style={[styles.languageWrap, isRtl ? styles.languageWrapRtl : undefined]}>
-            <LanguageSwitcher />
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.listCard}>
-        <View style={[styles.switchRow, isRtl ? styles.rowRtl : undefined]}>
-          <View style={styles.rowIcon}>
-            <MobileIcon name="notifications" size={16} color="#0f766e" />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { textAlign }]}>{t("profile.promoNotifications.title")}</Text>
-            <Text style={[styles.rowSubtitle, { textAlign }]}>{t("profile.promoNotifications.subtitle")}</Text>
-          </View>
-          <Switch
-            trackColor={{ false: "#cbd5e1", true: "#0f766e" }}
-            thumbColor="#ffffff"
-            ios_backgroundColor="#cbd5e1"
-            value={isPromoEnabled}
-            onValueChange={setIsPromoEnabled}
-          />
-        </View>
-        <View style={styles.rowDivider} />
-        <View style={[styles.switchRow, isRtl ? styles.rowRtl : undefined]}>
-          <View style={styles.rowIcon}>
-            <MobileIcon name="call" size={16} color="#0f766e" />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { textAlign }]}>{t("profile.showPhone.title")}</Text>
-            <Text style={[styles.rowSubtitle, { textAlign }]}>{t("profile.showPhone.subtitle")}</Text>
-          </View>
-          <Switch
-            trackColor={{ false: "#cbd5e1", true: "#0f766e" }}
-            thumbColor="#ffffff"
-            ios_backgroundColor="#cbd5e1"
-            value={isPhoneVisible}
-            onValueChange={setIsPhoneVisible}
-          />
-        </View>
-      </View>
-
-      <View style={styles.listCard}>
-        <Pressable style={[styles.row, isRtl ? styles.rowRtl : undefined]}>
-          <View style={styles.rowIcon}>
-            <MobileIcon name="call" size={16} color="#0f766e" />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { textAlign }]}>{t("profile.contact.title")}</Text>
-            <Text style={[styles.rowSubtitle, { textAlign }]}>{t("profile.contact.subtitle")}</Text>
-          </View>
-          <MobileIcon name="chevron" size={18} color="#94a3b8" />
-        </Pressable>
-        <View style={styles.rowDivider} />
-        <Pressable style={[styles.row, isRtl ? styles.rowRtl : undefined]}>
-          <View style={styles.rowIcon}>
-            <MobileIcon name="settings" size={16} color="#0f766e" />
-          </View>
-          <View style={styles.rowContent}>
-            <Text style={[styles.rowTitle, { textAlign }]}>{t("profile.terms.title")}</Text>
-            <Text style={[styles.rowSubtitle, { textAlign }]}>{t("profile.terms.subtitle")}</Text>
-          </View>
-          <MobileIcon name="chevron" size={18} color="#94a3b8" />
-        </Pressable>
-      </View>
-
-      <Pressable
-        style={[styles.signOut, isRtl ? styles.rowRtl : undefined]}
-        onPress={() => {
-          void signOut();
-        }}
-      >
-        <View style={styles.rowIcon}>
-          <MobileIcon name="signOut" size={18} color="#b91c1c" />
-        </View>
-        <Text style={styles.signOutLabel}>{t("common.signOut")}</Text>
+      <Pressable style={[styles.backButton, isRtl ? styles.backButtonRtl : undefined]} onPress={onBack}>
+        <MobileIcon name="chevron" size={16} color="#334155" />
+        <Text style={styles.backButtonLabel}>{t("sellerProfile.back")}</Text>
       </Pressable>
+
+      {profile ? (
+        <View style={styles.headerCard}>
+          <View style={[styles.headerTopRow, isRtl ? styles.rowRtl : undefined]}>
+            <View style={styles.avatar}>
+              <MobileIcon name="profile" size={30} color="#0f766e" focused />
+            </View>
+            <View style={styles.headerMeta}>
+              <View style={[styles.nameRow, isRtl ? styles.rowRtl : undefined]}>
+                <Text style={[styles.name, { textAlign }]} numberOfLines={1}>
+                  {profile.displayName}
+                </Text>
+                {profile.isVerified ? <MobileIcon name="verified" size={16} color="#0f766e" focused /> : null}
+              </View>
+              <Text style={[styles.username, { textAlign }]}>{profile.username ? `@${profile.username}` : `#${profile.id.slice(0, 8)}`}</Text>
+              <View style={[styles.ratingRow, isRtl ? styles.rowRtl : undefined]}>
+                <Text style={styles.ratingValue}>{profile.ratingAverage.toFixed(1)}</Text>
+                <Text style={styles.ratingStars}>{getRatingStars(profile.ratingAverage)}</Text>
+                <Text style={styles.ratingCount}>{t("sellerProfile.ratingCount", { count: profile.ratingCount })}</Text>
+              </View>
+              <Text style={[styles.info, { textAlign }]}>
+                {t(`sellerProfile.accountType.${profile.accountType}`)} • {profile.city ?? t("sellerProfile.unknownCity")} • {t("sellerProfile.memberSince", { value: joinedLabel })}
+              </Text>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {isLoading ? <Text style={[styles.infoText, { textAlign }]}>{t("common.loading")}</Text> : null}
+      {error ? <Text style={[styles.errorText, { textAlign }]}>{error}</Text> : null}
+
+      {profile ? (
+        <View style={styles.statsRow}>
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{profile.listingsCount}</Text>
+            <Text style={styles.statLabel}>{t("sellerProfile.stats.listings")}</Text>
+          </View>
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{profile.soldListingsCount}</Text>
+            <Text style={styles.statLabel}>{t("sellerProfile.stats.sold")}</Text>
+          </View>
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{profile.followersCount}</Text>
+            <Text style={styles.statLabel}>{t("sellerProfile.stats.followers")}</Text>
+          </View>
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{profile.followingCount}</Text>
+            <Text style={styles.statLabel}>{t("sellerProfile.stats.following")}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.completionCard}>
+        <View style={[styles.completionHeader, isRtl ? styles.rowRtl : undefined]}>
+          <View style={styles.completionMeta}>
+            <Text style={[styles.completionTitle, { textAlign }]}>{t("profile.completion.title")}</Text>
+            <Text style={[styles.completionSubtitle, { textAlign }]}>{t("profile.completion.subtitle")}</Text>
+          </View>
+          <Text style={styles.completionValue}>{t("profile.completion.progress", { value: completionPercentage })}</Text>
+        </View>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${completionPercentage}%` }]} />
+        </View>
+        <Pressable style={styles.verificationAction} onPress={onOpenVerification}>
+          <Text style={styles.verificationActionLabel}>{t("profile.verificationFlow.action")}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.editCard}>
+        <Text style={[styles.editTitle, { textAlign }]}>{t("profile.completion.action")}</Text>
+        <TextInput
+          style={[styles.editInput, { textAlign }]}
+          value={optionalProfile.city}
+          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, city: value }))}
+          placeholder={t("profile.completion.items.city")}
+        />
+        <TextInput
+          style={[styles.editInput, { textAlign }]}
+          value={optionalProfile.birthDate}
+          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, birthDate: value }))}
+          placeholder={t("profile.datePlaceholder")}
+        />
+        <TextInput
+          style={[styles.editInput, { textAlign }]}
+          value={optionalProfile.gender}
+          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, gender: value }))}
+          placeholder={t("profile.completion.items.gender")}
+        />
+        <TextInput
+          style={[styles.editInput, { textAlign }]}
+          value={optionalProfile.preferredContactMethod}
+          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, preferredContactMethod: value }))}
+          placeholder={t("profile.completion.items.preferredContactMethod")}
+        />
+        <TextInput
+          style={[styles.editInput, styles.editInputMultiline, { textAlign }]}
+          value={optionalProfile.bio}
+          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, bio: value }))}
+          placeholder={t("profile.completion.items.bio")}
+          multiline
+        />
+        {profileMessage ? <Text style={[styles.profileMessage, { textAlign }]}>{profileMessage}</Text> : null}
+        <Pressable style={styles.saveButton} onPress={() => void saveOptionalDetails()} disabled={isSavingProfile}>
+          <Text style={styles.saveButtonLabel}>{isSavingProfile ? t("common.loading") : t("profile.edit.save")}</Text>
+        </Pressable>
+      </View>
+
+      <View style={[styles.tabsRow, isRtl ? styles.rowRtl : undefined]}>
+        {(["all", "active", "sold", "ratings"] as const).map((tabKey) => (
+          <Pressable key={tabKey} style={[styles.tabButton, tab === tabKey ? styles.tabButtonActive : undefined]} onPress={() => setTab(tabKey)}>
+            <Text style={[styles.tabLabel, tab === tabKey ? styles.tabLabelActive : undefined]}>{t(`profile.tabs.${tabKey}`)}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {tab === "ratings" ? (
+        <FlatList
+          data={ratingsData.items}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.ratingsContent}
+          renderItem={({ item }) => (
+            <View style={styles.ratingCard}>
+              <Text style={[styles.ratingCardTitle, { textAlign }]}>{item.raterName ?? t("sellerProfile.anonymousRater")}</Text>
+              <Text style={[styles.ratingCardStars, { textAlign }]}>{getRatingStars(item.rating)}</Text>
+              {item.comment ? <Text style={[styles.ratingCardComment, { textAlign }]}>{item.comment}</Text> : null}
+            </View>
+          )}
+        />
+      ) : (
+        <FlatList
+          data={listingsData.items}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.gridContent}
+          renderItem={({ item }) => (
+            <MobileListingTile
+              direction={direction}
+              listing={item}
+              width="48.5%"
+              onPress={() => {
+                onOpenListing(item);
+              }}
+            />
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -292,246 +299,263 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 10
   },
-  headerCard: {
-    borderRadius: 24,
-    backgroundColor: "#2f8f8d",
-    paddingHorizontal: 16,
-    paddingVertical: 14
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
-  headerRowRtl: {
+  rowRtl: {
     flexDirection: "row-reverse"
   },
-  headerIdentity: {
-    flex: 1
-  },
-  headerName: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#ffffff"
-  },
-  headerId: {
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.88)"
-  },
-  avatarLarge: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.26)"
-  },
-  statsCard: {
+  backButton: {
+    minHeight: 44,
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 18,
-    backgroundColor: "#ffffff",
-    paddingVertical: 10,
-    paddingHorizontal: 14
-  },
-  statBox: {
-    flex: 1,
-    alignItems: "center"
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#0f766e"
-  },
-  statLabel: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#64748b"
-  },
-  statsDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: "#e2e8f0"
-  },
-  listCard: {
-    borderRadius: 18,
+    gap: 6,
+    borderRadius: 999,
     backgroundColor: "#ffffff",
     paddingHorizontal: 12,
     paddingVertical: 8
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 10
-  },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 10
-  },
-  rowRtl: {
+  backButtonRtl: {
     flexDirection: "row-reverse"
   },
-  rowIcon: {
-    width: 28,
-    height: 28,
+  backButtonLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#334155"
+  },
+  headerCard: {
+    borderRadius: 18,
+    backgroundColor: "#ffffff",
+    padding: 12
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    gap: 10
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ecfdfa"
+  },
+  headerMeta: {
+    flex: 1,
+    gap: 3
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0f172a"
+  },
+  username: {
+    fontSize: 12,
+    color: "#0f766e"
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  ratingValue: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0f172a"
+  },
+  ratingStars: {
+    fontSize: 12,
+    color: "#f59e0b"
+  },
+  ratingCount: {
+    fontSize: 11,
+    color: "#64748b"
+  },
+  info: {
+    fontSize: 11,
+    color: "#64748b"
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 6
+  },
+  completionCard: {
+    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    padding: 12,
+    gap: 10
+  },
+  completionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  completionMeta: {
+    flex: 1,
+    gap: 3
+  },
+  completionTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0f172a"
+  },
+  completionSubtitle: {
+    fontSize: 11,
+    lineHeight: 17,
+    color: "#64748b"
+  },
+  completionValue: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#0f766e"
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#e2e8f0",
+    overflow: "hidden"
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: "#0f766e"
+  },
+  verificationAction: {
+    minHeight: 44,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ecfdfa"
   },
-  rowContent: {
-    flex: 1
-  },
-  rowTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#334155"
-  },
-  rowSubtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    color: "#94a3b8"
-  },
-  rowDivider: {
-    height: 1,
-    backgroundColor: "#f1f5f9"
-  },
-  languageWrap: {
-    paddingTop: 2,
-    paddingBottom: 8,
-    alignItems: "flex-start"
-  },
-  languageWrapRtl: {
-    alignItems: "flex-end"
-  },
-  card: {
-    marginBottom: 12,
-    borderRadius: 22,
-    backgroundColor: "#ffffff",
-    padding: 16,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2
-  },
-  detailsCard: {
-    borderRadius: 18,
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 12,
-    paddingVertical: 6
-  },
-  detailsRow: {
-    gap: 4,
-    paddingVertical: 10
-  },
-  detailsLabel: {
+  verificationActionLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#64748b"
+    color: "#0f766e"
   },
-  detailsValue: {
-    fontSize: 14,
-    fontWeight: "600",
+  editCard: {
+    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    padding: 12,
+    gap: 8
+  },
+  editTitle: {
+    fontSize: 13,
+    fontWeight: "800",
     color: "#0f172a"
   },
-  sectionLabel: {
-    marginBottom: 8,
+  editInput: {
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 12,
     fontSize: 12,
-    fontWeight: "700",
-    color: "#64748b"
+    color: "#0f172a"
   },
-  settingsLabel: {
-    marginBottom: 4
+  editInputMultiline: {
+    minHeight: 84,
+    paddingTop: 10
   },
-  settingsHint: {
-    marginBottom: 12,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "#64748b"
+  profileMessage: {
+    fontSize: 11,
+    color: "#0f766e"
   },
-  settingsSwitcherWrap: {
-    alignItems: "flex-start"
-  },
-  settingsSwitcherWrapRtl: {
-    alignItems: "flex-end"
-  },
-  accountRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12
-  },
-  accountRowRtl: {
-    flexDirection: "row-reverse"
-  },
-  accountContent: {
-    flex: 1
-  },
-  avatar: {
-    width: 58,
-    height: 58,
+  saveButton: {
+    minHeight: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: "#ecfdfa"
+    backgroundColor: "#0f766e"
   },
-  label: {
+  saveButtonLabel: {
     fontSize: 12,
+    fontWeight: "700",
+    color: "#ffffff"
+  },
+  statCell: {
+    flex: 1,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0f766e"
+  },
+  statLabel: {
+    marginTop: 2,
+    fontSize: 10,
     color: "#64748b"
   },
-  email: {
-    marginTop: 5,
-    fontSize: 16,
-    fontWeight: "600",
+  tabsRow: {
+    flexDirection: "row",
+    gap: 8
+  },
+  tabButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    paddingVertical: 7
+  },
+  tabButtonActive: {
+    borderColor: "#0f766e",
+    backgroundColor: "#ecfdfa"
+  },
+  tabLabel: {
+    fontSize: 12,
+    color: "#475569"
+  },
+  tabLabelActive: {
+    color: "#0f766e",
+    fontWeight: "700"
+  },
+  gridContent: {
+    gap: 10,
+    paddingBottom: 14
+  },
+  gridRow: {
+    justifyContent: "space-between"
+  },
+  ratingsContent: {
+    gap: 8,
+    paddingBottom: 14
+  },
+  ratingCard: {
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    padding: 10,
+    gap: 4
+  },
+  ratingCardTitle: {
+    fontSize: 13,
+    fontWeight: "700",
     color: "#0f172a"
   },
-  action: {
-    marginBottom: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderRadius: 18,
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1
+  ratingCardStars: {
+    fontSize: 12,
+    color: "#f59e0b"
   },
-  actionRtl: {
-    flexDirection: "row-reverse"
+  ratingCardComment: {
+    fontSize: 12,
+    color: "#475569"
   },
-  actionLead: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10
-  },
-  actionLabel: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#334155"
-  },
-  signOut: {
-    marginTop: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderRadius: 18,
-    backgroundColor: "#fef2f2",
-    paddingHorizontal: 12,
-    paddingVertical: 14
-  },
-  signOutLabel: {
-    fontSize: 14,
-    fontWeight: "700",
+  errorText: {
+    fontSize: 12,
     color: "#b91c1c"
+  },
+  infoText: {
+    fontSize: 12,
+    color: "#475569"
   }
 });

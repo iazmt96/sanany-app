@@ -21,6 +21,9 @@ export const en = {
     en: "English"
   },
   nav: {
+    home: "Home",
+    explore: "Explore",
+    more: "More",
     marketplace: "Marketplace",
     search: "Search",
     categories: "Categories",
@@ -115,6 +118,79 @@ export const en = {
     signUpTitle: "Create account",
     subtitle: "Your access gateway to SANANY marketplace",
     signUpDescription: "Choose the account type that fits you.",
+    phoneOnboarding: {
+      title: "Create your account in under a minute",
+      subtitle: "Start with your mobile number and confirm it with a one-time code.",
+      otpTitle: "Verify your mobile number",
+      otpSubtitle: "Enter the verification code we sent to continue securely.",
+      profileTitle: "Complete your basic account",
+      profileSubtitle: "Just add your display name and a unique username to finish.",
+      primaryTab: "Phone registration",
+      secondaryTab: "Email sign in",
+      countryCodeLabel: "Country code",
+      phoneStepLabel: "Mobile number",
+      phonePlaceholder: "5XXXXXXXX",
+      otpNotice: "You will receive a one-time verification code via a verification message. Standard carrier or provider rates may apply.",
+      termsNotice: "By continuing, you agree to the Terms of Service and Privacy Policy.",
+      continueAction: "Continue",
+      verifyAction: "Verify code",
+      createAccountAction: "Create Account",
+      displayNameLabel: "Display name",
+      displayNamePlaceholder: "How people will see your name",
+      usernameLabel: "Username",
+      usernamePlaceholder: "Choose a unique username",
+      usernameHint: "Use 3-24 lowercase letters, numbers, dots, or underscores.",
+      usernameChecking: "Checking username availability...",
+      usernameAvailable: "This username is available.",
+      usernameSuggestions: "Suggested usernames",
+      sentTo: "We sent the code to {{phone}}",
+      otpSent: "Verification code sent successfully.",
+      otpVerified: "Phone verified successfully.",
+      accountCreated: "Your SANANY account is ready.",
+      basicInfoRequired: "Add your display name and username to finish setting up your account.",
+      resend: "Resend code",
+      resendCountdown: "Resend in {{seconds}}s",
+      changePhone: "Change phone number",
+      trustHint: "Free to join · Your number is never shared",
+      countries: {
+        sa: "Saudi Arabia",
+        ae: "United Arab Emirates",
+        kw: "Kuwait",
+        qa: "Qatar",
+        bh: "Bahrain"
+      },
+      sidePanel: {
+        eyebrow: "Fast onboarding",
+        title: "A modern, low-friction registration flow",
+        subtitle: "Phone verification first, basic account info second, and optional profile details later.",
+        items: {
+          speed: {
+            title: "Focused steps",
+            description: "Each screen asks for one clear action so new users never face a long form."
+          },
+          otp: {
+            title: "Secure verification",
+            description: "One-time codes, resend countdown, and clear recovery actions keep the flow safe and intuitive."
+          },
+          profile: {
+            title: "Profile completion later",
+            description: "Optional details and verification stay inside the profile instead of blocking registration."
+          }
+        }
+      },
+      errors: {
+        phoneInvalid: "Enter a valid mobile number.",
+        phoneAuthUnavailable: "Phone verification is not configured yet. Enable Supabase phone auth and a supported SMS or WhatsApp provider first.",
+        otpIncomplete: "Enter the full verification code.",
+        otpInvalid: "The verification code is invalid.",
+        otpExpired: "The verification code has expired. Request a new code.",
+        displayNameRequired: "Display name is required.",
+        usernameRequired: "Username is required.",
+        usernameInvalid: "Username must be 3-24 lowercase letters, numbers, dots, or underscores.",
+        usernameReserved: "This username is reserved.",
+        usernameTaken: "This username is already taken."
+      }
+    },
     signUpAccountTypeLabel: "Account type",
     signUpAccountType: {
       individual: "Individual",
@@ -849,9 +925,38 @@ export const en = {
       ads: "Ads",
       purchases: "Purchase cases"
     },
+    tabs: {
+      all: "All",
+      active: "Active",
+      sold: "Sold",
+      ratings: "Ratings"
+    },
     accountInfo: {
       title: "Account details",
       subtitle: "Edit details"
+    },
+    more: {
+      myAdsSection: "My ads",
+      myAdsActive: "Active listings",
+      myAdsDrafts: "Drafts",
+      myAdsSold: "Sold",
+      myAdsExpired: "Expired",
+      accountSection: "Account",
+      profile: "Profile",
+      editProfile: "Edit profile",
+      verification: "Verification",
+      communitySection: "Community",
+      favorites: "Favorites",
+      followers: "Followers",
+      notifications: "Notifications",
+      settingsSection: "Settings",
+      language: "Language",
+      darkMode: "Dark mode",
+      supportSection: "Support",
+      contact: "Contact us",
+      terms: "Terms and conditions",
+      privacy: "Privacy policy",
+      about: "About the app"
     },
     myAds: {
       title: "My ads",
@@ -942,6 +1047,7 @@ export const en = {
         status: {
           unverified: "Unverified",
           pending: "Pending",
+          additional_info_required: "Additional information required",
           verified: "Verified",
           rejected: "Rejected"
         }
@@ -975,6 +1081,67 @@ export const en = {
       privacySaved: "Privacy settings saved.",
       notificationsSaved: "Notification settings saved."
     },
+    completion: {
+      title: "Complete your profile",
+      subtitle: "Optional details help buyers trust you more, but you can keep using SANANY without them.",
+      progress: "{{value}}% completed",
+      action: "Complete optional details",
+      items: {
+        avatar: "Profile photo",
+        email: "Email address",
+        city: "City",
+        birthDate: "Date of birth",
+        gender: "Gender",
+        bio: "Short biography",
+        preferredContactMethod: "Preferred contact method"
+      }
+    },
+    verificationFlow: {
+      title: "Account verification",
+      subtitle: "Verification is separate from registration and only requested when trust-sensitive features need it.",
+      trustHint: "We explain why each piece of information is needed and review submissions step by step.",
+      action: "Start verification",
+      saveDraft: "Save for later",
+      submit: "Submit verification",
+      reasons: {
+        legalName: "Used to match your account to your official identity.",
+        nationalId: "Used to confirm that the account belongs to a real person.",
+        birthDate: "Helps prevent identity mismatches and underage misuse.",
+        city: "Supports trust, moderation, and local compliance checks.",
+        email: "Needed for secure follow-up and verification updates.",
+        documentFront: "Needed to validate your identity document.",
+        documentBack: "Required when the document has details on both sides.",
+        selfie: "Helps us confirm the document belongs to you.",
+        businessName: "Needed when you want business seller privileges.",
+        businessRegistration: "Used to verify commercial or establishment legitimacy."
+      },
+      fields: {
+        legalName: "Full legal name",
+        nationalId: "National ID / Iqama number",
+        birthDate: "Date of birth",
+        city: "City",
+        email: "Verified email address",
+        documentFront: "Identity document (front)",
+        documentBack: "Identity document (back)",
+        selfie: "Selfie / face verification",
+        businessName: "Business / establishment name",
+        businessRegistration: "Business registration number"
+      },
+      steps: {
+        personal: "1. Personal information",
+        document: "2. Identity document",
+        face: "3. Face verification",
+        review: "4. Review and submission",
+        result: "5. Verification result"
+      },
+      status: {
+        unverified: "Not Verified",
+        pending: "Verification In Progress",
+        additional_info_required: "Additional Information Required",
+        verified: "Verified",
+        rejected: "Verification Rejected"
+      }
+    },
     accountDetails: {
       title: "Account details",
       subtitle: "Information linked to your account",
@@ -984,7 +1151,19 @@ export const en = {
       userIdLabel: "Account ID",
       createdAtLabel: "Account created at",
       notProvided: "Not provided"
-    }
+    },
+    genderOptions: {
+      male: "Male",
+      female: "Female",
+      prefer_not_to_say: "Prefer not to say"
+    },
+    contactMethodOptions: {
+      phone: "Phone call",
+      chat: "In-app chat",
+      whatsapp: "WhatsApp",
+      email: "Email"
+    },
+    datePlaceholder: "YYYY-MM-DD"
   },
   favorites: {
     pageTitle: "Favorites",
@@ -1570,6 +1749,13 @@ export const en = {
       title: "Categories management",
       subtitle: "Review current category coverage by listing distribution and jump directly into matching listings.",
       dataSourceUnavailable: "Categories data source is currently unavailable",
+      messages: {
+        created: "Category created successfully.",
+        updated: "Category updated successfully.",
+        deleted: "Category deleted successfully.",
+        forbidden: "You do not have permission to modify categories.",
+        operationFailed: "Could not complete the category operation. Check data and try again."
+      },
       filters: {
         anyGroup: "All groups"
       },
@@ -1582,10 +1768,27 @@ export const en = {
         subcategory: "Subcategory",
         listingsCount: "Listings count",
         keywords: "Match keywords",
+        fieldsCount: "Fields count",
         actions: "Actions"
       },
       actions: {
         openListings: "Open listings"
+      },
+      forms: {
+        createTitle: "Create subcategory",
+        parentCategory: "Parent category",
+        selectParent: "Select parent category",
+        slug: "Slug",
+        nameAr: "Arabic name",
+        nameEn: "English name",
+        offerType: "Offer type",
+        anyOfferType: "Any offer type",
+        sortOrder: "Sort order",
+        createButton: "Create category",
+        saveButton: "Save",
+        deleteButton: "Delete",
+        active: "Active",
+        inactive: "Inactive"
       }
     },
     settingsPanel: {

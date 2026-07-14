@@ -16,6 +16,8 @@ type ListingRow = {
   id: string;
   owner_id: string | null;
   owner_phone?: string | null;
+  offer_type?: MarketplaceListing["offerType"];
+  category_slug?: string | null;
   title: string;
   description: string | null;
   price: number;
@@ -28,7 +30,7 @@ type ListingRow = {
   updated_at?: string;
 };
 
-const LISTING_SELECT_WITH_OWNER_PHONE = "id,owner_id,owner_phone,title,description,price,status,image_url,location_name,latitude,longitude,created_at,updated_at";
+const LISTING_SELECT_WITH_OWNER_PHONE = "id,owner_id,owner_phone,offer_type,category_slug,title,description,price,status,image_url,location_name,latitude,longitude,created_at,updated_at";
 const LISTING_SELECT_LEGACY = "id,owner_id,title,description,price,status,image_url,created_at,updated_at";
 
 function isMissingListingsColumnError(error: unknown): boolean {
@@ -49,6 +51,8 @@ function mapRow(row: ListingRow): MarketplaceListing {
     id: row.id,
     ownerId: row.owner_id,
     ownerPhone: row.owner_phone ?? null,
+    offerType: row.offer_type ?? null,
+    categorySlug: row.category_slug ?? null,
     title: row.title,
     description: row.description,
     price: row.price,
@@ -99,6 +103,8 @@ function buildListingCreatePayload(input: CreateListingInput, status: Marketplac
     description: input.description.trim() || null,
     price: input.price,
     status,
+    offer_type: input.offerType ?? null,
+    category_slug: input.categorySlug ?? null,
     image_url: input.imageUrl ?? null,
     location_name: input.locationName ?? null,
     latitude: input.latitude ?? null,
@@ -223,6 +229,10 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
           supabaseQuery = supabaseQuery.eq("status", normalizedQuery.status);
         } else {
           supabaseQuery = supabaseQuery.in("status", ["available", "reserved"]);
+        }
+
+        if (normalizedQuery.filters?.category) {
+          supabaseQuery = supabaseQuery.eq("category_slug", normalizedQuery.filters.category);
         }
 
         if (normalizedQuery.search) {

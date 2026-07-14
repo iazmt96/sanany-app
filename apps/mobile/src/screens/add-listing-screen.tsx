@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { MarketplaceListing } from "@sanany/types";
+import type { ListingCategory as SananyListingCategory, ListingOfferType as SananyListingOfferType, MarketplaceListing } from "@sanany/types";
 import { createListingsRepository } from "@sanany/api";
 import {
   buildListingImageStoragePath,
@@ -291,6 +291,8 @@ async function createListingViaRest(params: {
   sessionToken: string;
   ownerId: string;
   ownerPhone: string | null;
+  offerType: SananyListingOfferType | null;
+  categorySlug: SananyListingCategory | null;
   title: string;
   description: string;
   price: number;
@@ -300,7 +302,7 @@ async function createListingViaRest(params: {
   longitude: number | null;
 }): Promise<MarketplaceListing> {
   const env = getMobileSupabaseEnv();
-  const response = await fetch(`${env.supabaseUrl}/rest/v1/listings?select=id,owner_id,owner_phone,title,description,price,status,image_url,location_name,latitude,longitude,created_at`, {
+  const response = await fetch(`${env.supabaseUrl}/rest/v1/listings?select=id,owner_id,owner_phone,offer_type,category_slug,title,description,price,status,image_url,location_name,latitude,longitude,created_at`, {
     method: "POST",
     headers: {
       apikey: env.supabaseAnonKey,
@@ -311,6 +313,8 @@ async function createListingViaRest(params: {
     body: JSON.stringify({
       owner_id: params.ownerId,
       owner_phone: params.ownerPhone,
+      offer_type: params.offerType,
+      category_slug: params.categorySlug,
       title: params.title,
       description: params.description || null,
       price: params.price,
@@ -327,6 +331,8 @@ async function createListingViaRest(params: {
         id: string;
         owner_id: string | null;
         owner_phone: string | null;
+        offer_type: ListingOfferType | null;
+        category_slug: string | null;
         title: string;
         description: string | null;
         price: number;
@@ -349,6 +355,8 @@ async function createListingViaRest(params: {
     id: row.id,
     ownerId: row.owner_id,
     ownerPhone: row.owner_phone,
+    offerType: row.offer_type,
+    categorySlug: row.category_slug,
     title: row.title,
     description: row.description,
     price: row.price,
@@ -364,6 +372,8 @@ async function createListingViaRest(params: {
 function createLocalListing(input: {
   ownerId: string;
   ownerPhone: string | null;
+  offerType: SananyListingOfferType | null;
+  categorySlug: SananyListingCategory | null;
   title: string;
   description: string;
   price: number;
@@ -374,6 +384,8 @@ function createLocalListing(input: {
     id: `local-${Date.now()}`,
     ownerId: input.ownerId,
     ownerPhone: input.ownerPhone,
+    offerType: input.offerType,
+    categorySlug: input.categorySlug,
     title: input.title,
     description: input.description,
     price: input.price,
@@ -839,6 +851,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
           id: draftListingId ?? undefined,
           ownerId: snapshot.user.id,
           ownerPhone: ownerPhone ?? undefined,
+          offerType: offerType ?? null,
+          categorySlug: category ?? null,
           title: title.trim(),
           description: buildListingDescription(),
           price: draftPrice,
@@ -1522,6 +1536,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
         id: draftListingId ?? undefined,
         ownerId: snapshot.user.id,
         ownerPhone: ownerPhone ?? undefined,
+        offerType: offerType ?? null,
+        categorySlug: category ?? null,
         title: title.trim(),
         description: buildListingDescription(),
         price: submitPrice,
@@ -1537,6 +1553,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
           sessionToken,
           ownerId: snapshot.user.id,
           ownerPhone,
+          offerType: offerType ?? null,
+          categorySlug: category ?? null,
           title: title.trim(),
           description: buildListingDescription(),
           price: submitPrice,
@@ -1561,6 +1579,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
           createLocalListing({
             ownerId: snapshot.user.id,
             ownerPhone,
+            offerType: offerType ?? null,
+            categorySlug: category ?? null,
             title: title.trim(),
             description: buildListingDescription(),
             price: submitPrice,
@@ -1578,6 +1598,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
             sessionToken,
             ownerId: snapshot.user.id,
             ownerPhone,
+            offerType: offerType ?? null,
+            categorySlug: category ?? null,
             title: title.trim(),
             description: buildListingDescription(),
             price: submitPrice,
@@ -1595,6 +1617,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
             createLocalListing({
               ownerId: snapshot.user.id,
               ownerPhone,
+              offerType: offerType ?? null,
+              categorySlug: category ?? null,
               title: title.trim(),
               description: buildListingDescription(),
               price: submitPrice,

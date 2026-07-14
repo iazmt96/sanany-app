@@ -5,7 +5,7 @@ import type { ListingFilterStatus, ListingsQuery, MarketplaceListing, PaginatedR
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { MobileEmptyState } from "../components/mobile-empty-state";
-import { MobileListingCard } from "../components/mobile-listing-card";
+import { MobileListingTile } from "../components/mobile-listing-tile";
 import { MobileIcon } from "../components/mobile-icons";
 import { MobileSectionHeader } from "../components/mobile-section-header";
 import { getMobileListingsRepository } from "../lib/listings-repository";
@@ -126,18 +126,12 @@ export function MyAdsScreen({ direction, onExploreMarketplace, onOpenListing }: 
         <FlatList
           data={data.items}
           keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <Pressable onPress={() => onOpenListing(item)}>
-              <MobileListingCard
-                direction={direction}
-                listing={item}
-                priceLabel={t("marketplace.pricePerDay", { value: item.price })}
-                statusLabel={t(`marketplace.status.${item.status}`)}
-                locationFallback={t("marketplace.detail.approximateLocation")}
-              />
-            </Pressable>
+            <MobileListingTile direction={direction} listing={item} width="48.5%" onPress={() => onOpenListing(item)} />
           )}
         />
       )}
@@ -212,8 +206,11 @@ const styles = StyleSheet.create({
     color: "#475569"
   },
   listContent: {
-    gap: 12,
+    gap: 10,
     paddingBottom: 10
+  },
+  gridRow: {
+    justifyContent: "space-between"
   },
   pagination: {
     marginTop: 4,

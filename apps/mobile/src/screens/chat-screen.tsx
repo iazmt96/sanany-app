@@ -8,12 +8,12 @@ import type { MarketplaceListing } from "@sanany/types";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { consumePendingChatListingIntent } from "../lib/chat-intent-store";
-import { getMobileListingsRepository } from "../lib/listings-repository";
 
 type ChatScreenProps = {
   direction: Direction;
   openListingIntent?: MarketplaceListing | null;
   onIntentHandled?(): void;
+  onUnreadCountChange?(count: number): void;
 };
 
 type ChatFilter = "all" | "seller" | "buyer";
@@ -207,12 +207,11 @@ function SwipeableThreadCard({ direction, thread, onOpen, onDelete }: SwipeableT
   );
 }
 
-export function ChatScreen({ direction, openListingIntent = null, onIntentHandled }: ChatScreenProps) {
+export function ChatScreen({ direction, openListingIntent = null, onIntentHandled, onUnreadCountChange }: ChatScreenProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const isRtl = direction === "rtl";
   const textAlign = isRtl ? "right" : "left";
-  const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
   const [activeFilter, setActiveFilter] = useState<ChatFilter>("all");
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [listingThreads, setListingThreads] = useState<ChatThread[]>([]);
@@ -300,38 +299,20 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
   }, []);
 
   useEffect(() => {
-    let active = true;
     setIsLoading(true);
     setError(null);
-
-    void listingsRepository
-      .list({ search: "", status: "all", sort: "newest", page: 1, pageSize: 20 })
-      .then((result) => {
-        if (!active) {
-          return;
-        }
-
-        const uniqueListings = result.items.filter((item, index, array) => array.findIndex((entry) => entry.id === item.id) === index);
-        const nextThreads = uniqueListings.map((listing) => mapListingToThread(listing, t, snapshot.user?.id ?? null));
-        setListingThreads(nextThreads);
-      })
-      .catch((requestError) => {
-        if (!active) {
-          return;
-        }
-
-        setError(requestError instanceof Error ? requestError.message : t("chat.loadError"));
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [listingsRepository, snapshot.user?.id, t]);
+    setListingThreads([]);
+    setThreadMessages({});
+    setSelectedThread(null);
+    setForcedVisibleThreadId(null);
+    setHiddenThreadIds([]);
+    setReadThreadIds([]);
+    void AsyncStorage.multiRemove([HIDDEN_THREADS_STORAGE_KEY, READ_THREADS_STORAGE_KEY, CHAT_OPEN_INTENT_STORAGE_KEY, CHAT_OPEN_THREAD_STORAGE_KEY]).finally(
+      () => {
+        setIsLoading(false);
+      }
+    );
+  }, []);
 
   useEffect(() => {
     if (!activeListingIntent) {
@@ -380,24 +361,12 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
   }, [activeListingIntent, hiddenThreadIds, onIntentHandled, snapshot.user?.id, t]);
 
   const threads = useMemo<ChatThread[]>(
-    () => [
-      {
-        id: "official",
-        kind: "seller",
-        name: t("chat.official.name"),
-        listingTitle: t("chat.official.title"),
-        lastMessage: t("chat.official.lastMessage"),
-        minutesAgo: 50,
-        unreadCount: readThreadIds.includes("official") ? 0 : 1,
-        imageUrl: null,
-        isOfficial: true
-      },
-      ...listingThreads.map((thread) => ({
+    () =>
+      listingThreads.map((thread) => ({
         ...thread,
         unreadCount: readThreadIds.includes(thread.id) ? 0 : thread.unreadCount
-      }))
-    ],
-    [listingThreads, readThreadIds, t]
+      })),
+    [listingThreads, readThreadIds]
   );
 
   const filteredThreads = threads.filter((thread) => {
@@ -414,6 +383,11 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
   const visibleThreads = filteredThreads.filter(
     (thread) => thread.id === "official" || thread.id === forcedVisibleThreadId || !hiddenThreadIds.includes(thread.id)
   );
+
+  useEffect(() => {
+    const totalUnread = threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
+    onUnreadCountChange?.(totalUnread);
+  }, [onUnreadCountChange, threads]);
 
   const buildDefaultMessages = () => [
     { id: "msg-1", from: "other" as const, text: t("chat.detail.messages.other1") },

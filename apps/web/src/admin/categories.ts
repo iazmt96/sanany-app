@@ -1,86 +1,35 @@
-import { CATEGORY_KEYWORDS, escapeListingsSearchTerm } from "@sanany/shared";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ListingCategory } from "@sanany/types";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { ListingOfferType } from "@sanany/types";
 import { createClient } from "../../utils/supabase/server";
 
-const MAIN_CATEGORY_KEYS = ["cars", "realestate", "electronics", "services", "furniture", "jobs"] as const;
-export type AdminMainCategoryKey = (typeof MAIN_CATEGORY_KEYS)[number];
-
-type AdminCategoryGroup = {
-  key: AdminMainCategoryKey;
-  subcategories: readonly ListingCategory[];
-};
-
-const ADMIN_CATEGORY_GROUPS: readonly AdminCategoryGroup[] = [
-  {
-    key: "cars",
-    subcategories: ["carSale", "carPartsAndServices", "truckAndHeavy", "bikeSale", "carRent"]
-  },
-  {
-    key: "realestate",
-    subcategories: ["propertySale", "propertyRent", "chaletRent", "warehouseRent"]
-  },
-  {
-    key: "electronics",
-    subcategories: ["deviceSale", "mobileSale", "laptopSale", "electronicPartsSale", "cameraGearRent"]
-  },
-  {
-    key: "services",
-    subcategories: [
-      "serviceOffer",
-      "cleaningService",
-      "homeMaintenanceService",
-      "electricalPlumbingService",
-      "movingService",
-      "designTechService",
-      "photoVideoService",
-      "deliveryService",
-      "womenServices",
-      "studentServices",
-      "serviceOther",
-      "requestHomeService",
-      "requestTechService",
-      "requestUrgentMaintenance"
-    ]
-  },
-  {
-    key: "furniture",
-    subcategories: [
-      "furnitureSale",
-      "homeAppliancesSale",
-      "toolsEquipmentSale",
-      "clothingSale",
-      "kidsSuppliesSale",
-      "livestockSale",
-      "generalGoods",
-      "saleOther",
-      "eventEquipmentRent",
-      "constructionToolsRent",
-      "rentOther"
-    ]
-  },
-  {
-    key: "jobs",
-    subcategories: ["requestGoods", "requestPurchase", "requestRent", "requestOther"]
-  }
-] as const;
-
 export type AdminCategoryOverview = {
-  key: AdminMainCategoryKey;
+  id: string;
+  slug: string;
+  labelAr: string;
+  labelEn: string;
   listingCount: number;
   subcategoryCount: number;
 };
 
 export type AdminCategoryRow = {
-  mainCategory: AdminMainCategoryKey;
-  category: ListingCategory;
+  id: string;
+  parentId: string | null;
+  slug: string;
+  labelAr: string;
+  labelEn: string;
+  mainCategoryLabelAr: string;
+  mainCategoryLabelEn: string;
   listingCount: number;
-  keywords: string[];
+  fieldsCount: number;
+  offerType: ListingOfferType | null;
+  isActive: boolean;
+  sortOrder: number;
 };
 
 export type AdminCategoriesPageData = {
   overview: AdminCategoryOverview[];
   rows: AdminCategoryRow[];
+  rootOptions: Array<{ id: string; slug: string; labelAr: string; labelEn: string }>;
   totalItems: number;
   totalPages: number;
   totalListings: number;
@@ -94,6 +43,50 @@ export type AdminCategoriesFilters = {
   page?: string | null;
 };
 
+type CategoryRow = {
+  id: string;
+  parent_id: string | null;
+  slug: string;
+  name_ar: string;
+  name_en: string;
+  offer_type: ListingOfferType | null;
+  is_active: boolean | null;
+  sort_order: number | null;
+};
+
+type CategoryFieldCountRow = {
+  category_id: string;
+};
+
+type AdminCategoryMutationInput = {
+  id: string;
+  slug: string;
+  nameAr: string;
+  nameEn: string;
+  offerType: ListingOfferType | null;
+  sortOrder: number;
+  isActive?: boolean;
+  parentId?: string | null;
+};
+
+type CreateAdminCategoryInput = {
+  parentId: string | null;
+  slug: string;
+  nameAr: string;
+  nameEn: string;
+  offerType: ListingOfferType | null;
+  sortOrder: number;
+};
+
+function requireServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    throw new Error("Missing Supabase server configuration. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+  }
+  return createSupabaseClient(url, serviceKey, { auth: { persistSession: false } });
+}
+
 function normalizePage(value: string | null | undefined): number {
   const parsed = Number.parseInt(value ?? "1", 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
@@ -102,76 +95,133 @@ function normalizePage(value: string | null | undefined): number {
   return parsed;
 }
 
-function parseGroup(value: string | null | undefined): AdminMainCategoryKey | null {
-  return MAIN_CATEGORY_KEYS.find((item) => item === value) ?? null;
+function normalizeSortOrder(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.floor(value));
 }
 
-async function countListingsForCategory(supabase: SupabaseClient, category: ListingCategory): Promise<{ count: number; errorCode: string | null }> {
-  const keywords = CATEGORY_KEYWORDS[category];
-  const orClauses = keywords.flatMap((keyword) => {
-    const escaped = escapeListingsSearchTerm(keyword);
-    return [`title.ilike.%${escaped}%`, `description.ilike.%${escaped}%`];
-  });
-
-  const { count, error } = await supabase.from("listings").select("id", { count: "exact", head: true }).or(orClauses.join(","));
-  if (error) {
-    return { count: 0, errorCode: error.code ?? "unknown" };
+function normalizeOfferType(value: string | null | undefined): ListingOfferType | null {
+  if (value === "sell" || value === "rent" || value === "service" || value === "request") {
+    return value;
   }
+  return null;
+}
 
-  return { count: count ?? 0, errorCode: null };
+function normalizeSlug(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\-_]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function requireText(value: string, label: string): string {
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new Error(`${label} is required.`);
+  }
+  return normalized;
+}
+
+async function countListingsForCategory(adminClient: ReturnType<typeof requireServiceRoleClient>, categorySlug: string): Promise<number> {
+  const { count, error } = await adminClient.from("listings").select("id", { count: "exact", head: true }).eq("category_slug", categorySlug);
+  if (error) {
+    throw new Error(error.message);
+  }
+  return count ?? 0;
 }
 
 export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters): Promise<AdminCategoriesPageData> {
   const supabase = await createClient();
   const page = normalizePage(filters.page);
   const pageSize = 12;
-  const groupFilter = parseGroup(filters.group);
 
-  const rowsWithCounts = await Promise.all(
-    ADMIN_CATEGORY_GROUPS.flatMap((group) =>
-      group.subcategories.map(async (category) => {
-        const result = await countListingsForCategory(supabase, category);
-        return {
-          mainCategory: group.key,
-          category,
-          listingCount: result.count,
-          keywords: CATEGORY_KEYWORDS[category].slice(0, 3),
-          errorCode: result.errorCode
-        };
-      })
-    )
-  );
+  const [categoriesResult, fieldsResult] = await Promise.all([
+    supabase
+      .from("marketplace_categories")
+      .select("id,parent_id,slug,name_ar,name_en,offer_type,is_active,sort_order")
+      .order("sort_order", { ascending: true })
+      .order("name_ar", { ascending: true }),
+    supabase.from("marketplace_category_fields").select("category_id")
+  ]);
 
-  const errorCode = rowsWithCounts.find((row) => row.errorCode)?.errorCode ?? null;
-  if (errorCode) {
+  if (categoriesResult.error || fieldsResult.error) {
     return {
-      overview: ADMIN_CATEGORY_GROUPS.map((group) => ({
-        key: group.key,
-        listingCount: 0,
-        subcategoryCount: group.subcategories.length
-      })),
+      overview: [],
       rows: [],
+      rootOptions: [],
       totalItems: 0,
       totalPages: 1,
       totalListings: 0,
       page,
       pageSize,
-      errorCode
+      errorCode: categoriesResult.error?.code ?? fieldsResult.error?.code ?? "unknown"
     };
   }
 
-  const overview = ADMIN_CATEGORY_GROUPS.map((group) => {
-    const groupRows = rowsWithCounts.filter((row) => row.mainCategory === group.key);
+  const categories = (categoriesResult.data as CategoryRow[] | null) ?? [];
+  const fieldRows = (fieldsResult.data as CategoryFieldCountRow[] | null) ?? [];
+  const fieldCounts = fieldRows.reduce<Record<string, number>>((accumulator, row) => {
+    accumulator[row.category_id] = (accumulator[row.category_id] ?? 0) + 1;
+    return accumulator;
+  }, {});
+
+  const rootCategories = categories.filter((category) => category.parent_id === null);
+  const childCategories = categories.filter((category) => category.parent_id !== null);
+  const categoryMap = new Map(categories.map((category) => [category.id, category]));
+  const rootFilter = rootCategories.find((category) => category.slug === filters.group) ?? null;
+  const adminClient = requireServiceRoleClient();
+
+  const rowsWithCounts = await Promise.all(
+    childCategories.map(async (category) => {
+      const rootCategory = category.parent_id ? categoryMap.get(category.parent_id) : null;
+      const listingCount = await countListingsForCategory(adminClient, category.slug);
+      return {
+        category,
+        rootCategory,
+        listingCount,
+        fieldsCount: fieldCounts[category.id] ?? 0
+      };
+    })
+  );
+
+  const overview = rootCategories.map((rootCategory) => {
+    const groupRows = rowsWithCounts.filter((row) => row.rootCategory?.id === rootCategory.id);
     return {
-      key: group.key,
+      id: rootCategory.id,
+      slug: rootCategory.slug,
+      labelAr: rootCategory.name_ar,
+      labelEn: rootCategory.name_en,
       listingCount: groupRows.reduce((sum, row) => sum + row.listingCount, 0),
-      subcategoryCount: group.subcategories.length
+      subcategoryCount: groupRows.length
     };
   });
 
   const filteredRows = rowsWithCounts
-    .filter((row) => (groupFilter ? row.mainCategory === groupFilter : true))
-    .sort((left, right) => right.listingCount - left.listingCount || left.category.localeCompare(right.category));
+    .filter((row) => (rootFilter ? row.rootCategory?.id === rootFilter.id : true))
+    .sort(
+      (left, right) =>
+        right.listingCount - left.listingCount ||
+        (left.category.sort_order ?? 0) - (right.category.sort_order ?? 0) ||
+        left.category.name_ar.localeCompare(right.category.name_ar, "ar")
+    )
+    .map(({ category, rootCategory, listingCount, fieldsCount }) => ({
+      id: category.id,
+      parentId: category.parent_id,
+      slug: category.slug,
+      labelAr: category.name_ar,
+      labelEn: category.name_en,
+      mainCategoryLabelAr: rootCategory?.name_ar ?? category.name_ar,
+      mainCategoryLabelEn: rootCategory?.name_en ?? category.name_en,
+      listingCount,
+      fieldsCount,
+      offerType: category.offer_type,
+      isActive: category.is_active ?? true,
+      sortOrder: category.sort_order ?? 0
+    }));
 
   const totalItems = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -181,7 +231,13 @@ export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters
 
   return {
     overview,
-    rows: filteredRows.slice(from, to).map(({ errorCode: _errorCode, ...row }) => row),
+    rows: filteredRows.slice(from, to),
+    rootOptions: rootCategories.map((root) => ({
+      id: root.id,
+      slug: root.slug,
+      labelAr: root.name_ar,
+      labelEn: root.name_en
+    })),
     totalItems,
     totalPages,
     totalListings: overview.reduce((sum, item) => sum + item.listingCount, 0),
@@ -189,4 +245,85 @@ export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters
     pageSize,
     errorCode: null
   };
+}
+
+export async function createAdminCategory(input: CreateAdminCategoryInput): Promise<void> {
+  const adminClient = requireServiceRoleClient();
+  const slug = normalizeSlug(requireText(input.slug, "slug"));
+  const nameAr = requireText(input.nameAr, "nameAr");
+  const nameEn = requireText(input.nameEn, "nameEn");
+  if (!slug) {
+    throw new Error("Invalid slug value.");
+  }
+
+  const payload = {
+    parent_id: input.parentId,
+    slug,
+    name_ar: nameAr,
+    name_en: nameEn,
+    offer_type: input.offerType,
+    sort_order: normalizeSortOrder(input.sortOrder),
+    is_active: true
+  };
+  const { error } = await adminClient.from("marketplace_categories").insert(payload);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function updateAdminCategory(input: AdminCategoryMutationInput): Promise<void> {
+  const adminClient = requireServiceRoleClient();
+  const slug = normalizeSlug(requireText(input.slug, "slug"));
+  const nameAr = requireText(input.nameAr, "nameAr");
+  const nameEn = requireText(input.nameEn, "nameEn");
+
+  const payload = {
+    slug,
+    name_ar: nameAr,
+    name_en: nameEn,
+    offer_type: input.offerType,
+    sort_order: normalizeSortOrder(input.sortOrder),
+    is_active: input.isActive ?? true,
+    parent_id: input.parentId === undefined ? undefined : input.parentId
+  };
+  const { error } = await adminClient.from("marketplace_categories").update(payload).eq("id", input.id);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function deleteAdminCategory(categoryId: string): Promise<void> {
+  const adminClient = requireServiceRoleClient();
+  const categoryResult = await adminClient.from("marketplace_categories").select("id,slug").eq("id", categoryId).maybeSingle();
+  if (categoryResult.error) {
+    throw new Error(categoryResult.error.message);
+  }
+  if (!categoryResult.data) {
+    throw new Error("Category not found.");
+  }
+
+  const childResult = await adminClient.from("marketplace_categories").select("id", { count: "exact", head: true }).eq("parent_id", categoryId);
+  if (childResult.error) {
+    throw new Error(childResult.error.message);
+  }
+  if ((childResult.count ?? 0) > 0) {
+    throw new Error("Cannot delete category with subcategories.");
+  }
+
+  const listingsCount = await countListingsForCategory(adminClient, categoryResult.data.slug);
+  if (listingsCount > 0) {
+    throw new Error("Cannot delete category with active listings.");
+  }
+
+  const { error } = await adminClient.from("marketplace_categories").delete().eq("id", categoryId);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export function parseOfferTypeFormValue(value: FormDataEntryValue | null): ListingOfferType | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  return normalizeOfferType(value);
 }

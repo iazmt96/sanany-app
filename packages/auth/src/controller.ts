@@ -1,5 +1,5 @@
 import type { Session, User } from "@supabase/supabase-js";
-import type { AuthPayload } from "@sanany/types";
+import type { AuthPayload, PhoneOtpRequestPayload, PhoneOtpVerifyPayload } from "@sanany/types";
 import type { AuthService, AuthSubscription } from "./supabase-auth";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -18,6 +18,8 @@ export type AuthController = {
   getSnapshot(): AuthSnapshot;
   signIn(payload: AuthPayload): Promise<void>;
   signUp(payload: AuthPayload): Promise<Session | null>;
+  requestPhoneOtp(payload: PhoneOtpRequestPayload): Promise<void>;
+  verifyPhoneOtp(payload: PhoneOtpVerifyPayload): Promise<Session | null>;
   requestPasswordReset(email: string, redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
 };
@@ -88,6 +90,12 @@ export function createAuthController(service: AuthService): AuthController {
     },
     async signUp(payload) {
       return service.signUp(payload);
+    },
+    async requestPhoneOtp(payload) {
+      await service.requestPhoneOtp(payload);
+    },
+    async verifyPhoneOtp(payload) {
+      return service.verifyPhoneOtp(payload);
     },
     async requestPasswordReset(email, redirectTo) {
       await service.requestPasswordReset(email, redirectTo);

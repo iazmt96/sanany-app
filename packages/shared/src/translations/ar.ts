@@ -21,6 +21,9 @@ export const ar = {
     en: "الإنجليزية"
   },
   nav: {
+    home: "الرئيسية",
+    explore: "اكسبلور",
+    more: "المزيد",
     marketplace: "السوق",
     search: "البحث",
     categories: "الأقسام",
@@ -115,6 +118,79 @@ export const ar = {
     signUpTitle: "إنشاء حساب",
     subtitle: "بوابة الوصول إلى سوق سنعني",
     signUpDescription: "اختر نوع الحساب المناسب لك.",
+    phoneOnboarding: {
+      title: "أنشئ حسابك في أقل من دقيقة",
+      subtitle: "ابدأ برقم جوالك ثم أكّده برمز تحقق لمرة واحدة.",
+      otpTitle: "تحقق من رقم الجوال",
+      otpSubtitle: "أدخل رمز التحقق المرسل إليك للمتابعة بأمان.",
+      profileTitle: "أكمل بيانات حسابك الأساسية",
+      profileSubtitle: "أضف الاسم الظاهر واسم المستخدم فقط لإكمال الحساب.",
+      primaryTab: "التسجيل بالجوال",
+      secondaryTab: "دخول بالبريد",
+      countryCodeLabel: "مفتاح الدولة",
+      phoneStepLabel: "رقم الجوال",
+      phonePlaceholder: "5XXXXXXXX",
+      otpNotice: "سيصلك رمز تحقق لمرة واحدة عبر رسالة تحقق. قد تُطبق رسوم شركة الاتصالات أو مزود الخدمة.",
+      termsNotice: "بالمتابعة فأنت توافق على الشروط وسياسة الخصوصية.",
+      continueAction: "متابعة",
+      verifyAction: "تأكيد الرمز",
+      createAccountAction: "إنشاء الحساب",
+      displayNameLabel: "الاسم الظاهر",
+      displayNamePlaceholder: "الاسم الذي سيظهر للناس",
+      usernameLabel: "اسم المستخدم",
+      usernamePlaceholder: "اختر اسم مستخدم فريد",
+      usernameHint: "استخدم من 3 إلى 24 حرفًا إنجليزيًا صغيرًا أو أرقامًا أو نقاطًا أو شرطات سفلية.",
+      usernameChecking: "جارٍ التحقق من توفر اسم المستخدم...",
+      usernameAvailable: "اسم المستخدم متاح.",
+      usernameSuggestions: "أسماء مستخدم مقترحة",
+      sentTo: "أرسلنا الرمز إلى {{phone}}",
+      otpSent: "تم إرسال رمز التحقق بنجاح.",
+      otpVerified: "تم التحقق من رقم الجوال بنجاح.",
+      accountCreated: "حسابك في SANANY أصبح جاهزًا.",
+      basicInfoRequired: "أضف الاسم الظاهر واسم المستخدم لإكمال إعداد الحساب.",
+      resend: "إعادة إرسال الرمز",
+      resendCountdown: "إعادة الإرسال بعد {{seconds}} ث",
+      changePhone: "تغيير رقم الجوال",
+      trustHint: "مجاني تمامًا · رقمك لن يُشارك مع أحد",
+      countries: {
+        sa: "السعودية",
+        ae: "الإمارات",
+        kw: "الكويت",
+        qa: "قطر",
+        bh: "البحرين"
+      },
+      sidePanel: {
+        eyebrow: "تسجيل سريع",
+        title: "رحلة تسجيل حديثة وخفيفة",
+        subtitle: "التحقق بالجوال أولاً، ثم بيانات الحساب الأساسية، بينما تبقى التفاصيل الاختيارية لاحقًا داخل الملف الشخصي.",
+        items: {
+          speed: {
+            title: "خطوات مركزة",
+            description: "كل شاشة تطلب إجراءً واحدًا واضحًا حتى لا يواجه المستخدم نموذجًا طويلًا."
+          },
+          otp: {
+            title: "تحقق آمن",
+            description: "رمز تحقق لمرة واحدة مع عداد إعادة الإرسال ورسائل واضحة للحالات المختلفة."
+          },
+          profile: {
+            title: "استكمال لاحقًا",
+            description: "تفاصيل الملف والتوثيق تبقى داخل الملف الشخصي ولا تعطل إنشاء الحساب."
+          }
+        }
+      },
+      errors: {
+        phoneInvalid: "أدخل رقم جوال صحيح.",
+        phoneAuthUnavailable: "التحقق بالجوال غير مهيأ بعد. فعّل Phone Auth وموفرًا مدعومًا للرسائل النصية أو واتساب في Supabase أولاً.",
+        otpIncomplete: "أدخل رمز التحقق كاملًا.",
+        otpInvalid: "رمز التحقق غير صحيح.",
+        otpExpired: "انتهت صلاحية رمز التحقق. اطلب رمزًا جديدًا.",
+        displayNameRequired: "الاسم الظاهر مطلوب.",
+        usernameRequired: "اسم المستخدم مطلوب.",
+        usernameInvalid: "اسم المستخدم يجب أن يكون من 3 إلى 24 حرفًا أو رقمًا أو نقطة أو شرطة سفلية.",
+        usernameReserved: "اسم المستخدم هذا محجوز.",
+        usernameTaken: "اسم المستخدم مستخدم بالفعل."
+      }
+    },
     signUpAccountTypeLabel: "نوع الحساب",
     signUpAccountType: {
       individual: "فرد",
@@ -848,9 +924,38 @@ export const ar = {
       ads: "إعلان",
       purchases: "حالة شراء"
     },
+    tabs: {
+      all: "الكل",
+      active: "النشطة",
+      sold: "المباعة",
+      ratings: "التقييمات"
+    },
     accountInfo: {
       title: "بيانات الحساب",
       subtitle: "تعديل البيانات"
+    },
+    more: {
+      myAdsSection: "إعلاناتي",
+      myAdsActive: "الإعلانات النشطة",
+      myAdsDrafts: "المسودات",
+      myAdsSold: "المباعة",
+      myAdsExpired: "المنتهية",
+      accountSection: "الحساب",
+      profile: "الملف الشخصي",
+      editProfile: "تعديل الملف الشخصي",
+      verification: "التوثيق",
+      communitySection: "المفضلة والمتابعة",
+      favorites: "المفضلة",
+      followers: "المتابعون",
+      notifications: "الإشعارات",
+      settingsSection: "الإعدادات",
+      language: "اللغة",
+      darkMode: "الوضع الداكن",
+      supportSection: "الدعم",
+      contact: "تواصل معنا",
+      terms: "الشروط والأحكام",
+      privacy: "سياسة الخصوصية",
+      about: "حول التطبيق"
     },
     myAds: {
       title: "إعلاناتي",
@@ -941,6 +1046,7 @@ export const ar = {
         status: {
           unverified: "غير موثّق",
           pending: "قيد المراجعة",
+          additional_info_required: "مطلوب معلومات إضافية",
           verified: "موثّق",
           rejected: "مرفوض"
         }
@@ -974,6 +1080,67 @@ export const ar = {
       privacySaved: "تم حفظ إعدادات الخصوصية.",
       notificationsSaved: "تم حفظ إعدادات الإشعارات."
     },
+    completion: {
+      title: "أكمل ملفك الشخصي",
+      subtitle: "البيانات الاختيارية ترفع الثقة بك، لكن يمكنك الاستمرار في استخدام SANANY بدونها.",
+      progress: "اكتمل {{value}}%",
+      action: "استكمال البيانات الاختيارية",
+      items: {
+        avatar: "الصورة الشخصية",
+        email: "البريد الإلكتروني",
+        city: "المدينة",
+        birthDate: "تاريخ الميلاد",
+        gender: "الجنس",
+        bio: "نبذة قصيرة",
+        preferredContactMethod: "طريقة التواصل المفضلة"
+      }
+    },
+    verificationFlow: {
+      title: "توثيق الحساب",
+      subtitle: "التوثيق منفصل عن التسجيل، ولا نطلبه إلا عند الحاجة لميزات تتطلب ثقة أعلى.",
+      trustHint: "نشرح سبب طلب كل معلومة، ونراجع الطلب خطوة بخطوة بوضوح.",
+      action: "ابدأ التوثيق",
+      saveDraft: "حفظ للمتابعة لاحقًا",
+      submit: "إرسال طلب التوثيق",
+      reasons: {
+        legalName: "نستخدمه لمطابقة الحساب مع الهوية الرسمية.",
+        nationalId: "نستخدمه للتأكد من أن الحساب يعود لشخص حقيقي.",
+        birthDate: "يساعد في منع تعارضات الهوية وسوء الاستخدام.",
+        city: "يدعم الثقة والإشراف والامتثال المحلي.",
+        email: "مطلوب للتواصل الآمن وتحديثات التوثيق.",
+        documentFront: "مطلوب للتحقق من وثيقة الهوية.",
+        documentBack: "مطلوب عندما تحتوي الوثيقة على بيانات في الجهة الخلفية.",
+        selfie: "يساعدنا على التأكد من أن الوثيقة تخصك.",
+        businessName: "مطلوب عند طلب مزايا البائع التجاري.",
+        businessRegistration: "يُستخدم للتحقق من المنشأة أو النشاط التجاري."
+      },
+      fields: {
+        legalName: "الاسم القانوني الكامل",
+        nationalId: "رقم الهوية / الإقامة",
+        birthDate: "تاريخ الميلاد",
+        city: "المدينة",
+        email: "البريد الإلكتروني الموثق",
+        documentFront: "صورة الهوية (أمام)",
+        documentBack: "صورة الهوية (خلف)",
+        selfie: "سيلفي / تحقق الوجه",
+        businessName: "اسم المنشأة / النشاط",
+        businessRegistration: "رقم السجل أو المنشأة"
+      },
+      steps: {
+        personal: "1. المعلومات الشخصية",
+        document: "2. وثيقة الهوية",
+        face: "3. التحقق بالوجه",
+        review: "4. المراجعة والإرسال",
+        result: "5. نتيجة التوثيق"
+      },
+      status: {
+        unverified: "غير موثّق",
+        pending: "التوثيق قيد المعالجة",
+        additional_info_required: "مطلوب معلومات إضافية",
+        verified: "موثّق",
+        rejected: "تم رفض التوثيق"
+      }
+    },
     accountDetails: {
       title: "بيانات الحساب",
       subtitle: "معلومات مرتبطة بحسابك",
@@ -983,7 +1150,19 @@ export const ar = {
       userIdLabel: "معرّف الحساب",
       createdAtLabel: "تاريخ إنشاء الحساب",
       notProvided: "غير متوفر"
-    }
+    },
+    genderOptions: {
+      male: "ذكر",
+      female: "أنثى",
+      prefer_not_to_say: "أفضل عدم الإفصاح"
+    },
+    contactMethodOptions: {
+      phone: "اتصال هاتفي",
+      chat: "محادثة داخل التطبيق",
+      whatsapp: "واتساب",
+      email: "بريد إلكتروني"
+    },
+    datePlaceholder: "YYYY-MM-DD"
   },
   favorites: {
     pageTitle: "المفضلة",
@@ -1569,6 +1748,13 @@ export const ar = {
       title: "إدارة الفئات",
       subtitle: "مراجعة الفئات الحالية حسب توزيع الإعلانات وربطها السريع مع قائمة الإعلانات.",
       dataSourceUnavailable: "مصدر بيانات الفئات غير متاح حاليًا",
+      messages: {
+        created: "تم إنشاء الفئة بنجاح.",
+        updated: "تم تحديث الفئة بنجاح.",
+        deleted: "تم حذف الفئة بنجاح.",
+        forbidden: "ليس لديك صلاحية تعديل الفئات.",
+        operationFailed: "تعذرت عملية الفئة. راجع البيانات وحاول مرة أخرى."
+      },
       filters: {
         anyGroup: "كل المجموعات"
       },
@@ -1581,10 +1767,27 @@ export const ar = {
         subcategory: "الفئة الفرعية",
         listingsCount: "عدد الإعلانات",
         keywords: "كلمات المطابقة",
+        fieldsCount: "عدد الحقول",
         actions: "الإجراءات"
       },
       actions: {
         openListings: "فتح الإعلانات"
+      },
+      forms: {
+        createTitle: "إنشاء فئة فرعية",
+        parentCategory: "الفئة الرئيسية",
+        selectParent: "اختر الفئة الرئيسية",
+        slug: "المعرّف (Slug)",
+        nameAr: "الاسم بالعربية",
+        nameEn: "الاسم بالإنجليزية",
+        offerType: "نوع العرض",
+        anyOfferType: "كل أنواع العروض",
+        sortOrder: "ترتيب العرض",
+        createButton: "إنشاء الفئة",
+        saveButton: "حفظ",
+        deleteButton: "حذف",
+        active: "نشط",
+        inactive: "غير نشط"
       }
     },
     settingsPanel: {

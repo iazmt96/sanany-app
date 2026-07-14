@@ -36,15 +36,14 @@ export function RequireAuth({ language, children }: PropsWithChildren<LanguagePr
 
 export function RedirectIfAuthenticated({ language, children }: PropsWithChildren<LanguageProp>) {
   const router = useRouter();
-  const { snapshot } = useAuth();
+  const { snapshot, profileStatus } = useAuth();
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
 
   useEffect(() => {
-    if (isAuthenticated(snapshot)) {
+    if (isAuthenticated(snapshot) && profileStatus === "complete") {
       router.replace(`/${resolvedLanguage}`);
     }
-  }, [resolvedLanguage, router, snapshot]);
+  }, [profileStatus, resolvedLanguage, router, snapshot]);
 
   return <>{children}</>;
 }
-

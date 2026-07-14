@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ListingCategory, ListingsFilters, ListingsQuery, MarketplaceListing, PaginatedResult, SearchCityKey } from "@sanany/types";
+import type { ListingCategory, ListingsFilters, ListingsQuery, MarketplaceCategory, MarketplaceListing, PaginatedResult, SearchCityKey } from "@sanany/types";
 import { Card } from "@sanany/ui";
 import {
   countActiveListingsFilters,
@@ -17,6 +17,7 @@ import {
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { RequireAuth } from "../auth/guards";
+import { getWebCategoriesRepository } from "../lib/categories-repository";
 import { getWebListingsRepository } from "../lib/listings-repository";
 import { AppNavigation } from "./app-navigation";
 import { LanguageSwitcher } from "./language-switcher";
@@ -30,51 +31,6 @@ type SearchShellProps = {
 const PAGE_SIZE = 12;
 const FETCH_PAGE_SIZE = 300;
 const CITY_KEYS: readonly SearchCityKey[] = ["riyadh", "jeddah", "dammam", "makkah", "madinah"];
-const CATEGORY_OPTIONS: readonly ListingCategory[] = [
-  "carSale",
-  "carPartsAndServices",
-  "truckAndHeavy",
-  "bikeSale",
-  "propertySale",
-  "propertyRent",
-  "deviceSale",
-  "furnitureSale",
-  "livestockSale",
-  "mobileSale",
-  "laptopSale",
-  "homeAppliancesSale",
-  "toolsEquipmentSale",
-  "clothingSale",
-  "kidsSuppliesSale",
-  "electronicPartsSale",
-  "generalGoods",
-  "saleOther",
-  "carRent",
-  "eventEquipmentRent",
-  "constructionToolsRent",
-  "chaletRent",
-  "warehouseRent",
-  "cameraGearRent",
-  "rentOther",
-  "serviceOffer",
-  "cleaningService",
-  "homeMaintenanceService",
-  "electricalPlumbingService",
-  "movingService",
-  "designTechService",
-  "photoVideoService",
-  "deliveryService",
-  "womenServices",
-  "studentServices",
-  "serviceOther",
-  "requestGoods",
-  "requestPurchase",
-  "requestRent",
-  "requestHomeService",
-  "requestTechService",
-  "requestUrgentMaintenance",
-  "requestOther"
-];
 
 type ViewMode = "grid" | "list";
 
@@ -84,10 +40,14 @@ function parseViewMode(value: string | null): ViewMode {
 
 function FiltersPanel({
   query,
+  categories,
+  language,
   onFiltersChange,
   onClearFilters
 }: {
   query: ListingsQuery;
+  categories: MarketplaceCategory[];
+  language: "ar" | "en";
   onFiltersChange(next: ListingsFilters): void;
   onClearFilters(): void;
 }) {
@@ -105,9 +65,9 @@ function FiltersPanel({
           className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none ring-brand/30 focus:ring"
         >
           <option value="">{t("search.filters.anyCategory")}</option>
-          {CATEGORY_OPTIONS.map((category) => (
-            <option key={category} value={category}>
-              {t(`marketplace.create.categories.${category}`)}
+          {categories.map((category) => (
+            <option key={category.id} value={category.slug}>
+              {t(`marketplace.create.categories.${category.slug}`, { defaultValue: language === "ar" ? category.nameAr : category.nameEn })}
             </option>
           ))}
         </select>
@@ -259,6 +219,7 @@ export function SearchShell({ language }: SearchShellProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const repository = useMemo(() => getWebListingsRepository(), []);
+  const categoriesRepository = useMemo(() => getWebCategoriesRepository(), []);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -280,11 +241,35 @@ export function SearchShell({ language }: SearchShellProps) {
     totalPages: 1
   });
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [categoryOptions, setCategoryOptions] = useState<MarketplaceCategory[]>([]);
   const resultCache = useRef<Map<string, PaginatedResult<MarketplaceListing>>>(new Map());
 
   useEffect(() => {
     setSearchDraft(parsedQuery.search);
   }, [parsedQuery.search]);
+
+  useEffect(() => {
+    let active = true;
+
+    void categoriesRepository
+      .listCategories()
+      .then((result) => {
+        if (!active) {
+          return;
+        }
+
+        setCategoryOptions(result.filter((category) => category.parentId !== null));
+      })
+      .catch(() => {
+        if (active) {
+          setCategoryOptions([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [categoriesRepository]);
 
   useEffect(() => {
     const query: ListingsQuery = {
@@ -498,7 +483,13 @@ export function SearchShell({ language }: SearchShellProps) {
             <Card className="sticky top-24 space-y-3 p-4">
               <h2 className="text-sm font-bold text-slate-900">{t("search.filters.title")}</h2>
               <p className="text-xs text-slate-500">{t("search.filters.activeCount", { count: activeFiltersCount })}</p>
-              <FiltersPanel query={parsedQuery} onFiltersChange={onFiltersChange} onClearFilters={onClearFilters} />
+              <FiltersPanel
+                query={parsedQuery}
+                categories={categoryOptions}
+                language={resolvedLanguage}
+                onFiltersChange={onFiltersChange}
+                onClearFilters={onClearFilters}
+              />
             </Card>
           </aside>
 
@@ -543,7 +534,13 @@ export function SearchShell({ language }: SearchShellProps) {
                   {t("common.cancel")}
                 </button>
               </div>
-              <FiltersPanel query={parsedQuery} onFiltersChange={onFiltersChange} onClearFilters={onClearFilters} />
+              <FiltersPanel
+                query={parsedQuery}
+                categories={categoryOptions}
+                language={resolvedLanguage}
+                onFiltersChange={onFiltersChange}
+                onClearFilters={onClearFilters}
+              />
             </div>
           </div>
         ) : null}

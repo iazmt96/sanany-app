@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import type { MarketplaceListing, PaginatedResult, SellerProfile } from "@sanany/types";
+import { createAccountRepository } from "@sanany/api";
+import type { AccountVerificationRequest, MarketplaceListing, PaginatedResult, SellerProfile } from "@sanany/types";
 import {
   FAVORITES_STORAGE_KEY,
+  getProfileCompletionPercentage,
   parseStoredIdList,
   parseNotificationPreferences,
   PROFILE_LISTING_VIEWS,
@@ -46,6 +48,9 @@ type ProfileFormState = {
   bio: string;
   city: string;
   phone: string;
+  birthDate: string;
+  gender: string;
+  preferredContactMethod: string;
 };
 
 type ProfileStatsState = {
@@ -64,7 +69,10 @@ function getInitialForm(profile: SellerProfile | null): ProfileFormState {
     displayName: profile?.displayName ?? "",
     bio: profile?.bio ?? "",
     city: profile?.city ?? "",
-    phone: profile?.phone ?? ""
+    phone: profile?.phone ?? "",
+    birthDate: "",
+    gender: "",
+    preferredContactMethod: ""
   };
 }
 
@@ -78,10 +86,11 @@ function updateLanguagePath(pathname: string, nextLanguage: string): string {
 
 export function ProfileShell({ language }: ProfileShellProps) {
   const { t, i18n } = useTranslation();
-  const { snapshot, signOut, requestPasswordReset } = useAuth();
+  const { accountProfile, refreshAccountProfile, requestPasswordReset, signOut, snapshot, updateOptionalProfile } = useAuth();
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
   const listingsRepository = useMemo(() => getWebListingsRepository(), []);
   const sellersRepository = useMemo(() => getWebSellersRepository(), []);
+  const accountRepository = useMemo(() => createAccountRepository(getWebSupabaseClient()), []);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -114,6 +123,19 @@ export function ProfileShell({ language }: ProfileShellProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [verificationRequest, setVerificationRequest] = useState<AccountVerificationRequest | null>(null);
+  const [verificationForm, setVerificationForm] = useState({
+    legalFullName: "",
+    nationalId: "",
+    birthDate: "",
+    city: "",
+    email: "",
+    documentFrontUrl: "",
+    documentBackUrl: "",
+    selfieUrl: "",
+    businessName: "",
+    businessRegistration: ""
+  });
 
   useEffect(() => {
     const sectionParam = searchParams.get("section");
@@ -145,6 +167,22 @@ export function ProfileShell({ language }: ProfileShellProps) {
     const raw = window.localStorage.getItem(NOTIFICATION_SETTINGS_KEY);
     setNotificationPreferences(parseNotificationPreferences(raw));
   }, []);
+
+  useEffect(() => {
+    if (!accountProfile) {
+      return;
+    }
+
+    setProfileForm({
+      displayName: accountProfile.displayName ?? "",
+      bio: accountProfile.bio ?? "",
+      city: accountProfile.city ?? "",
+      phone: accountProfile.phone ?? "",
+      birthDate: accountProfile.birthDate ?? "",
+      gender: accountProfile.gender ?? "",
+      preferredContactMethod: accountProfile.preferredContactMethod ?? ""
+    });
+  }, [accountProfile]);
 
   useEffect(() => {
     const userId = snapshot.user?.id;
@@ -199,6 +237,45 @@ export function ProfileShell({ language }: ProfileShellProps) {
       active = false;
     };
   }, [listingsRepository, sellersRepository, snapshot.user?.id, t]);
+
+  useEffect(() => {
+    const userId = snapshot.user?.id;
+    if (!userId) {
+      setVerificationRequest(null);
+      return;
+    }
+
+    let active = true;
+    void accountRepository
+      .getVerificationRequest(userId)
+      .then((request) => {
+        if (!active) {
+          return;
+        }
+        setVerificationRequest(request);
+        setVerificationForm({
+          legalFullName: request?.legalFullName ?? accountProfile?.displayName ?? "",
+          nationalId: request?.nationalId ?? "",
+          birthDate: request?.birthDate ?? accountProfile?.birthDate ?? "",
+          city: request?.city ?? accountProfile?.city ?? "",
+          email: request?.email ?? snapshot.user?.email ?? "",
+          documentFrontUrl: request?.documentFrontUrl ?? "",
+          documentBackUrl: request?.documentBackUrl ?? "",
+          selfieUrl: request?.selfieUrl ?? "",
+          businessName: request?.businessName ?? "",
+          businessRegistration: request?.businessRegistration ?? ""
+        });
+      })
+      .catch((requestError) => {
+        if (active) {
+          setErrorMessage(requestError instanceof Error ? requestError.message : t("profile.errorLoad"));
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [accountProfile?.birthDate, accountProfile?.city, accountProfile?.displayName, accountRepository, snapshot.user?.email, snapshot.user?.id, t]);
 
   useEffect(() => {
     const userId = snapshot.user?.id;
@@ -283,34 +360,36 @@ export function ProfileShell({ language }: ProfileShellProps) {
     setIsSaving(true);
     setErrorMessage(null);
     setSuccessMessage(null);
-    const { error } = await getWebSupabaseClient()
-      .from("profiles")
-      .update({
-        display_name: profileForm.displayName.trim(),
-        bio: profileForm.bio.trim() || null,
-        city: profileForm.city.trim() || null,
-        phone: profileForm.phone.trim() || null
-      })
-      .eq("id", snapshot.user.id);
-
-    if (error) {
+    try {
+      await updateOptionalProfile({
+        displayName: profileForm.displayName,
+        bio: profileForm.bio,
+        city: profileForm.city,
+        phone: profileForm.phone,
+        birthDate: profileForm.birthDate || null,
+        gender: profileForm.gender ? (profileForm.gender as "male" | "female" | "prefer_not_to_say") : null,
+        preferredContactMethod: profileForm.preferredContactMethod
+          ? (profileForm.preferredContactMethod as "phone" | "chat" | "whatsapp" | "email")
+          : null
+      });
+      await refreshAccountProfile();
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              displayName: profileForm.displayName.trim() || current.displayName,
+              bio: profileForm.bio.trim() || null,
+              city: profileForm.city.trim() || null,
+              phone: profileForm.phone.trim() || null
+            }
+          : current
+      );
+      setSuccessMessage(t("profile.messages.profileSaved"));
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t("auth.errors.unknown"));
       setIsSaving(false);
-      setErrorMessage(error.message);
       return;
     }
-
-    setProfile((current) =>
-      current
-        ? {
-            ...current,
-            displayName: profileForm.displayName.trim() || current.displayName,
-            bio: profileForm.bio.trim() || null,
-            city: profileForm.city.trim() || null,
-            phone: profileForm.phone.trim() || null
-          }
-        : current
-    );
-    setSuccessMessage(t("profile.messages.profileSaved"));
     setIsSaving(false);
   };
 
@@ -373,6 +452,37 @@ export function ProfileShell({ language }: ProfileShellProps) {
     setSuccessMessage(t("profile.settings.password.sent"));
   };
 
+  const saveVerification = async (submit: boolean) => {
+    if (!snapshot.user?.id) {
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      const nextRequest = await accountRepository.upsertVerificationRequest(snapshot.user.id, {
+        legalFullName: verificationForm.legalFullName,
+        nationalId: verificationForm.nationalId,
+        birthDate: verificationForm.birthDate,
+        city: verificationForm.city,
+        email: verificationForm.email,
+        documentFrontUrl: verificationForm.documentFrontUrl || null,
+        documentBackUrl: verificationForm.documentBackUrl || null,
+        selfieUrl: verificationForm.selfieUrl || null,
+        businessName: verificationForm.businessName || null,
+        businessRegistration: verificationForm.businessRegistration || null,
+        submit
+      });
+      setVerificationRequest(nextRequest);
+      setSuccessMessage(submit ? t("profile.verificationFlow.submit") : t("profile.verificationFlow.saveDraft"));
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t("auth.errors.unknown"));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const signOutNow = async () => {
     await signOut();
     router.push(`/${resolvedLanguage}/auth`);
@@ -395,6 +505,8 @@ export function ProfileShell({ language }: ProfileShellProps) {
       : section === "expired"
       ? t("profile.listingSections.expired")
       : t("profile.listingSections.favorites");
+
+  const completionPercentage = getProfileCompletionPercentage(accountProfile, snapshot.user?.email);
 
   const sidebarItems: Array<{ id: ProfileSectionId; label: string; count?: number }> = [
     { id: "overview", label: t("profile.sidebar.overview") },
@@ -507,6 +619,28 @@ export function ProfileShell({ language }: ProfileShellProps) {
                     </div>
                   </Card>
 
+                  <Card className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900">{t("profile.completion.title")}</h3>
+                        <p className="text-sm text-slate-600">{t("profile.completion.subtitle")}</p>
+                      </div>
+                      <div className="rounded-full bg-brand/10 px-3 py-1 text-sm font-semibold text-brand">
+                        {t("profile.completion.progress", { value: completionPercentage })}
+                      </div>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-brand" style={{ width: `${completionPercentage}%` }} />
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                      {(["avatar", "email", "city", "birthDate", "gender", "bio", "preferredContactMethod"] as const).map((item) => (
+                        <div key={item} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                          {t(`profile.completion.items.${item}`)}
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
                   <Card className="space-y-3">
                     <h3 className="text-base font-semibold text-slate-900">{t("profile.edit.title")}</h3>
                     <div className="grid gap-3 md:grid-cols-2">
@@ -533,6 +667,42 @@ export function ProfileShell({ language }: ProfileShellProps) {
                           onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))}
                           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
                         />
+                      </label>
+                      <label className="space-y-1 text-sm">
+                        <span className="text-slate-600">{t("profile.completion.items.birthDate")}</span>
+                        <input
+                          type="date"
+                          value={profileForm.birthDate}
+                          onChange={(event) => setProfileForm((current) => ({ ...current, birthDate: event.target.value }))}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                        />
+                      </label>
+                      <label className="space-y-1 text-sm">
+                        <span className="text-slate-600">{t("profile.completion.items.gender")}</span>
+                        <select
+                          value={profileForm.gender}
+                          onChange={(event) => setProfileForm((current) => ({ ...current, gender: event.target.value }))}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                        >
+                          <option value="">{t("profile.notProvided")}</option>
+                          <option value="male">{t("profile.genderOptions.male")}</option>
+                          <option value="female">{t("profile.genderOptions.female")}</option>
+                          <option value="prefer_not_to_say">{t("profile.genderOptions.prefer_not_to_say")}</option>
+                        </select>
+                      </label>
+                      <label className="space-y-1 text-sm">
+                        <span className="text-slate-600">{t("profile.completion.items.preferredContactMethod")}</span>
+                        <select
+                          value={profileForm.preferredContactMethod}
+                          onChange={(event) => setProfileForm((current) => ({ ...current, preferredContactMethod: event.target.value }))}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                        >
+                          <option value="">{t("profile.notProvided")}</option>
+                          <option value="phone">{t("profile.contactMethodOptions.phone")}</option>
+                          <option value="chat">{t("profile.contactMethodOptions.chat")}</option>
+                          <option value="whatsapp">{t("profile.contactMethodOptions.whatsapp")}</option>
+                          <option value="email">{t("profile.contactMethodOptions.email")}</option>
+                        </select>
                       </label>
                       <label className="space-y-1 text-sm md:col-span-2">
                         <span className="text-slate-600">{t("profile.edit.bio")}</span>
@@ -610,7 +780,7 @@ export function ProfileShell({ language }: ProfileShellProps) {
                   <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.account")}</h3>
                   <p className="text-sm text-slate-600">{t("profile.settings.account.hint")}</p>
                   <p className="text-sm text-slate-700">
-                    <span className="font-semibold">{t("profile.emailLabel")}:</span> {snapshot.user?.email ?? t("profile.notProvided")}
+                    <span className="font-semibold">{t("profile.accountDetails.emailLabel")}:</span> {snapshot.user?.email ?? t("profile.notProvided")}
                   </p>
                   <button
                     type="button"
@@ -754,18 +924,139 @@ export function ProfileShell({ language }: ProfileShellProps) {
               ) : null}
 
               {section === "settings-verification" ? (
-                <Card className="space-y-2">
+                <Card className="space-y-4">
                   <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.verification")}</h3>
                   <p className="text-sm text-slate-700">
                     {t("profile.settings.verification.current", {
-                      value: profile.companyVerificationStatus
+                      value: verificationRequest
+                        ? t(`profile.verificationFlow.status.${verificationRequest.status}`)
+                        : profile.companyVerificationStatus
                         ? t(`profile.settings.verification.status.${profile.companyVerificationStatus}`)
                         : profile.isVerified
                         ? t("profile.settings.verification.status.verified")
                         : t("profile.settings.verification.status.unverified")
                     })}
                   </p>
-                  <p className="text-sm text-slate-600">{t("profile.settings.verification.hint")}</p>
+                  <p className="text-sm text-slate-600">{t("profile.verificationFlow.subtitle")}</p>
+                  <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">{t("profile.verificationFlow.trustHint")}</p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="space-y-1 text-sm">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.legalName")}</span>
+                      <input
+                        value={verificationForm.legalFullName}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, legalFullName: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.legalName")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.nationalId")}</span>
+                      <input
+                        value={verificationForm.nationalId}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, nationalId: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.nationalId")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.birthDate")}</span>
+                      <input
+                        type="date"
+                        value={verificationForm.birthDate}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, birthDate: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.birthDate")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.city")}</span>
+                      <input
+                        value={verificationForm.city}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, city: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.city")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm md:col-span-2">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.email")}</span>
+                      <input
+                        value={verificationForm.email}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, email: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.email")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.documentFront")}</span>
+                      <input
+                        value={verificationForm.documentFrontUrl}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, documentFrontUrl: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.documentFront")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.documentBack")}</span>
+                      <input
+                        value={verificationForm.documentBackUrl}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, documentBackUrl: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.documentBack")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.selfie")}</span>
+                      <input
+                        value={verificationForm.selfieUrl}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, selfieUrl: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.selfie")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.businessName")}</span>
+                      <input
+                        value={verificationForm.businessName}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, businessName: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.businessName")}</span>
+                    </label>
+                    <label className="space-y-1 text-sm md:col-span-2">
+                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.businessRegistration")}</span>
+                      <input
+                        value={verificationForm.businessRegistration}
+                        onChange={(event) => setVerificationForm((current) => ({ ...current, businessRegistration: event.target.value }))}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
+                      />
+                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.businessRegistration")}</span>
+                    </label>
+                  </div>
+                  <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                    <p>{t("profile.verificationFlow.steps.personal")}</p>
+                    <p>{t("profile.verificationFlow.steps.document")}</p>
+                    <p>{t("profile.verificationFlow.steps.face")}</p>
+                    <p>{t("profile.verificationFlow.steps.review")}</p>
+                    <p>{t("profile.verificationFlow.steps.result")}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void saveVerification(false)}
+                      disabled={isSaving}
+                      className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
+                    >
+                      {t("profile.verificationFlow.saveDraft")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveVerification(true)}
+                      disabled={isSaving}
+                      className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      {t("profile.verificationFlow.submit")}
+                    </button>
+                  </div>
                 </Card>
               ) : null}
 

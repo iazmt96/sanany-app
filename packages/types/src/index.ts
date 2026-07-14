@@ -53,7 +53,58 @@ export const LISTING_CATEGORIES = [
   "requestUrgentMaintenance",
   "requestOther"
 ] as const;
-export type ListingCategory = (typeof LISTING_CATEGORIES)[number];
+export type LegacyListingCategory = (typeof LISTING_CATEGORIES)[number];
+export type ListingCategory = string;
+
+export const LISTING_CATEGORY_EXPERIENCE_KEYS = ["general", "vehicles", "real_estate", "electronics", "livestock", "jobs", "services"] as const;
+export type ListingCategoryExperienceKey = (typeof LISTING_CATEGORY_EXPERIENCE_KEYS)[number];
+
+export const LISTING_CATEGORY_FIELD_TYPES = ["text", "textarea", "number", "select", "multiselect", "boolean"] as const;
+export type ListingCategoryFieldType = (typeof LISTING_CATEGORY_FIELD_TYPES)[number];
+
+export type MarketplaceCategoryFieldOption = {
+  value: string;
+  labelAr: string;
+  labelEn: string;
+};
+
+export type MarketplaceCategoryField = {
+  id: string;
+  categoryId: string;
+  fieldKey: string;
+  fieldType: ListingCategoryFieldType;
+  labelAr: string;
+  labelEn: string;
+  placeholderAr: string | null;
+  placeholderEn: string | null;
+  helperTextAr: string | null;
+  helperTextEn: string | null;
+  isRequired: boolean;
+  sortOrder: number;
+  filterable: boolean;
+  detailVisible: boolean;
+  options: MarketplaceCategoryFieldOption[];
+};
+
+export type MarketplaceCategory = {
+  id: string;
+  parentId: string | null;
+  slug: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  iconName: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  offerType: ListingOfferType | null;
+  experienceKey: ListingCategoryExperienceKey;
+};
+
+export type MarketplaceCategoryNode = MarketplaceCategory & {
+  fields: MarketplaceCategoryField[];
+  children: MarketplaceCategoryNode[];
+};
 
 export const SEARCH_CITY_KEYS = ["riyadh", "jeddah", "dammam", "makkah", "madinah"] as const;
 export type SearchCityKey = (typeof SEARCH_CITY_KEYS)[number];
@@ -93,10 +144,21 @@ export type DraftStatus = (typeof DRAFT_STATUSES)[number];
 export const VERIFICATION_STATUSES = ["unverified", "pending", "verified", "rejected"] as const;
 export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
 
+export const ACCOUNT_VERIFICATION_STATUSES = ["unverified", "pending", "additional_info_required", "verified", "rejected"] as const;
+export type AccountVerificationStatus = (typeof ACCOUNT_VERIFICATION_STATUSES)[number];
+
+export const PROFILE_GENDERS = ["male", "female", "prefer_not_to_say"] as const;
+export type ProfileGender = (typeof PROFILE_GENDERS)[number];
+
+export const CONTACT_METHODS = ["phone", "chat", "whatsapp", "email"] as const;
+export type ContactMethod = (typeof CONTACT_METHODS)[number];
+
 export type MarketplaceListing = {
   id: string;
   ownerId: string | null;
   ownerPhone: string | null;
+  offerType?: ListingOfferType | null;
+  categorySlug?: ListingCategory | null;
   title: string;
   description: string | null;
   price: number;
@@ -115,6 +177,8 @@ export type CreateListingInput = {
   price: number;
   ownerId: string;
   ownerPhone?: string;
+  offerType?: ListingOfferType | null;
+  categorySlug?: ListingCategory | null;
   status?: ListingStatus;
   imageUrl?: string;
   locationName?: string;
@@ -154,6 +218,96 @@ export type AuthPayload = {
   password: string;
   accountType?: AccountType;
   metadata?: AuthSignUpMetadata;
+};
+
+export const PHONE_OTP_CHANNELS = ["sms", "whatsapp"] as const;
+export type PhoneOtpChannel = (typeof PHONE_OTP_CHANNELS)[number];
+
+export type PhoneOtpRequestPayload = {
+  phone: string;
+  channel?: PhoneOtpChannel;
+  fallbackChannel?: PhoneOtpChannel;
+};
+
+export type PhoneOtpVerifyPayload = {
+  phone: string;
+  token: string;
+};
+
+export type BasicAccountProfileInput = {
+  displayName: string;
+  username: string;
+};
+
+export type UsernameAvailability = {
+  normalizedUsername: string;
+  isAvailable: boolean;
+  suggestions: string[];
+  reason: "empty" | "invalid" | "taken" | "available";
+};
+
+export type AccountProfile = {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  city: string | null;
+  phone: string | null;
+  birthDate: string | null;
+  gender: ProfileGender | null;
+  preferredContactMethod: ContactMethod | null;
+  accountType: AccountType;
+  isVerified: boolean;
+};
+
+export type UpdateAccountProfileInput = {
+  displayName?: string;
+  username?: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  city?: string | null;
+  phone?: string | null;
+  birthDate?: string | null;
+  gender?: ProfileGender | null;
+  preferredContactMethod?: ContactMethod | null;
+};
+
+export type AccountVerificationRequest = {
+  id: string;
+  userId: string;
+  status: AccountVerificationStatus;
+  legalFullName: string | null;
+  nationalId: string | null;
+  birthDate: string | null;
+  city: string | null;
+  email: string | null;
+  documentFrontUrl: string | null;
+  documentBackUrl: string | null;
+  selfieUrl: string | null;
+  businessName: string | null;
+  businessRegistration: string | null;
+  additionalDocuments: string[];
+  rejectionReason: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpsertAccountVerificationInput = {
+  legalFullName: string;
+  nationalId: string;
+  birthDate: string;
+  city: string;
+  email: string;
+  documentFrontUrl?: string | null;
+  documentBackUrl?: string | null;
+  selfieUrl?: string | null;
+  businessName?: string | null;
+  businessRegistration?: string | null;
+  additionalDocuments?: string[];
+  submit: boolean;
 };
 
 export type ListingsQuery = {

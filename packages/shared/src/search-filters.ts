@@ -2,6 +2,7 @@ import type {
   CarAdType,
   CarCondition,
   CarFuelType,
+  LegacyListingCategory,
   CarPriceMode,
   ListingCategory,
   ListingsFilters,
@@ -12,7 +13,7 @@ import type {
 
 const CAR_CATEGORY_SET = new Set<ListingCategory>(["carSale", "carPartsAndServices", "truckAndHeavy", "bikeSale", "carRent"]);
 
-const LISTING_CATEGORY_SET = new Set<ListingCategory>([
+const LISTING_CATEGORY_SET = new Set<LegacyListingCategory>([
   "carSale",
   "carPartsAndServices",
   "truckAndHeavy",
@@ -64,7 +65,7 @@ const CAR_FUEL_SET = new Set<CarFuelType>(["gasoline", "diesel", "hybrid", "elec
 const CAR_AD_TYPE_SET = new Set<CarAdType>(["sell", "transfer", "lease"]);
 const CAR_PRICE_MODE_SET = new Set<CarPriceMode>(["fixed", "bid", "byWork"]);
 
-export const CATEGORY_KEYWORDS: Record<ListingCategory, string[]> = {
+export const CATEGORY_KEYWORDS: Record<LegacyListingCategory, string[]> = {
   carSale: ["سيارة", "سيارات", "car", "sedan", "suv"],
   carPartsAndServices: ["قطع", "اكسسوارات", "إكسسوارات", "زيت", "بطارية", "tire", "tyre", "spare"],
   truckAndHeavy: ["شاحنة", "قلاب", "معدات ثقيلة", "truck", "heavy"],
@@ -176,7 +177,7 @@ export function normalizeListingsFilters(filters: ListingsFilters | undefined): 
     return undefined;
   }
 
-  const category = filters.category && LISTING_CATEGORY_SET.has(filters.category) ? filters.category : undefined;
+  const category = sanitizeText(filters.category) as ListingCategory | undefined;
   const city = filters.city && SEARCH_CITY_SET.has(filters.city) ? filters.city : undefined;
   const minPrice = sanitizeNumber(filters.minPrice);
   const maxPrice = sanitizeNumber(filters.maxPrice);
@@ -225,7 +226,10 @@ export function buildListingsFilterSearchTerms(filters: ListingsFilters | undefi
 
   const terms = new Set<string>();
   if (normalized.category) {
-    for (const keyword of CATEGORY_KEYWORDS[normalized.category]) {
+    const keywords = LISTING_CATEGORY_SET.has(normalized.category as LegacyListingCategory)
+      ? CATEGORY_KEYWORDS[normalized.category as LegacyListingCategory]
+      : [];
+    for (const keyword of keywords) {
       terms.add(keyword);
     }
   }
@@ -269,8 +273,14 @@ export function matchesListingsFilters(listing: MarketplaceListing, filters: Lis
   if (normalized.city && !includesAny(haystack, CITY_ALIASES[normalized.city])) {
     return false;
   }
-  if (normalized.category && !includesAny(haystack, CATEGORY_KEYWORDS[normalized.category])) {
-    return false;
+  if (normalized.category) {
+    const matchesStructuredCategory = listing.categorySlug === normalized.category;
+    const keywords = LISTING_CATEGORY_SET.has(normalized.category as LegacyListingCategory)
+      ? CATEGORY_KEYWORDS[normalized.category as LegacyListingCategory]
+      : [];
+    if (!matchesStructuredCategory && keywords.length > 0 && !includesAny(haystack, keywords)) {
+      return false;
+    }
   }
   if (normalized.brand && !haystack.includes(normalizeText(normalized.brand))) {
     return false;

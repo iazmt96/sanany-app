@@ -1,33 +1,35 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ListingsQuery } from "@sanany/types";
+import Link from "next/link";
+import type { ListingsQuery, MarketplaceCategoryNode } from "@sanany/types";
 import { Card } from "@sanany/ui";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
+import { getWebCategoriesRepository } from "../lib/categories-repository";
 import { getWebListingsRepository } from "../lib/listings-repository";
 
 type CategoriesShellProps = {
   language: string;
 };
 
-type MainCategoryKey = "cars" | "realestate" | "electronics" | "services" | "furniture" | "jobs";
-
-type MainCategoryConfig = {
-  key: MainCategoryKey;
-  icon: string;
-  subcategoryTranslationKeys: string[];
+const EXPERIENCE_ICONS: Record<MarketplaceCategoryNode["experienceKey"], string> = {
+  general: "📦",
+  vehicles: "🚗",
+  real_estate: "🏠",
+  electronics: "📱",
+  livestock: "🐑",
+  jobs: "💼",
+  services: "🛠️"
 };
 
-const MAIN_CATEGORIES: readonly MainCategoryConfig[] = [
-  { key: "cars", icon: "🚗", subcategoryTranslationKeys: ["marketplace.create.categories.carSale", "marketplace.create.categories.carPartsAndServices", "marketplace.create.categories.truckAndHeavy"] },
-  { key: "realestate", icon: "🏠", subcategoryTranslationKeys: ["marketplace.create.categories.propertySale", "marketplace.create.categories.propertyRent", "marketplace.create.categories.warehouseRent"] },
-  { key: "electronics", icon: "📱", subcategoryTranslationKeys: ["marketplace.create.categories.mobileSale", "marketplace.create.categories.laptopSale", "marketplace.create.categories.electronicPartsSale"] },
-  { key: "services", icon: "🛠️", subcategoryTranslationKeys: ["marketplace.create.categories.cleaningService", "marketplace.create.categories.homeMaintenanceService", "marketplace.create.categories.deliveryService"] },
-  { key: "furniture", icon: "🛋️", subcategoryTranslationKeys: ["marketplace.create.categories.furnitureSale", "marketplace.create.categories.homeAppliancesSale", "marketplace.create.categories.kidsSuppliesSale"] },
-  { key: "jobs", icon: "💼", subcategoryTranslationKeys: ["marketplace.create.categories.studentServices", "marketplace.create.categories.requestTechService", "marketplace.create.categories.requestOther"] }
-];
+function collectLeafCategories(node: MarketplaceCategoryNode): MarketplaceCategoryNode[] {
+  if (node.children.length === 0) {
+    return [node];
+  }
+
+  return node.children.flatMap(collectLeafCategories);
+}
 
 function CategoriesSkeleton() {
   return (
@@ -42,18 +44,13 @@ function CategoriesSkeleton() {
 export function CategoriesShell({ language }: CategoriesShellProps) {
   const { t } = useTranslation();
   const repository = useMemo(() => getWebListingsRepository(), []);
+  const categoriesRepository = useMemo(() => getWebCategoriesRepository(), []);
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
-  const [counts, setCounts] = useState<Record<MainCategoryKey, number>>({
-    cars: 0,
-    realestate: 0,
-    electronics: 0,
-    services: 0,
-    furniture: 0,
-    jobs: 0
-  });
+  const [categories, setCategories] = useState<MarketplaceCategoryNode[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let active = true;
@@ -62,17 +59,28 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
 
     const run = async () => {
       try {
+        const categoryTree = await categoriesRepository.listCategoryTree();
         const countEntries = await Promise.all(
-          MAIN_CATEGORIES.map(async (category) => {
-            const query: ListingsQuery = {
-              search: t(`categories.items.${category.key}`),
-              status: "all",
-              sort: "newest",
-              page: 1,
-              pageSize: 1
-            };
-            const result = await repository.list(query);
-            return [category.key, result.totalItems] as const;
+          categoryTree.map(async (category) => {
+            const leafCategories = collectLeafCategories(category);
+            const totals = await Promise.all(
+              leafCategories.map(async (leafCategory) => {
+                const query: ListingsQuery = {
+                  search: "",
+                  status: "all",
+                  sort: "newest",
+                  page: 1,
+                  pageSize: 1,
+                  filters: {
+                    category: leafCategory.slug
+                  }
+                };
+                const result = await repository.list(query);
+                return result.totalItems;
+              })
+            );
+
+            return [category.slug, totals.reduce((sum, value) => sum + value, 0)] as const;
           })
         );
 
@@ -80,13 +88,8 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
           return;
         }
 
-        setCounts((current) => {
-          const next = { ...current };
-          for (const [key, value] of countEntries) {
-            next[key] = value;
-          }
-          return next;
-        });
+        setCategories(categoryTree);
+        setCounts(Object.fromEntries(countEntries));
       } catch (requestError) {
         if (active) {
           setError(requestError instanceof Error ? requestError.message : t("marketplace.loadError"));
@@ -102,7 +105,7 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
     return () => {
       active = false;
     };
-  }, [repository, retryToken, t]);
+  }, [categoriesRepository, repository, retryToken, t]);
 
   return (
     <section dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="space-y-5">
@@ -129,29 +132,29 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
 
       {!isLoading && !error ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {MAIN_CATEGORIES.map((category) => (
-            <Card key={`category-${category.key}`} className="space-y-3">
+          {categories.map((category) => (
+            <Card key={`category-${category.slug}`} className="space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-slate-900">{t(`categories.items.${category.key}`)}</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">{resolvedLanguage === "ar" ? category.nameAr : category.nameEn}</h2>
                   <p className="text-xs text-slate-500">{t("categories.explore")}</p>
                 </div>
                 <span className="text-3xl" aria-hidden>
-                  {category.icon}
+                  {EXPERIENCE_ICONS[category.experienceKey]}
                 </span>
               </div>
 
               <p className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-                {t("categories.countLabel", { count: counts[category.key] })}
+                {t("categories.countLabel", { count: counts[category.slug] ?? 0 })}
               </p>
 
               <ul className="space-y-2">
-                {category.subcategoryTranslationKeys.map((translationKey) => {
-                  const label = t(translationKey);
+                {category.children.slice(0, 4).map((child) => {
+                  const label = resolvedLanguage === "ar" ? child.nameAr : child.nameEn;
                   return (
-                    <li key={`${category.key}-${translationKey}`}>
+                    <li key={`${category.slug}-${child.slug}`}>
                       <Link
-                        href={`/${resolvedLanguage}/search?q=${encodeURIComponent(label)}`}
+                        href={`/${resolvedLanguage}/search?category=${encodeURIComponent(child.slug)}`}
                         className="block rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:border-brand/40 hover:text-brand"
                       >
                         {label}
@@ -161,7 +164,10 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
                 })}
               </ul>
 
-              <Link href={`/${resolvedLanguage}/search?q=${encodeURIComponent(t(`categories.items.${category.key}`))}`} className="inline-flex text-sm font-semibold text-brand hover:underline">
+              <Link
+                href={`/${resolvedLanguage}/search?category=${encodeURIComponent((category.children[0] ?? category).slug)}`}
+                className="inline-flex text-sm font-semibold text-brand hover:underline"
+              >
                 {t("categories.openCategory")}
               </Link>
             </Card>
@@ -169,7 +175,7 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
         </div>
       ) : null}
 
-      {!isLoading && !error && MAIN_CATEGORIES.length === 0 ? (
+      {!isLoading && !error && categories.length === 0 ? (
         <Card className="space-y-2">
           <h2 className="text-lg font-semibold text-slate-900">{t("categories.emptyTitle")}</h2>
           <p className="text-sm text-slate-600">{t("categories.emptyDescription")}</p>
@@ -178,4 +184,3 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
     </section>
   );
 }
-

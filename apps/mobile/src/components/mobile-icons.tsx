@@ -1,6 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 type MobileIconName =
+  | "home"
+  | "explore"
+  | "more"
   | "marketplace"
   | "search"
   | "categories"
@@ -28,7 +31,10 @@ type MobileIconName =
   | "call"
   | "chat"
   | "views"
-  | "trash";
+  | "trash"
+  | "star"
+  | "heart"
+  | "verified";
 
 type MobileIconProps = {
   name: MobileIconName;
@@ -38,6 +44,9 @@ type MobileIconProps = {
 };
 
 const iconMap: Record<MobileIconName, { inactive: keyof typeof Ionicons.glyphMap; active: keyof typeof Ionicons.glyphMap }> = {
+  home: { inactive: "home-outline", active: "home" },
+  explore: { inactive: "compass-outline", active: "compass" },
+  more: { inactive: "menu-outline", active: "menu" },
   marketplace: { inactive: "storefront-outline", active: "storefront" },
   search: { inactive: "search-outline", active: "search" },
   categories: { inactive: "grid-outline", active: "grid" },
@@ -65,7 +74,10 @@ const iconMap: Record<MobileIconName, { inactive: keyof typeof Ionicons.glyphMap
   call: { inactive: "call-outline", active: "call" },
   chat: { inactive: "chatbubble-ellipses-outline", active: "chatbubble-ellipses" },
   views: { inactive: "eye-outline", active: "eye" },
-  trash: { inactive: "trash-outline", active: "trash" }
+  trash: { inactive: "trash-outline", active: "trash" },
+  star: { inactive: "star-outline", active: "star" },
+  heart: { inactive: "heart-outline", active: "heart" },
+  verified: { inactive: "checkmark-circle-outline", active: "checkmark-circle" }
 };
 
 export function MobileIcon({ name, color, size = 20, focused = false }: MobileIconProps) {
