@@ -12,12 +12,13 @@ import { getMobileListingsRepository } from "../lib/listings-repository";
 type SearchScreenProps = {
   direction: Direction;
   initialSearch?: string;
+  onBack?(): void;
   onOpenListing(listing: MarketplaceListing): void;
 };
 
 const PAGE_SIZE = 6;
 
-export function SearchScreen({ direction, initialSearch = "", onOpenListing }: SearchScreenProps) {
+export function SearchScreen({ direction, initialSearch = "", onBack, onOpenListing }: SearchScreenProps) {
   const { t } = useTranslation();
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
   const [search, setSearch] = useState(initialSearch);
@@ -69,7 +70,16 @@ export function SearchScreen({ direction, initialSearch = "", onOpenListing }: S
 
   return (
     <View style={styles.container}>
-      <MobileSectionHeader direction={direction} title={t("search.pageTitle")} subtitle={t("search.pageSubtitle")} badge={resultsLabel} />
+      <View style={[styles.headerRow, direction === "rtl" ? styles.controlsRowRtl : undefined]}>
+        <View style={styles.headerTitleWrap}>
+          <MobileSectionHeader direction={direction} title={t("search.pageTitle")} subtitle={t("search.pageSubtitle")} badge={resultsLabel} />
+        </View>
+        {onBack ? (
+          <Pressable style={styles.backButton} onPress={onBack}>
+            <Text style={styles.controlLabel}>{t("common.previous")}</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
       <View style={[styles.searchShell, direction === "rtl" ? styles.searchShellRtl : undefined]}>
         <MobileIcon name="search" size={18} color="#64748b" />
@@ -173,8 +183,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8
   },
+  headerRow: {
+    marginBottom: 6,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  headerTitleWrap: {
+    flex: 1
+  },
   controlsRowRtl: {
     flexDirection: "row-reverse"
+  },
+  backButton: {
+    marginTop: 4,
+    borderRadius: 16,
+    backgroundColor: "#ecfdfa",
+    paddingHorizontal: 12,
+    paddingVertical: 10
   },
   controlButton: {
     flexDirection: "row",

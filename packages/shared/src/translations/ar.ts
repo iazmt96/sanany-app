@@ -85,32 +85,116 @@ export const ar = {
     }
   },
   home: {
-    metaTitle: "سوق SANANY | بيع واشتري واكتشف الخدمات",
-    metaDescription: "تصفح إعلانات SANANY حسب المدينة والقسم، واكتشف البائعين الموثقين، وابدأ إضافة إعلانك عبر تجربة ويب محلية.",
+    metaTitle: "SANANY | سوق واحد ذكي لكل ما تبحث عنه",
+    metaDescription: "ابدأ من نيتك، واكتشف فرصًا موثوقة، وقارن الخيارات، وراقب السوق، وأكمل نشاطك من شاشة رئيسية هادئة وواضحة.",
     hero: {
-      title: "منصة SANANY لإعلانات البيع والخدمات",
-      subtitle: "ابحث بسرعة في مدينتك، استكشف الأقسام، وابدأ عرض إعلانك بطريقة احترافية.",
-      addListing: "أضف إعلانًا"
+      eyebrow: "ابدأ من الهدف",
+      title: "ابحث وقارن واتخذ قرارك أسرع داخل سوق موثوق واحد",
+      subtitle: "شاشة SANANY الرئيسية تبدأ مما تريد فعله الآن، لا من جدار مزدحم بالإعلانات.",
+      helper: "ابحث، واحفظ السوق الذي يهمك، ثم أكمل من حيث توقفت.",
+      addListing: "أضف إعلانًا",
+      searchPlaceholder: "ماذا تبحث عنه اليوم؟",
+      searchAction: "ابدأ البحث",
+      saveSearch: "احفظ البحث"
+    },
+    search: {
+      recentPrefix: "بحث سابق:",
+      savedPrefix: "محفوظ:",
+      anywhere: "أي مدينة"
+    },
+    intents: {
+      findSpecific: {
+        title: "ابحث عن شيء محدد",
+        description: "ابدأ مباشرة ببحث واضح وموجّه مع المدينة المحددة مسبقًا."
+      },
+      discover: {
+        title: "اكتشف فرصًا جديدة",
+        description: "تصفح أقسامًا ديناميكية تجعل SANANY يتكيف مع ما يهمك."
+      },
+      compare: {
+        title: "قارن بين الخيارات",
+        description: "ارجع إلى عمليات البحث المحفوظة ووازن البدائل بهدوء ووضوح."
+      },
+      monitor: {
+        title: "راقب السوق",
+        description: "تابع الحركة الجديدة حولك ولاحظ ما يتغير في مدينتك أولًا."
+      },
+      continue: {
+        title: "أكمل نشاطك السابق",
+        description: "ارجع لما شاهدته سابقًا واستأنف رحلتك بدون تكرار الخطوات."
+      },
+      manage: {
+        title: "أدر إعلاناتك",
+        description: "شاهد مساحة النشر والمسودات ونشاط البيع من مكان واحد."
+      }
     },
     sections: {
-      featured: "الإعلانات المميزة",
-      latest: "أحدث الإعلانات",
-      byCity: "إعلانات في {{city}}",
-      byCategory: "إعلانات حسب القسم",
-      verifiedSellers: "شركات وبائعون موثقون"
+      yourMarket: "ملخص سوقك الآن",
+      yourListings: "مساحة إدارة إعلاناتك",
+      categories: "ابدأ من القسم المناسب",
+      savedSearches: "عمليات البحث المحفوظة",
+      personalized: "ترشيحات تناسب نيتك الحالية",
+      recentlyViewed: "أكمل من حيث توقفت",
+      nearby: "فرص قريبة منك",
+      trustedSellers: "بائعون موثوقون",
+      newToday: "جديد اليوم",
+      featured: "فرص مميزة",
+      continueBrowsing: "واصل التصفح"
     },
-    cta: {
-      title: "جاهز لبيع منتجك أو عرض خدمتك؟",
-      subtitle: "أنشئ إعلانك الآن وابدأ الوصول لعملاء SANANY.",
-      action: "ابدأ بإضافة إعلان"
+    sectionDescriptions: {
+      yourMarket: "ملخص سريع لما بحثت عنه وحفظته وشاهدته وتتابعه مؤخرًا.",
+      yourListings: "كل ما تحتاجه لتحريك نشاط البيع الخاص بك بدون تعقيد.",
+      categories: "مدخل ديناميكي يُدار من لوحة التحكم، وليس أقسامًا ثابتة داخل الكود.",
+      savedSearches: "مسارات سوق اخترت الرجوع إليها بسرعة لاحقًا.",
+      personalized: "ترشيحات مبنية على إشاراتك الأخيرة، لا على ضجيج عشوائي.",
+      recentlyViewed: "عناصر فتحتها سابقًا وقد ترغب في مقارنتها مرة أخرى.",
+      nearby: "فرص جديدة في {{city}} والمناطق القريبة منها.",
+      trustedSellers: "حسابات موثقة بإشارات ثقة واضحة داخل السوق.",
+      newToday: "أحدث ما دخل SANANY اليوم.",
+      featured: "فرص عالية الجودة بإشارات ثقة أقوى.",
+      continueBrowsing: "استكمال هادئ لما يهمك بالفعل."
+    },
+    categories: {
+      childCount: "مسارات"
+    },
+    owner: {
+      active: "نشط",
+      drafts: "مسودات",
+      reserved: "محجوز",
+      manageAction: "افتح مساحة الإدارة",
+      guestTitle: "ابدأ البيع عبر تجربة أكثر هدوءًا",
+      guestDescription: "أنشئ حسابك، واحفظ تقدمك، وأدر إعلاناتك من مساحة احترافية واحدة."
+    },
+    activity: {
+      recentSearches: "عمليات البحث الأخيرة",
+      recentSearchesHint: "اختصارات للطلب النشط",
+      savedSearches: "عمليات البحث المحفوظة",
+      savedSearchesHint: "مسارات سوق تراقبها باستمرار",
+      recentlyViewed: "ما شاهدته مؤخرًا",
+      recentlyViewedHint: "إعلانات تستحق نظرة ثانية",
+      nearby: "القريب منك"
+    },
+    trustedSeller: {
+      rating: "التقييم",
+      reviews: "المراجعات",
+      listings: "الإعلانات"
+    },
+    card: {
+      recommended: "مقترح لك",
+      continue: "أكمل التصفح",
+      new: "جديد",
+      featured: "مميز",
+      sellerReady: "جاهز للتعامل عبر SANANY",
+      ratings: "{{count}} مراجعة"
     },
     seeAll: "عرض الكل",
-    cityEmpty: "لا توجد إعلانات كافية في {{city}} حاليًا.",
-    categoryEmpty: "لا توجد إعلانات لهذا القسم حاليًا.",
     verifiedBadge: "حساب موثق",
+    seller: {
+      defaultUsername: "مستخدم-sanany"
+    },
     empty: {
       title: "لا توجد إعلانات بعد",
-      description: "جرّب إعادة التحميل أو عد لاحقًا."
+      description: "تعذر بناء تغذية الرئيسية الآن. حاول مرة أخرى بعد قليل."
     }
   },
   auth: {
@@ -290,7 +374,7 @@ export const ar = {
   marketplace: {
     pageTitle: "سوق الخدمات والمنتجات",
     pageSubtitle: "استعرض أحدث العروض من مزودي سنعني",
-    pricePerDay: "{{value}} ريال / يوم",
+    pricePerDay: "{{value}} ريال",
     listCount: "{{count}} إعلان",
     postedAt: "نشر {{value}}",
     create: {

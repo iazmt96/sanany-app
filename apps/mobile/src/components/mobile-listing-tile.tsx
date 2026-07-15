@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View, type DimensionValue } from "react-native";
 import { useTranslation } from "react-i18next";
 import { getPrimaryListingImageUrl, parseListingImageUrls } from "@sanany/shared";
-import type { MarketplaceListing } from "@sanany/types";
+import type { MarketplaceListing, SellerProfile } from "@sanany/types";
 import { type Direction } from "@sanany/utils";
 import { MobileIcon } from "./mobile-icons";
 
@@ -11,9 +11,26 @@ type MobileListingTileProps = {
   listing: MarketplaceListing;
   onPress?(): void;
   width?: DimensionValue;
+  sellerProfile?: Pick<SellerProfile, "displayName" | "isVerified" | "ratingAverage" | "ratingCount"> | null;
+  insightLabel?: string | null;
 };
 
-export function MobileListingTile({ direction, listing, onPress, width = "100%" }: MobileListingTileProps) {
+function formatSellerRating(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0.0";
+  }
+
+  return value.toFixed(1);
+}
+
+export function MobileListingTile({
+  direction,
+  listing,
+  onPress,
+  width = "100%",
+  sellerProfile = null,
+  insightLabel = null
+}: MobileListingTileProps) {
   const { t, i18n } = useTranslation();
   const [isFavorite, setIsFavorite] = useState(false);
   const isRtl = direction === "rtl";
@@ -52,36 +69,48 @@ export function MobileListingTile({ direction, listing, onPress, width = "100%" 
             <MobileIcon name="image" size={18} color="#0f766e" />
           </View>
         )}
-        {listing.status === "inactive" ? (
-          <View style={styles.soldBadge}>
-            <Text style={styles.soldLabel}>{t("marketplace.status.inactive")}</Text>
+
+        <View style={[styles.mediaTopRow, isRtl ? styles.mediaTopRowRtl : undefined]}>
+          <View style={[styles.mediaBadges, isRtl ? styles.mediaBadgesRtl : undefined]}>
+            {insightLabel ? (
+              <View style={styles.insightBadge}>
+                <Text style={styles.insightLabel}>{insightLabel}</Text>
+              </View>
+            ) : null}
+            {listing.status === "inactive" ? (
+              <View style={styles.soldBadge}>
+                <Text style={styles.soldLabel}>{t("marketplace.status.inactive")}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("marketplace.favorite.add")}
+            style={styles.favoriteButton}
+            onPress={() => {
+              setIsFavorite((current) => !current);
+            }}
+          >
+            <MobileIcon name="heart" size={16} color={isFavorite ? "#dc2626" : "#334155"} focused={isFavorite} />
+          </Pressable>
+        </View>
+
         {imageCount > 0 ? (
           <View style={[styles.photosBadge, isRtl ? styles.photosBadgeRtl : undefined]}>
             <MobileIcon name="image" size={12} color="#ffffff" />
             <Text style={styles.photosLabel}>{imageCount}</Text>
           </View>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("marketplace.favorite.add")}
-          style={[styles.favoriteButton, isRtl ? styles.favoriteButtonRtl : undefined]}
-          onPress={() => {
-            setIsFavorite((current) => !current);
-          }}
-        >
-          <MobileIcon name="heart" size={16} color={isFavorite ? "#dc2626" : "#334155"} focused={isFavorite} />
-        </Pressable>
       </View>
 
       <View style={styles.content}>
         <Text style={[styles.price, { textAlign: isRtl ? "right" : "left" }]} numberOfLines={1}>
           {t("marketplace.pricePerDay", { value: listing.price })}
         </Text>
-        <Text style={[styles.title, { textAlign: isRtl ? "right" : "left" }]} numberOfLines={1}>
+        <Text style={[styles.title, { textAlign: isRtl ? "right" : "left" }]} numberOfLines={2}>
           {listing.title}
         </Text>
+
         <View style={[styles.metaRow, isRtl ? styles.metaRowRtl : undefined]}>
           <View style={[styles.metaItem, isRtl ? styles.metaItemRtl : undefined]}>
             <MobileIcon name="location" size={12} color="#64748b" />
@@ -89,8 +118,28 @@ export function MobileListingTile({ direction, listing, onPress, width = "100%" 
               {listing.locationName ?? t("marketplace.detail.approximateLocation")}
             </Text>
           </View>
-          <Text style={styles.metaText}>{t("marketplace.postedAt", { value: postedAt })}</Text>
+          <Text style={styles.metaText}>{postedAt}</Text>
         </View>
+
+        {sellerProfile ? (
+          <View style={[styles.trustRow, isRtl ? styles.trustRowRtl : undefined]}>
+            <View style={styles.trustCopy}>
+              <Text style={[styles.sellerName, { textAlign: isRtl ? "right" : "left" }]} numberOfLines={1}>
+                {sellerProfile.displayName}
+              </Text>
+              <Text style={[styles.trustText, { textAlign: isRtl ? "right" : "left" }]} numberOfLines={1}>
+                {sellerProfile.isVerified
+                  ? sellerProfile.ratingCount > 0
+                    ? `${t("home.verifiedBadge")} · ${formatSellerRating(sellerProfile.ratingAverage)}`
+                    : t("home.verifiedBadge")
+                  : sellerProfile.ratingCount > 0
+                    ? `${formatSellerRating(sellerProfile.ratingAverage)} · ${t("home.card.ratings", { count: sellerProfile.ratingCount })}`
+                    : t("home.card.sellerReady")}
+              </Text>
+            </View>
+            {sellerProfile.isVerified ? <MobileIcon name="verified" size={18} color="#059669" focused /> : null}
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -99,15 +148,15 @@ export function MobileListingTile({ direction, listing, onPress, width = "100%" 
 const styles = StyleSheet.create({
   card: {
     overflow: "hidden",
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: "#e2e8f0",
     backgroundColor: "#ffffff",
-    minHeight: 208
+    minHeight: 248
   },
   media: {
     position: "relative",
-    height: 118,
+    height: 128,
     backgroundColor: "#d9f3ef"
   },
   image: {
@@ -119,10 +168,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
-  soldBadge: {
+  mediaTopRow: {
     position: "absolute",
     top: 8,
     left: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between"
+  },
+  mediaTopRowRtl: {
+    flexDirection: "row-reverse"
+  },
+  mediaBadges: {
+    flexShrink: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  mediaBadgesRtl: {
+    flexDirection: "row-reverse"
+  },
+  insightBadge: {
+    borderRadius: 999,
+    backgroundColor: "rgba(15,23,42,0.72)",
+    paddingHorizontal: 8,
+    paddingVertical: 5
+  },
+  insightLabel: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "700"
+  },
+  soldBadge: {
     borderRadius: 999,
     backgroundColor: "#dc2626",
     paddingHorizontal: 8,
@@ -154,9 +232,6 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   favoriteButton: {
-    position: "absolute",
-    top: 8,
-    right: 8,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -164,15 +239,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.92)"
   },
-  favoriteButtonRtl: {
-    right: undefined,
-    left: 8
-  },
   content: {
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 10
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12
   },
   price: {
     fontSize: 13,
@@ -180,8 +251,10 @@ const styles = StyleSheet.create({
     color: "#0f766e"
   },
   title: {
+    minHeight: 38,
     fontSize: 13,
     fontWeight: "700",
+    lineHeight: 19,
     color: "#0f172a"
   },
   metaRow: {
@@ -205,6 +278,32 @@ const styles = StyleSheet.create({
   metaText: {
     flexShrink: 1,
     fontSize: 11,
+    color: "#64748b"
+  },
+  trustRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    borderRadius: 16,
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 10,
+    paddingVertical: 8
+  },
+  trustRowRtl: {
+    flexDirection: "row-reverse"
+  },
+  trustCopy: {
+    flex: 1
+  },
+  sellerName: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0f172a"
+  },
+  trustText: {
+    marginTop: 2,
+    fontSize: 10,
     color: "#64748b"
   }
 });

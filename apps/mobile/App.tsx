@@ -14,6 +14,7 @@ import { AuthScreen } from "./src/screens/auth-screen";
 import { ChatScreen } from "./src/screens/chat-screen";
 import { FavoritesScreen } from "./src/screens/favorites-screen";
 import { ListingDetailsScreen } from "./src/screens/listing-details-screen";
+import { MarketplaceScreen } from "./src/screens/marketplace-screen";
 import { MoreScreen } from "./src/screens/more-screen";
 import { MyAdsScreen } from "./src/screens/my-ads-screen";
 import { NotificationsScreen } from "./src/screens/notifications-screen";
@@ -35,6 +36,10 @@ function AppContent() {
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
   const [chatIntentListing, setChatIntentListing] = useState<MarketplaceListing | null>(null);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [isHomePreview, setIsHomePreview] = useState(false);
+  const [homePreviewState, setHomePreviewState] = useState<"loading" | "error" | "empty" | "guest" | undefined>(undefined);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [homeSearchQuery, setHomeSearchQuery] = useState("");
   const sceneFade = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -66,10 +71,20 @@ function AppContent() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("previewScreen") === "splash") {
       setIsSplashVisible(true);
+      return;
+    }
+
+    if (params.get("previewScreen") === "home") {
+      setIsHomePreview(true);
+      setIsSplashVisible(false);
+      const nextPreviewState = params.get("previewState");
+      if (nextPreviewState === "loading" || nextPreviewState === "error" || nextPreviewState === "empty" || nextPreviewState === "guest") {
+        setHomePreviewState(nextPreviewState);
+      }
     }
   }, []);
 
-  if (isSplashVisible || snapshot.status === "loading" || profileStatus === "loading") {
+  if ((isSplashVisible || snapshot.status === "loading" || profileStatus === "loading") && !isHomePreview) {
     return (
       <View style={styles.splashContainer}>
         <View style={styles.splashCard}>
@@ -86,7 +101,7 @@ function AppContent() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {isAuthenticated(snapshot) && profileStatus === "complete" ? (
+        {isHomePreview || (isAuthenticated(snapshot) && profileStatus === "complete") ? (
           <>
             <View style={styles.contentCard}>
               {selectedListing ? (
@@ -131,7 +146,25 @@ function AppContent() {
               ) : (
                 <Animated.View style={[styles.scenesWrap, { opacity: sceneFade }]}>
                   <View style={[styles.scene, activeTab === "explore" ? styles.sceneActive : styles.sceneHidden]}>
-                    <SearchScreen direction={direction} onOpenListing={setSelectedListing} />
+                    {isSearchOpen ? (
+                      <SearchScreen
+                        direction={direction}
+                        initialSearch={homeSearchQuery}
+                        onBack={() => setIsSearchOpen(false)}
+                        onOpenListing={setSelectedListing}
+                      />
+                    ) : (
+                      <MarketplaceScreen
+                        direction={direction}
+                        previewState={isHomePreview ? homePreviewState : undefined}
+                        onOpenListing={setSelectedListing}
+                        onOpenMyAds={() => setActiveTab("myAds")}
+                        onOpenSearch={(initialSearch) => {
+                          setHomeSearchQuery(initialSearch ?? "");
+                          setIsSearchOpen(true);
+                        }}
+                      />
+                    )}
                   </View>
                   <View style={[styles.scene, activeTab === "add" ? styles.sceneActive : styles.sceneHidden]}>
                     <AddListingScreen
@@ -188,6 +221,7 @@ function AppContent() {
                   setSelectedListing(null);
                   setSelectedSellerId(null);
                   setIsVerificationOpen(false);
+                  setIsSearchOpen(false);
                   if (tab !== "chat") {
                     setChatIntentListing(null);
                   }

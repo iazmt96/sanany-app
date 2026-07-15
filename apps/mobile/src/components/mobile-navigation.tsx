@@ -23,8 +23,8 @@ export function MobileNavigation({ direction, activeTab, chatUnreadCount = 0, on
   const items = useMemo(
     () =>
       [
-      { key: "profile", label: t("nav.profile"), icon: "profile" },
-        { key: "explore", label: t("nav.explore"), icon: "explore" },
+        { key: "profile", label: t("nav.profile"), icon: "profile" },
+        { key: "explore", label: t("nav.home"), icon: "home" },
         { key: "add", label: t("nav.add"), icon: "add" },
         { key: "chat", label: t("nav.chat"), icon: "chat" },
         { key: "more", label: t("nav.more"), icon: "more" }

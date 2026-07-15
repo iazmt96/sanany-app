@@ -85,32 +85,116 @@ export const en = {
     }
   },
   home: {
-    metaTitle: "SANANY Marketplace | Buy, sell, and discover services",
-    metaDescription: "Browse SANANY listings by city and category, discover verified sellers, and start posting your listing with a localized web experience.",
+    metaTitle: "SANANY | One smart marketplace for Saudi Arabia",
+    metaDescription: "Start from intent, discover trusted opportunities, compare options, monitor the market, and continue your activity in one calm SANANY home screen.",
     hero: {
-      title: "SANANY marketplace for listings and services",
-      subtitle: "Search quickly in your city, explore categories, and start publishing with a professional flow.",
-      addListing: "Add listing"
+      eyebrow: "Intent first",
+      title: "Find, compare, and act faster in one trusted marketplace",
+      subtitle: "SANANY starts from what you want to do next, not from a crowded wall of listings.",
+      helper: "Search, save the market you care about, and continue where you left off.",
+      addListing: "Add listing",
+      searchPlaceholder: "What are you looking for today?",
+      searchAction: "Search now",
+      saveSearch: "Save search"
+    },
+    search: {
+      recentPrefix: "Recent:",
+      savedPrefix: "Saved:",
+      anywhere: "Any city"
+    },
+    intents: {
+      findSpecific: {
+        title: "Find something specific",
+        description: "Jump directly into a focused search with the city already selected."
+      },
+      discover: {
+        title: "Discover opportunities",
+        description: "Browse dynamic categories and let SANANY adapt to what matters."
+      },
+      compare: {
+        title: "Compare options",
+        description: "Return to saved searches and evaluate the best alternatives calmly."
+      },
+      monitor: {
+        title: "Monitor the market",
+        description: "Follow what changed around you and notice fresh movement in your city."
+      },
+      continue: {
+        title: "Continue previous activity",
+        description: "Resume viewed items, open your saved paths, and keep momentum."
+      },
+      manage: {
+        title: "Manage your listings",
+        description: "See your publishing workspace, drafts, and selling activity in one place."
+      }
     },
     sections: {
-      featured: "Featured listings",
-      latest: "Latest listings",
-      byCity: "Listings in {{city}}",
-      byCategory: "Listings by category",
-      verifiedSellers: "Verified companies and sellers"
+      yourMarket: "Your market snapshot",
+      yourListings: "Your listings workspace",
+      categories: "Start from the right category",
+      savedSearches: "Saved searches",
+      personalized: "Recommended for your current intent",
+      recentlyViewed: "Continue where you left off",
+      nearby: "Nearby opportunities",
+      trustedSellers: "Trusted sellers",
+      newToday: "New today",
+      featured: "Featured opportunities",
+      continueBrowsing: "Continue browsing"
     },
-    cta: {
-      title: "Ready to sell a product or offer a service?",
-      subtitle: "Create your listing now and reach SANANY customers.",
-      action: "Start posting a listing"
+    sectionDescriptions: {
+      yourMarket: "A fast summary of what you searched, saved, viewed, and followed recently.",
+      yourListings: "Everything you need to keep your own selling activity moving.",
+      categories: "A dynamic entry point managed from SANANY admin, not hardcoded in the product.",
+      savedSearches: "Market routes you chose to revisit quickly.",
+      personalized: "Listings matched from your recent signals, not random noise.",
+      recentlyViewed: "Items you already opened and may want to compare again.",
+      nearby: "Fresh opportunities around {{city}} and nearby areas.",
+      trustedSellers: "Verified profiles with visible marketplace signals.",
+      newToday: "The newest supply reaching SANANY right now.",
+      featured: "High-quality opportunities with stronger trust signals.",
+      continueBrowsing: "A calm continuation of what already matters to you."
+    },
+    categories: {
+      childCount: "paths"
+    },
+    owner: {
+      active: "Active",
+      drafts: "Drafts",
+      reserved: "Reserved",
+      manageAction: "Open workspace",
+      guestTitle: "Start selling with a calmer workflow",
+      guestDescription: "Create your account, save your progress, and manage listings from one professional workspace."
+    },
+    activity: {
+      recentSearches: "Recent searches",
+      recentSearchesHint: "Shortcuts back to active demand",
+      savedSearches: "Saved searches",
+      savedSearchesHint: "Monitored market paths",
+      recentlyViewed: "Recently viewed",
+      recentlyViewedHint: "Listings worth a second look",
+      nearby: "Nearby"
+    },
+    trustedSeller: {
+      rating: "Rating",
+      reviews: "Reviews",
+      listings: "Listings"
+    },
+    card: {
+      recommended: "Recommended",
+      continue: "Continue",
+      new: "New",
+      featured: "Featured",
+      sellerReady: "Ready to deal through SANANY",
+      ratings: "{{count}} reviews"
     },
     seeAll: "See all",
-    cityEmpty: "Not enough listings in {{city}} right now.",
-    categoryEmpty: "No listings for this category yet.",
     verifiedBadge: "Verified account",
+    seller: {
+      defaultUsername: "sanany-user"
+    },
     empty: {
       title: "No listings yet",
-      description: "Try reloading or check back later."
+      description: "We could not build the home feed yet. Try again shortly."
     }
   },
   auth: {
@@ -290,7 +374,7 @@ export const en = {
   marketplace: {
     pageTitle: "Marketplace",
     pageSubtitle: "Browse recent offers from SANANY providers",
-    pricePerDay: "SAR {{value}} / day",
+    pricePerDay: "SAR {{value}}",
     listCount: "{{count}} listings",
     postedAt: "Posted {{value}}",
     create: {

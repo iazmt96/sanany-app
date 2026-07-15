@@ -9,6 +9,7 @@ export * from "./formatters";
 export * from "./account-rules";
 export * from "./onboarding-rules";
 export * from "./favorites-storage";
+export * from "./home-feed";
 export * from "./permissions";
 export * from "./listing-rules";
 export * from "./search-filters";

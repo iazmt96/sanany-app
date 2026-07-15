@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import type { MarketplaceListing, SellerProfile } from "@sanany/types";
 import {
   FAVORITES_STORAGE_KEY,
+  LISTING_VIEWS_STORAGE_KEY,
   REPORTED_LISTINGS_STORAGE_KEY,
   canContactListingOwner,
   formatRelativeTime,
@@ -198,6 +199,9 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
     try {
       const favoritesRaw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
       const reportsRaw = window.localStorage.getItem(REPORTED_LISTINGS_STORAGE_KEY);
+      const viewsRaw = window.localStorage.getItem(LISTING_VIEWS_STORAGE_KEY);
+      const nextViews = [listing.id, ...parseStoredIdList(viewsRaw).filter((item) => item !== listing.id)].slice(0, 18);
+      window.localStorage.setItem(LISTING_VIEWS_STORAGE_KEY, JSON.stringify(nextViews));
       setIsFavorite(hasStoredId(favoritesRaw, listing.id));
       setIsReported(hasStoredId(reportsRaw, listing.id));
     } catch {
