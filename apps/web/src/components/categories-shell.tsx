@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
+import { collectCategoryPreviewLeaves, collectLeafCategories, resolveCategorySearchTarget } from "@sanany/shared";
 import type { ListingsQuery, MarketplaceCategoryNode } from "@sanany/types";
 import { Card } from "@sanany/ui";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
@@ -22,14 +23,6 @@ const EXPERIENCE_ICONS: Record<MarketplaceCategoryNode["experienceKey"], string>
   jobs: "💼",
   services: "🛠️"
 };
-
-function collectLeafCategories(node: MarketplaceCategoryNode): MarketplaceCategoryNode[] {
-  if (node.children.length === 0) {
-    return [node];
-  }
-
-  return node.children.flatMap(collectLeafCategories);
-}
 
 function CategoriesSkeleton() {
   return (
@@ -149,7 +142,7 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
               </p>
 
               <ul className="space-y-2">
-                {category.children.slice(0, 4).map((child) => {
+                {collectCategoryPreviewLeaves(category, 6).map((child) => {
                   const label = resolvedLanguage === "ar" ? child.nameAr : child.nameEn;
                   return (
                     <li key={`${category.slug}-${child.slug}`}>
@@ -165,7 +158,7 @@ export function CategoriesShell({ language }: CategoriesShellProps) {
               </ul>
 
               <Link
-                href={`/${resolvedLanguage}/search?category=${encodeURIComponent((category.children[0] ?? category).slug)}`}
+                href={`/${resolvedLanguage}/search?category=${encodeURIComponent(resolveCategorySearchTarget(category).slug)}`}
                 className="inline-flex text-sm font-semibold text-brand hover:underline"
               >
                 {t("categories.openCategory")}

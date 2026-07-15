@@ -12,6 +12,7 @@ export * from "./account-rules.ts";
 export * from "./onboarding-rules.ts";
 export * from "./favorites-storage.ts";
 export * from "./home-feed.ts";
+export * from "./category-tree.ts";
 export * from "./permissions.ts";
 export * from "./listing-rules.ts";
 export * from "./search-filters.ts";

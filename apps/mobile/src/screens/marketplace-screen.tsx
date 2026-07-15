@@ -7,8 +7,10 @@ import {
   LISTING_VIEWS_STORAGE_KEY,
   RECENT_SEARCHES_STORAGE_KEY,
   SAVED_SEARCHES_STORAGE_KEY,
+  collectLeafCategories,
   parseStoredIdList,
   parseStoredSearches,
+  resolveCategorySearchTarget,
   upsertStoredSearch,
   type StoredSearch
 } from "@sanany/shared";
@@ -148,7 +150,7 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
 
         const nextListings = previewState === "empty" ? [] : listingsResult.items;
         setListings(nextListings);
-        setCategories(categoryTree.slice(0, 4));
+        setCategories(categoryTree.slice(0, 6));
 
         const ownerIds = Array.from(
           new Set(nextListings.map((item) => item.ownerId).filter((ownerId): ownerId is string => typeof ownerId === "string" && ownerId.length > 0))
@@ -381,7 +383,16 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
 
         <Pressable
           style={styles.nextActionCard}
-          onPress={() => onOpenSearch(direction === "rtl" ? (categories[0]?.nameAr ?? "") : (categories[0]?.nameEn ?? ""))}
+          onPress={() => {
+            const firstCategory = categories[0];
+            if (!firstCategory) {
+              onOpenSearch("");
+              return;
+            }
+
+            const target = resolveCategorySearchTarget(firstCategory);
+            onOpenSearch(direction === "rtl" ? target.nameAr : target.nameEn);
+          }}
         >
           <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.categoriesTitle")}</Text>
           <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.categoriesDescription")}</Text>
@@ -491,9 +502,19 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
           <MobileSectionHeader direction={direction} title={t("home.sections.categories")} subtitle={t("home.sectionDescriptions.categories")} />
           <View style={[styles.categoryGrid, isRtl ? styles.categoryGridRtl : undefined]}>
             {categories.map((category) => (
-              <Pressable key={category.id} style={styles.categoryCard} onPress={() => onOpenSearch(direction === "rtl" ? category.nameAr : category.nameEn)}>
+              <Pressable
+                key={category.id}
+                style={styles.categoryCard}
+                onPress={() => {
+                  const target = resolveCategorySearchTarget(category);
+                  onOpenSearch(direction === "rtl" ? target.nameAr : target.nameEn);
+                }}
+              >
                 <Text style={styles.categoryEmoji}>{EXPERIENCE_EMOJI[category.experienceKey]}</Text>
                 <Text style={[styles.categoryTitle, { textAlign }]}>{direction === "rtl" ? category.nameAr : category.nameEn}</Text>
+                <Text style={[styles.categoryHint, { textAlign }]}>
+                  {collectLeafCategories(category).length || 1} {t("home.categories.childCount")}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -814,6 +835,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     color: "#0f172a"
+  },
+  categoryHint: {
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 16,
+    color: "#64748b"
   },
   emptyTitle: {
     fontSize: 16,

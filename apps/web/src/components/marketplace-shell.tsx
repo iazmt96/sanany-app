@@ -11,8 +11,10 @@ import {
   LISTING_VIEWS_STORAGE_KEY,
   RECENT_SEARCHES_STORAGE_KEY,
   SAVED_SEARCHES_STORAGE_KEY,
+  collectLeafCategories,
   parseStoredIdList,
   parseStoredSearches,
+  resolveCategorySearchTarget,
   upsertStoredSearch,
   type StoredSearch
 } from "@sanany/shared";
@@ -235,7 +237,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
 
         const nextListings = previewState === "empty" ? [] : listingsResult.items;
         setListings(nextListings);
-        setCategories(categoryTree.slice(0, 4));
+        setCategories(categoryTree.slice(0, 6));
 
         const ownerIds = Array.from(
           new Set(nextListings.map((item) => item.ownerId).filter((ownerId): ownerId is string => typeof ownerId === "string" && ownerId.length > 0))
@@ -614,13 +616,13 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
             {categories.map((category) => (
               <Link
                 key={category.id}
-                href={`/${resolvedLanguage}/search?category=${encodeURIComponent((category.children[0] ?? category).slug)}`}
+                href={`/${resolvedLanguage}/search?category=${encodeURIComponent(resolveCategorySearchTarget(category).slug)}`}
                 className="rounded-[28px] border border-slate-200 bg-white p-4 transition hover:border-brand/20 hover:shadow-sm"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-1">
                     <h3 className="text-sm font-bold text-slate-900">{resolvedLanguage === "ar" ? category.nameAr : category.nameEn}</h3>
-                    <p className="text-xs text-slate-500">{category.children.length || 1} {t("home.categories.childCount")}</p>
+                    <p className="text-xs text-slate-500">{collectLeafCategories(category).length || 1} {t("home.categories.childCount")}</p>
                   </div>
                   <span className="text-2xl" aria-hidden>
                     {EXPERIENCE_ICONS[category.experienceKey]}
