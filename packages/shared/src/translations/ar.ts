@@ -95,7 +95,15 @@ export const ar = {
       addListing: "أضف إعلانًا",
       searchPlaceholder: "ماذا تبحث عنه اليوم؟",
       searchAction: "ابدأ البحث",
-      saveSearch: "احفظ البحث"
+      saveSearch: "احفظ البحث",
+      welcomeBack: "أهلًا بعودتك",
+      welcomeGuest: "ابدأ بهدوء",
+      welcomeSeller: "مساحة بيعك جاهزة",
+      assistantDefault: "اختر الخطوة التالية وسنرتب لك الطريق بدون ازدحام.",
+      assistantContinue: "وجدنا لك أسرع طريق للعودة إلى ما كنت تراجعه.",
+      assistantSaved: "عمليات البحث المحفوظة جاهزة لتبدأ منها فورًا.",
+      assistantNearby: "هناك فرص قريبة قد تستحق قرارًا أسرع اليوم.",
+      assistantSeller: "ركز على إعلاناتك النشطة واترك الباقي للوقت المناسب."
     },
     search: {
       recentPrefix: "بحث سابق:",
@@ -129,30 +137,22 @@ export const ar = {
       }
     },
     sections: {
-      yourMarket: "ملخص سوقك الآن",
-      yourListings: "مساحة إدارة إعلاناتك",
+      nextForYou: "الخطوة التالية لك",
+      sellerWorkspace: "مساحة البيع",
       categories: "ابدأ من القسم المناسب",
       savedSearches: "عمليات البحث المحفوظة",
       personalized: "ترشيحات تناسب نيتك الحالية",
       recentlyViewed: "أكمل من حيث توقفت",
-      nearby: "فرص قريبة منك",
-      trustedSellers: "بائعون موثوقون",
-      newToday: "جديد اليوم",
-      featured: "فرص مميزة",
-      continueBrowsing: "واصل التصفح"
+      nearby: "فرص قريبة منك"
     },
     sectionDescriptions: {
-      yourMarket: "ملخص سريع لما بحثت عنه وحفظته وشاهدته وتتابعه مؤخرًا.",
-      yourListings: "كل ما تحتاجه لتحريك نشاط البيع الخاص بك بدون تعقيد.",
-      categories: "مدخل ديناميكي يُدار من لوحة التحكم، وليس أقسامًا ثابتة داخل الكود.",
-      savedSearches: "مسارات سوق اخترت الرجوع إليها بسرعة لاحقًا.",
-      personalized: "ترشيحات مبنية على إشاراتك الأخيرة، لا على ضجيج عشوائي.",
-      recentlyViewed: "عناصر فتحتها سابقًا وقد ترغب في مقارنتها مرة أخرى.",
-      nearby: "فرص جديدة في {{city}} والمناطق القريبة منها.",
-      trustedSellers: "حسابات موثقة بإشارات ثقة واضحة داخل السوق.",
-      newToday: "أحدث ما دخل SANANY اليوم.",
-      featured: "فرص عالية الجودة بإشارات ثقة أقوى.",
-      continueBrowsing: "استكمال هادئ لما يهمك بالفعل."
+      nextForYou: "أهم شيء منطقي لتفعله الآن بناءً على إشاراتك الأخيرة.",
+      sellerWorkspace: "ملخص سريع لإعلاناتك عندما تكون في وضع البيع.",
+      categories: "نقطة دخول ذكية عندما تريد البدء من نوع ما تبحث عنه.",
+      savedSearches: "مسارات رجوع سريعة بدل تكرار البحث من البداية.",
+      personalized: "فرص أقرب لما يهمك الآن، لا لكل ما في السوق.",
+      recentlyViewed: "عد مباشرة إلى الخيارات التي كنت تراجعها.",
+      nearby: "نتائج هادئة ومركزة حول {{city}}."
     },
     categories: {
       childCount: "مسارات"
@@ -186,6 +186,18 @@ export const ar = {
       featured: "مميز",
       sellerReady: "جاهز للتعامل عبر SANANY",
       ratings: "{{count}} مراجعة"
+    },
+    nextAction: {
+      continueTitle: "أكمل آخر مراجعة",
+      continueDescription: "ارجع مباشرة إلى آخر إعلان توقفت عنده.",
+      savedTitle: "ارجع لبحث محفوظ",
+      savedDescription: "ابدأ من السوق الذي اخترت متابعته سابقًا.",
+      nearbyTitle: "راقب القريب منك",
+      nearbyDescription: "اكتشف فرصًا أوضح داخل مدينتك الآن.",
+      sellerTitle: "راجع مساحة البيع",
+      sellerDescription: "إعلاناتك ومسوداتك هي الأولوية الآن.",
+      categoriesTitle: "ابدأ من قسم مناسب",
+      categoriesDescription: "عندما لا تكون متأكدًا من المصطلح، ابدأ من القسم."
     },
     seeAll: "عرض الكل",
     verifiedBadge: "حساب موثق",

@@ -77,9 +77,9 @@ export function MobileListingTile({
                 <Text style={styles.insightLabel}>{insightLabel}</Text>
               </View>
             ) : null}
-            {listing.status === "inactive" ? (
+            {listing.status !== "available" ? (
               <View style={styles.soldBadge}>
-                <Text style={styles.soldLabel}>{t("marketplace.status.inactive")}</Text>
+                <Text style={styles.soldLabel}>{t(`marketplace.status.${listing.status}`)}</Text>
               </View>
             ) : null}
           </View>

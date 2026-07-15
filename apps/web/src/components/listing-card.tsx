@@ -94,7 +94,7 @@ export function ListingCard({ listing, language, sellerProfile = null, insightLa
                 {insightLabel}
               </span>
             ) : null}
-            <Badge variant={listing.status}>{t(`marketplace.status.${listing.status}`)}</Badge>
+            {listing.status !== "available" ? <Badge variant={listing.status}>{t(`marketplace.status.${listing.status}`)}</Badge> : null}
           </div>
           <button
             type="button"
@@ -134,8 +134,6 @@ export function ListingCard({ listing, language, sellerProfile = null, insightLa
             </h2>
           </div>
         </div>
-
-        {listing.description ? <p className="line-clamp-2 text-sm leading-6 text-slate-600">{listing.description}</p> : null}
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
           <span className="inline-flex items-center gap-1.5">

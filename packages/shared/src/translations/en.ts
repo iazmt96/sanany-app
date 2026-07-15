@@ -95,7 +95,15 @@ export const en = {
       addListing: "Add listing",
       searchPlaceholder: "What are you looking for today?",
       searchAction: "Search now",
-      saveSearch: "Save search"
+      saveSearch: "Save search",
+      welcomeBack: "Welcome back",
+      welcomeGuest: "Start calmly",
+      welcomeSeller: "Your selling workspace is ready",
+      assistantDefault: "Choose the next best step and SANANY will keep the path clear.",
+      assistantContinue: "We found the fastest way back to what you were reviewing.",
+      assistantSaved: "Your saved searches are ready to reopen instantly.",
+      assistantNearby: "There are nearby opportunities worth a faster decision today.",
+      assistantSeller: "Focus on your active listings and leave the rest for later."
     },
     search: {
       recentPrefix: "Recent:",
@@ -129,30 +137,22 @@ export const en = {
       }
     },
     sections: {
-      yourMarket: "Your market snapshot",
-      yourListings: "Your listings workspace",
+      nextForYou: "Next for you",
+      sellerWorkspace: "Selling workspace",
       categories: "Start from the right category",
       savedSearches: "Saved searches",
       personalized: "Recommended for your current intent",
       recentlyViewed: "Continue where you left off",
-      nearby: "Nearby opportunities",
-      trustedSellers: "Trusted sellers",
-      newToday: "New today",
-      featured: "Featured opportunities",
-      continueBrowsing: "Continue browsing"
+      nearby: "Nearby opportunities"
     },
     sectionDescriptions: {
-      yourMarket: "A fast summary of what you searched, saved, viewed, and followed recently.",
-      yourListings: "Everything you need to keep your own selling activity moving.",
-      categories: "A dynamic entry point managed from SANANY admin, not hardcoded in the product.",
-      savedSearches: "Market routes you chose to revisit quickly.",
-      personalized: "Listings matched from your recent signals, not random noise.",
-      recentlyViewed: "Items you already opened and may want to compare again.",
-      nearby: "Fresh opportunities around {{city}} and nearby areas.",
-      trustedSellers: "Verified profiles with visible marketplace signals.",
-      newToday: "The newest supply reaching SANANY right now.",
-      featured: "High-quality opportunities with stronger trust signals.",
-      continueBrowsing: "A calm continuation of what already matters to you."
+      nextForYou: "The single most sensible thing to do next based on your recent signals.",
+      sellerWorkspace: "A compact summary when you are in selling mode.",
+      categories: "A smart entry point when you want to start from the type, not the keyword.",
+      savedSearches: "Fast return paths instead of restarting every search.",
+      personalized: "Opportunities closer to what matters now, not everything in the market.",
+      recentlyViewed: "Go straight back to the options you were already comparing.",
+      nearby: "Calm and focused opportunities around {{city}}."
     },
     categories: {
       childCount: "paths"
@@ -186,6 +186,18 @@ export const en = {
       featured: "Featured",
       sellerReady: "Ready to deal through SANANY",
       ratings: "{{count}} reviews"
+    },
+    nextAction: {
+      continueTitle: "Continue your last review",
+      continueDescription: "Go straight back to the listing you stopped on.",
+      savedTitle: "Reopen a saved search",
+      savedDescription: "Start from the market you intentionally chose to monitor.",
+      nearbyTitle: "Check what is nearby",
+      nearbyDescription: "See clearer opportunities around your city right now.",
+      sellerTitle: "Review your selling workspace",
+      sellerDescription: "Your listings and drafts are the priority now.",
+      categoriesTitle: "Start from a smart category",
+      categoriesDescription: "When the keyword is unclear, start from the type."
     },
     seeAll: "See all",
     verifiedBadge: "Verified account",

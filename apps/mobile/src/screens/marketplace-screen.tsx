@@ -31,11 +31,7 @@ type MarketplaceScreenProps = {
 };
 
 type CityKey = "riyadh" | "jeddah" | "dammam" | "makkah" | "madinah";
-type OwnerSummary = {
-  active: number;
-  drafts: number;
-  reserved: number;
-};
+type OwnerSummary = { active: number; drafts: number; reserved: number };
 
 const CITY_KEYS: readonly CityKey[] = ["riyadh", "jeddah", "dammam", "makkah", "madinah"];
 const EXPERIENCE_EMOJI: Record<MarketplaceCategoryNode["experienceKey"], string> = {
@@ -120,7 +116,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [categories, setCategories] = useState<MarketplaceCategoryNode[]>([]);
   const [sellerMap, setSellerMap] = useState<Map<string, SellerProfile>>(new Map());
-  const [trustedSellers, setTrustedSellers] = useState<SellerProfile[]>([]);
   const [recentSearches, setRecentSearches] = useState<StoredSearch[]>([]);
   const [savedSearches, setSavedSearches] = useState<StoredSearch[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -132,6 +127,14 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
   useEffect(() => {
     let active = true;
     const query: ListingsQuery = { search: "", status: "all", sort: "newest", page: 1, pageSize: 80 };
+
+    if (previewState === "error") {
+      setIsLoading(false);
+      setError(t("marketplace.loadError"));
+      return () => {
+        active = false;
+      };
+    }
 
     setIsLoading(true);
     setError(null);
@@ -145,26 +148,17 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
 
         const nextListings = previewState === "empty" ? [] : listingsResult.items;
         setListings(nextListings);
-        setCategories(categoryTree.slice(0, 8));
+        setCategories(categoryTree.slice(0, 4));
 
         const ownerIds = Array.from(
           new Set(nextListings.map((item) => item.ownerId).filter((ownerId): ownerId is string => typeof ownerId === "string" && ownerId.length > 0))
-        ).slice(0, 14);
+        ).slice(0, 12);
         const profiles = await Promise.all(ownerIds.map((ownerId) => sellersRepository.getProfile(ownerId, snapshot.user?.id ?? null)));
         if (!active) {
           return;
         }
 
-        const nextSellerMap = new Map(
-          profiles.filter((profile): profile is SellerProfile => profile !== null).map((profile) => [profile.id, profile] as const)
-        );
-        setSellerMap(nextSellerMap);
-        setTrustedSellers(
-          [...nextSellerMap.values()]
-            .filter((seller) => seller.isVerified)
-            .sort((left, right) => right.ratingCount - left.ratingCount || right.listingsCount - left.listingsCount)
-            .slice(0, 4)
-        );
+        setSellerMap(new Map(profiles.filter((profile): profile is SellerProfile => profile !== null).map((profile) => [profile.id, profile] as const)));
       } catch (requestError) {
         if (active) {
           setError(requestError instanceof Error ? requestError.message : t("marketplace.loadError"));
@@ -175,14 +169,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
         }
       }
     };
-
-    if (previewState === "error") {
-      setError(t("marketplace.loadError"));
-      setIsLoading(false);
-      return () => {
-        active = false;
-      };
-    }
 
     void run();
     return () => {
@@ -263,19 +249,39 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
     };
   }, [listingsRepository, previewState, snapshot.user?.id]);
 
-  const recentViewedListings = useMemo(() => selectListingsByIds(recentViewIds, listings).slice(0, 6), [listings, recentViewIds]);
-  const favoriteListings = useMemo(() => selectListingsByIds(favoriteIds, listings).slice(0, 6), [favoriteIds, listings]);
-  const nearbyListings = useMemo(() => listings.filter((listing) => listingMatchesCity(listing, selectedCityLabel)).slice(0, 6), [listings, selectedCityLabel]);
-  const freshListings = useMemo(() => [...listings].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()).slice(0, 6), [listings]);
+  const sellerActivityCount = (ownerSummary?.active ?? 0) + (ownerSummary?.drafts ?? 0) + (ownerSummary?.reserved ?? 0);
+  const buyerSignalCount = recentSearches.length + savedSearches.length + recentViewIds.length + favoriteIds.length;
+  const isSellerFocused = sellerActivityCount > Math.max(2, buyerSignalCount) && previewState !== "guest";
+
+  const recentViewedListings = useMemo(() => selectListingsByIds(recentViewIds, listings).slice(0, 4), [listings, recentViewIds]);
+  const favoriteListings = useMemo(() => selectListingsByIds(favoriteIds, listings).slice(0, 4), [favoriteIds, listings]);
+  const nearbyListings = useMemo(() => listings.filter((listing) => listingMatchesCity(listing, selectedCityLabel)).slice(0, 4), [listings, selectedCityLabel]);
   const personalizedListings = useMemo(() => {
     const sourceSearches = [...savedSearches, ...recentSearches].slice(0, 6);
     const matched = uniqueListings(sourceSearches.flatMap((item) => listings.filter((listing) => listingMatchesSearch(listing, item))));
     if (matched.length > 0) {
-      return matched.slice(0, 6);
+      return matched.slice(0, 4);
     }
 
-    return uniqueListings([...favoriteListings, ...nearbyListings, ...freshListings]).slice(0, 6);
-  }, [favoriteListings, freshListings, listings, nearbyListings, recentSearches, savedSearches]);
+    return uniqueListings([...recentViewedListings, ...favoriteListings, ...nearbyListings, ...listings]).slice(0, 4);
+  }, [favoriteListings, listings, nearbyListings, recentSearches, recentViewedListings, savedSearches]);
+  const primarySavedSearch = savedSearches[0] ?? recentSearches[0] ?? null;
+
+  const primaryTitle =
+    previewState === "guest"
+      ? t("home.hero.welcomeGuest")
+      : isSellerFocused
+        ? t("home.hero.welcomeSeller")
+        : t("home.hero.welcomeBack");
+  const primaryAssistantCopy = recentViewedListings.length > 0
+    ? t("home.hero.assistantContinue")
+    : savedSearches.length > 0
+      ? t("home.hero.assistantSaved")
+      : isSellerFocused
+        ? t("home.hero.assistantSeller")
+        : nearbyListings.length > 0
+          ? t("home.hero.assistantNearby")
+          : t("home.hero.assistantDefault");
 
   const persistSearch = async (storageKey: typeof RECENT_SEARCHES_STORAGE_KEY | typeof SAVED_SEARCHES_STORAGE_KEY) => {
     const raw = await AsyncStorage.getItem(storageKey);
@@ -288,8 +294,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
     }
   };
 
-  const categoryCards = categories.slice(0, 6);
-
   if (previewState === "loading" || isLoading) {
     return <HomePlaceholder />;
   }
@@ -298,17 +302,13 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.heroCard}>
         <Text style={[styles.eyebrow, { textAlign }]}>{t("home.hero.eyebrow")}</Text>
+        <Text style={[styles.welcomeText, { textAlign }]}>{primaryTitle}</Text>
         <Text style={[styles.pageTitle, { textAlign }]}>{t("home.hero.title")}</Text>
-        <Text style={[styles.pageSubtitle, { textAlign }]}>{t("home.hero.subtitle")}</Text>
+        <Text style={[styles.pageSubtitle, { textAlign }]}>{primaryAssistantCopy}</Text>
 
         <View style={[styles.searchShell, isRtl ? styles.searchShellRtl : undefined]}>
           <MobileIcon name="search" size={18} color="#64748b" />
-          <TextInput
-            style={[styles.searchInput, { textAlign }]}
-            value={search}
-            onChangeText={setSearch}
-            placeholder={t("home.hero.searchPlaceholder")}
-          />
+          <TextInput style={[styles.searchInput, { textAlign }]} value={search} onChangeText={setSearch} placeholder={t("home.hero.searchPlaceholder")} />
         </View>
 
         <View style={[styles.cityRow, isRtl ? styles.cityRowRtl : undefined]}>
@@ -342,26 +342,50 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
           </Pressable>
         </View>
 
-        <Text style={[styles.helperText, { textAlign }]}>{t("home.hero.helper")}</Text>
+        <View style={[styles.signalChips, isRtl ? styles.signalChipsRtl : undefined]}>
+          {recentSearches.slice(0, 1).map((item) => (
+            <Pressable key={`recent-${item.id}`} style={styles.signalChip} onPress={() => onOpenSearch(item.query)}>
+              <Text style={styles.signalChipLabel}>{t("home.search.recentPrefix")} {item.query}</Text>
+            </Pressable>
+          ))}
+          {savedSearches.slice(0, 1).map((item) => (
+            <Pressable key={`saved-${item.id}`} style={styles.savedSignalChip} onPress={() => onOpenSearch(item.query)}>
+              <Text style={styles.savedSignalChipLabel}>{t("home.search.savedPrefix")} {item.query}</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
-      <View style={styles.intentGrid}>
-        {[
-          { key: "findSpecific", action: () => onOpenSearch(search), icon: "search" as const },
-          { key: "discover", action: () => undefined, icon: "categories" as const },
-          { key: "compare", action: () => onOpenSearch(savedSearches[0]?.query ?? ""), icon: "filter" as const },
-          { key: "monitor", action: () => setSelectedCity((current) => current), icon: "time" as const },
-          { key: "continue", action: () => (recentViewedListings[0] ? onOpenListing(recentViewedListings[0]) : onOpenSearch("")), icon: "views" as const },
-          { key: "manage", action: onOpenMyAds, icon: "myAds" as const }
-        ].map((item) => (
-          <Pressable key={item.key} style={styles.intentCard} onPress={item.action}>
-            <View style={styles.intentIconWrap}>
-              <MobileIcon name={item.icon} size={18} color="#0f766e" focused />
-            </View>
-            <Text style={[styles.intentTitle, { textAlign }]}>{t(`home.intents.${item.key}.title`)}</Text>
-            <Text style={[styles.intentDescription, { textAlign }]}>{t(`home.intents.${item.key}.description`)}</Text>
+      <View style={styles.nextActionsGrid}>
+        {recentViewedListings[0] ? (
+          <Pressable style={[styles.nextActionCard, styles.nextActionCardPrimary]} onPress={() => onOpenListing(recentViewedListings[0])}>
+            <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.continueTitle")}</Text>
+            <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.continueDescription")}</Text>
           </Pressable>
-        ))}
+        ) : primarySavedSearch ? (
+          <Pressable style={[styles.nextActionCard, styles.nextActionCardPrimary]} onPress={() => onOpenSearch(primarySavedSearch.query)}>
+            <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.savedTitle")}</Text>
+            <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.savedDescription")}</Text>
+          </Pressable>
+        ) : isSellerFocused ? (
+          <Pressable style={[styles.nextActionCard, styles.nextActionCardPrimary]} onPress={onOpenMyAds}>
+            <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.sellerTitle")}</Text>
+            <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.sellerDescription")}</Text>
+          </Pressable>
+        ) : (
+          <Pressable style={[styles.nextActionCard, styles.nextActionCardPrimary]} onPress={() => onOpenSearch("")}>
+            <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.nearbyTitle")}</Text>
+            <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.nearbyDescription")}</Text>
+          </Pressable>
+        )}
+
+        <Pressable
+          style={styles.nextActionCard}
+          onPress={() => onOpenSearch(direction === "rtl" ? (categories[0]?.nameAr ?? "") : (categories[0]?.nameEn ?? ""))}
+        >
+          <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.categoriesTitle")}</Text>
+          <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.categoriesDescription")}</Text>
+        </Pressable>
       </View>
 
       {error ? (
@@ -371,31 +395,9 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
         </View>
       ) : null}
 
-      <View style={styles.sectionCard}>
-        <MobileSectionHeader direction={direction} title={t("home.sections.yourMarket")} subtitle={t("home.sectionDescriptions.yourMarket")} />
-        <View style={styles.metricsGrid}>
-          <View style={styles.metricCard}>
-            <Text style={[styles.metricTitle, { textAlign }]}>{t("home.activity.recentSearches")}</Text>
-            <Text style={styles.metricValue}>{recentSearches.length}</Text>
-          </View>
-          <View style={styles.metricCard}>
-            <Text style={[styles.metricTitle, { textAlign }]}>{t("home.activity.savedSearches")}</Text>
-            <Text style={styles.metricValue}>{savedSearches.length}</Text>
-          </View>
-          <View style={styles.metricCard}>
-            <Text style={[styles.metricTitle, { textAlign }]}>{t("home.activity.recentlyViewed")}</Text>
-            <Text style={styles.metricValue}>{recentViewedListings.length}</Text>
-          </View>
-          <View style={styles.metricCard}>
-            <Text style={[styles.metricTitle, { textAlign }]}>{t("home.activity.nearby")}</Text>
-            <Text style={styles.metricValue}>{nearbyListings.length}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.sectionCard}>
-        <MobileSectionHeader direction={direction} title={t("home.sections.yourListings")} subtitle={t("home.sectionDescriptions.yourListings")} />
-        {previewState !== "guest" && ownerSummary ? (
+      {isSellerFocused && ownerSummary ? (
+        <View style={styles.sectionCard}>
+          <MobileSectionHeader direction={direction} title={t("home.sections.sellerWorkspace")} subtitle={t("home.sectionDescriptions.sellerWorkspace")} />
           <View style={styles.ownerGrid}>
             <View style={[styles.ownerMetricCard, styles.ownerMetricActive]}>
               <Text style={styles.ownerMetricLabel}>{t("home.owner.active")}</Text>
@@ -410,32 +412,14 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
               <Text style={styles.ownerMetricValue}>{ownerSummary.reserved}</Text>
             </View>
           </View>
-        ) : (
-          <Text style={[styles.guestCopy, { textAlign }]}>{t("home.owner.guestDescription")}</Text>
-        )}
-        <Pressable style={styles.workspaceAction} onPress={onOpenMyAds}>
-          <Text style={styles.workspaceActionLabel}>{t("home.owner.manageAction")}</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.sectionCard}>
-        <MobileSectionHeader direction={direction} title={t("home.sections.categories")} subtitle={t("home.sectionDescriptions.categories")} />
-        <View style={[styles.categoryGrid, isRtl ? styles.categoryGridRtl : undefined]}>
-          {categoryCards.map((category) => (
-            <Pressable key={category.id} style={styles.categoryCard} onPress={() => onOpenSearch(resolvedCategoryLabel(category, direction === "rtl"))}>
-              <Text style={styles.categoryEmoji}>{EXPERIENCE_EMOJI[category.experienceKey]}</Text>
-              <Text style={[styles.categoryTitle, { textAlign }]}>{resolvedCategoryLabel(category, direction === "rtl")}</Text>
-              <Text style={[styles.categoryHint, { textAlign }]}>{t("home.categories.childCount", { count: category.children.length || 1 })}</Text>
-            </Pressable>
-          ))}
         </View>
-      </View>
+      ) : null}
 
       {savedSearches.length > 0 ? (
         <View style={styles.sectionCard}>
           <MobileSectionHeader direction={direction} title={t("home.sections.savedSearches")} subtitle={t("home.sectionDescriptions.savedSearches")} />
           <View style={styles.savedGrid}>
-            {savedSearches.slice(0, 4).map((item) => (
+            {savedSearches.slice(0, 3).map((item) => (
               <Pressable key={item.id} style={styles.savedCard} onPress={() => onOpenSearch(item.query)}>
                 <Text style={[styles.savedTitle, { textAlign }]}>{item.query}</Text>
                 <Text style={[styles.savedHint, { textAlign }]}>{item.city ?? t("home.search.anywhere")}</Text>
@@ -445,70 +429,78 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
         </View>
       ) : null}
 
-      {[
-        { key: "personalized", subtitle: t("home.sectionDescriptions.personalized"), items: personalizedListings, insight: t("home.card.recommended") },
-        { key: "recentlyViewed", subtitle: t("home.sectionDescriptions.recentlyViewed"), items: recentViewedListings, insight: t("home.card.continue") },
-        { key: "nearby", subtitle: t("home.sectionDescriptions.nearby", { city: selectedCityLabel }), items: nearbyListings, insight: selectedCityLabel },
-        { key: "newToday", subtitle: t("home.sectionDescriptions.newToday"), items: freshListings, insight: t("home.card.new") }
-      ].map((section) =>
-        section.items.length > 0 ? (
-          <View key={section.key} style={styles.sectionCard}>
-            <MobileSectionHeader direction={direction} title={t(`home.sections.${section.key}`)} subtitle={section.subtitle} />
-            <View style={styles.listingGrid}>
-              {section.items.map((item) => (
-                <MobileListingTile
-                  key={`${section.key}-${item.id}`}
-                  direction={direction}
-                  listing={item}
-                  width="48.5%"
-                  onPress={() => onOpenListing(item)}
-                  sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
-                  insightLabel={section.insight}
-                />
-              ))}
-            </View>
-          </View>
-        ) : null
-      )}
-
-      {trustedSellers.length > 0 ? (
+      {recentViewedListings.length > 0 ? (
         <View style={styles.sectionCard}>
-          <MobileSectionHeader direction={direction} title={t("home.sections.trustedSellers")} subtitle={t("home.sectionDescriptions.trustedSellers")} />
-          <View style={styles.savedGrid}>
-            {trustedSellers.map((seller) => (
-              <View key={seller.id} style={styles.sellerCard}>
-                <View style={[styles.sellerHeader, isRtl ? styles.sellerHeaderRtl : undefined]}>
-                  <View style={styles.sellerMeta}>
-                    <Text style={[styles.sellerName, { textAlign }]} numberOfLines={1}>
-                      {seller.displayName}
-                    </Text>
-                    <Text style={[styles.sellerUsername, { textAlign }]} numberOfLines={1}>
-                      @{seller.username ?? t("home.seller.defaultUsername")}
-                    </Text>
-                  </View>
-                  <MobileIcon name="verified" size={18} color="#059669" focused />
-                </View>
-                <View style={styles.sellerStats}>
-                  <View style={styles.sellerStat}>
-                    <Text style={styles.sellerStatValue}>{seller.ratingAverage.toFixed(1)}</Text>
-                    <Text style={styles.sellerStatLabel}>{t("home.trustedSeller.rating")}</Text>
-                  </View>
-                  <View style={styles.sellerStat}>
-                    <Text style={styles.sellerStatValue}>{seller.ratingCount}</Text>
-                    <Text style={styles.sellerStatLabel}>{t("home.trustedSeller.reviews")}</Text>
-                  </View>
-                  <View style={styles.sellerStat}>
-                    <Text style={styles.sellerStatValue}>{seller.listingsCount}</Text>
-                    <Text style={styles.sellerStatLabel}>{t("home.trustedSeller.listings")}</Text>
-                  </View>
-                </View>
-              </View>
+          <MobileSectionHeader direction={direction} title={t("home.sections.recentlyViewed")} subtitle={t("home.sectionDescriptions.recentlyViewed")} />
+          <View style={styles.listingGrid}>
+            {recentViewedListings.map((item) => (
+              <MobileListingTile
+                key={`recent-${item.id}`}
+                direction={direction}
+                listing={item}
+                width="48.5%"
+                onPress={() => onOpenListing(item)}
+                sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
+                insightLabel={t("home.card.continue")}
+              />
             ))}
           </View>
         </View>
       ) : null}
 
-      {listings.length === 0 && !error ? (
+      {personalizedListings.length > 0 ? (
+        <View style={styles.sectionCard}>
+          <MobileSectionHeader direction={direction} title={t("home.sections.personalized")} subtitle={t("home.sectionDescriptions.personalized")} />
+          <View style={styles.listingGrid}>
+            {personalizedListings.map((item) => (
+              <MobileListingTile
+                key={`personalized-${item.id}`}
+                direction={direction}
+                listing={item}
+                width="48.5%"
+                onPress={() => onOpenListing(item)}
+                sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
+                insightLabel={t("home.card.recommended")}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {!isSellerFocused && nearbyListings.length > 0 ? (
+        <View style={styles.sectionCard}>
+          <MobileSectionHeader direction={direction} title={t("home.sections.nearby")} subtitle={t("home.sectionDescriptions.nearby", { city: selectedCityLabel })} />
+          <View style={styles.listingGrid}>
+            {nearbyListings.map((item) => (
+              <MobileListingTile
+                key={`nearby-${item.id}`}
+                direction={direction}
+                listing={item}
+                width="48.5%"
+                onPress={() => onOpenListing(item)}
+                sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
+                insightLabel={selectedCityLabel}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {categories.length > 0 ? (
+        <View style={styles.sectionCard}>
+          <MobileSectionHeader direction={direction} title={t("home.sections.categories")} subtitle={t("home.sectionDescriptions.categories")} />
+          <View style={[styles.categoryGrid, isRtl ? styles.categoryGridRtl : undefined]}>
+            {categories.map((category) => (
+              <Pressable key={category.id} style={styles.categoryCard} onPress={() => onOpenSearch(direction === "rtl" ? category.nameAr : category.nameEn)}>
+                <Text style={styles.categoryEmoji}>{EXPERIENCE_EMOJI[category.experienceKey]}</Text>
+                <Text style={[styles.categoryTitle, { textAlign }]}>{direction === "rtl" ? category.nameAr : category.nameEn}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {!error && listings.length === 0 ? (
         <View style={styles.sectionCard}>
           <Text style={[styles.emptyTitle, { textAlign }]}>{t("home.empty.title")}</Text>
           <Text style={[styles.emptyHint, { textAlign }]}>{t("home.empty.description")}</Text>
@@ -516,10 +508,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
       ) : null}
     </ScrollView>
   );
-}
-
-function resolvedCategoryLabel(category: MarketplaceCategoryNode, isArabic: boolean): string {
-  return isArabic ? category.nameAr : category.nameEn;
 }
 
 const styles = StyleSheet.create({
@@ -541,7 +529,7 @@ const styles = StyleSheet.create({
   },
   placeholderCard: {
     flex: 1,
-    height: 110,
+    height: 112,
     borderRadius: 24,
     backgroundColor: "#e2e8f0"
   },
@@ -557,22 +545,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#e2e8f0"
   },
   heroCard: {
-    borderRadius: 28,
-    backgroundColor: "#f4fbfa",
+    borderRadius: 30,
+    backgroundColor: "#f7fbfd",
     padding: 18
   },
   eyebrow: {
     fontSize: 11,
     fontWeight: "800",
     color: "#0f766e",
-    letterSpacing: 0.7,
+    letterSpacing: 0.8,
     textTransform: "uppercase"
   },
-  pageTitle: {
+  welcomeText: {
     marginTop: 8,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#64748b"
+  },
+  pageTitle: {
+    marginTop: 6,
     fontSize: 28,
-    fontWeight: "900",
     lineHeight: 36,
+    fontWeight: "900",
     color: "#0f172a"
   },
   pageSubtitle: {
@@ -666,39 +660,57 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#334155"
   },
-  helperText: {
+  signalChips: {
     marginTop: 12,
-    fontSize: 12,
-    lineHeight: 18,
-    color: "#64748b"
-  },
-  intentGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: 8
+  },
+  signalChipsRtl: {
+    flexDirection: "row-reverse"
+  },
+  signalChip: {
+    borderRadius: 999,
+    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  signalChipLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#475569"
+  },
+  savedSignalChip: {
+    borderRadius: 999,
+    backgroundColor: "#ecfdf5",
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  savedSignalChipLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#047857"
+  },
+  nextActionsGrid: {
+    flexDirection: "row",
     gap: 10
   },
-  intentCard: {
-    width: "48.5%",
+  nextActionCard: {
+    flex: 1,
     borderRadius: 24,
     backgroundColor: "#ffffff",
-    padding: 14
+    padding: 16
   },
-  intentIconWrap: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14,
-    backgroundColor: "#ecfdfa",
-    marginBottom: 10
+  nextActionCardPrimary: {
+    backgroundColor: "#f0fdfa"
   },
-  intentTitle: {
-    fontSize: 14,
+  nextActionTitle: {
+    fontSize: 15,
     fontWeight: "800",
     color: "#0f172a"
   },
-  intentDescription: {
-    marginTop: 6,
+  nextActionDescription: {
+    marginTop: 8,
     fontSize: 12,
     lineHeight: 18,
     color: "#64748b"
@@ -723,29 +735,6 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     backgroundColor: "#ffffff",
     padding: 14
-  },
-  metricsGrid: {
-    marginTop: 12,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10
-  },
-  metricCard: {
-    width: "48.5%",
-    borderRadius: 20,
-    backgroundColor: "#f8fafc",
-    padding: 14
-  },
-  metricTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#475569"
-  },
-  metricValue: {
-    marginTop: 10,
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#0f172a"
   },
   ownerGrid: {
     marginTop: 12,
@@ -777,54 +766,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#0f172a"
   },
-  guestCopy: {
-    marginTop: 10,
-    fontSize: 13,
-    lineHeight: 20,
-    color: "#64748b"
-  },
-  workspaceAction: {
-    marginTop: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-    backgroundColor: "#0f766e",
-    paddingVertical: 13
-  },
-  workspaceActionLabel: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#ffffff"
-  },
-  categoryGrid: {
-    marginTop: 12,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10
-  },
-  categoryGridRtl: {
-    flexDirection: "row-reverse"
-  },
-  categoryCard: {
-    width: "48.5%",
-    borderRadius: 22,
-    backgroundColor: "#f8fafc",
-    padding: 14
-  },
-  categoryEmoji: {
-    fontSize: 28
-  },
-  categoryTitle: {
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0f172a"
-  },
-  categoryHint: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "#64748b"
-  },
   savedGrid: {
     marginTop: 12,
     gap: 10
@@ -850,54 +791,29 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 10
   },
-  sellerCard: {
+  categoryGrid: {
+    marginTop: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  categoryGridRtl: {
+    flexDirection: "row-reverse"
+  },
+  categoryCard: {
+    width: "48.5%",
     borderRadius: 22,
     backgroundColor: "#f8fafc",
     padding: 14
   },
-  sellerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10
+  categoryEmoji: {
+    fontSize: 28
   },
-  sellerHeaderRtl: {
-    flexDirection: "row-reverse"
-  },
-  sellerMeta: {
-    flex: 1
-  },
-  sellerName: {
+  categoryTitle: {
+    marginTop: 8,
     fontSize: 14,
     fontWeight: "800",
     color: "#0f172a"
-  },
-  sellerUsername: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#64748b"
-  },
-  sellerStats: {
-    marginTop: 12,
-    flexDirection: "row",
-    gap: 10
-  },
-  sellerStat: {
-    flex: 1,
-    borderRadius: 18,
-    backgroundColor: "#ffffff",
-    paddingVertical: 12,
-    alignItems: "center"
-  },
-  sellerStatValue: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#0f172a"
-  },
-  sellerStatLabel: {
-    marginTop: 4,
-    fontSize: 10,
-    color: "#64748b"
   },
   emptyTitle: {
     fontSize: 16,
