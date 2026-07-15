@@ -1,17 +1,18 @@
-import type { ListingStatus } from "@sanany/types";
+import type { ListingStatus, MarketplaceListing } from "@sanany/types";
+import { isListingActiveForSaleCompletion } from "./commission.ts";
 
 export const LISTING_MANAGEMENT_SECTIONS = ["active", "drafts", "pending", "sold", "rejected", "expired"] as const;
 export type ListingManagementSection = (typeof LISTING_MANAGEMENT_SECTIONS)[number];
 
 export function mapSectionToStatus(section: ListingManagementSection): ListingStatus | null {
   if (section === "active") {
-    return "available";
+    return null;
   }
   if (section === "drafts") {
     return "draft";
   }
   if (section === "sold") {
-    return "reserved";
+    return "sold";
   }
   if (section === "expired") {
     return "inactive";
@@ -21,6 +22,22 @@ export function mapSectionToStatus(section: ListingManagementSection): ListingSt
 
 export function isSectionBackedByMobileStatus(section: ListingManagementSection): boolean {
   return section === "active" || section === "drafts" || section === "sold" || section === "expired";
+}
+
+export function matchesListingManagementSection(listing: MarketplaceListing, section: ListingManagementSection): boolean {
+  if (section === "active") {
+    return isListingActiveForSaleCompletion(listing.status);
+  }
+  if (section === "drafts") {
+    return listing.status === "draft";
+  }
+  if (section === "sold") {
+    return listing.status === "sold";
+  }
+  if (section === "expired") {
+    return listing.status === "inactive";
+  }
+  return false;
 }
 
 export function computeListingQualityScore(input: {

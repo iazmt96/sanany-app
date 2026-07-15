@@ -58,8 +58,20 @@ export function MobileListingCard({ direction, listing, priceLabel, statusLabel,
             <MobileIcon name="image" size={24} color="#0f766e" />
           </View>
         )}
-        <View style={[styles.statusBadge, listing.status === "reserved" ? styles.statusReserved : styles.statusAvailable]}>
-          <Text style={[styles.statusLabel, listing.status === "reserved" ? styles.statusLabelReserved : styles.statusLabelAvailable]}>{statusLabel}</Text>
+        <View
+          style={[
+            styles.statusBadge,
+            listing.status === "reserved" ? styles.statusReserved : listing.status === "sold" ? styles.statusSold : styles.statusAvailable
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusLabel,
+              listing.status === "reserved" ? styles.statusLabelReserved : listing.status === "sold" ? styles.statusLabelSold : styles.statusLabelAvailable
+            ]}
+          >
+            {statusLabel}
+          </Text>
         </View>
       </View>
 
@@ -141,6 +153,9 @@ const styles = StyleSheet.create({
   statusReserved: {
     backgroundColor: "#fff7ed"
   },
+  statusSold: {
+    backgroundColor: "#fee2e2"
+  },
   statusLabel: {
     fontSize: 12,
     fontWeight: "700"
@@ -150,6 +165,9 @@ const styles = StyleSheet.create({
   },
   statusLabelReserved: {
     color: "#c2410c"
+  },
+  statusLabelSold: {
+    color: "#b91c1c"
   },
   content: {
     gap: 10,

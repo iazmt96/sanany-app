@@ -1,3 +1,4 @@
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "../../utils/supabase/server";
 import type { AppLanguage } from "@sanany/utils";
 
@@ -11,6 +12,8 @@ export type AdminStatCard = {
     | "totalListings"
     | "listingsAvailable"
     | "listingsReserved"
+    | "paidCommissionPayments"
+    | "commissionRevenue"
     | "listingsDraft"
     | "listingsInactive"
     | "openReports";
@@ -39,6 +42,51 @@ type CountFilter = {
   gte?: { field: string; value: string };
 };
 
+type TimestampRow = {
+  created_at: string;
+};
+
+type ProfileActivityRow = {
+  id: string;
+  display_name: string | null;
+  created_at: string;
+};
+
+type ListingActivityRow = {
+  id: string;
+  title: string | null;
+  created_at: string;
+};
+
+type ListingStatusEventRow = {
+  id: string;
+  listing_id: string;
+  new_status: string;
+  created_at: string;
+};
+
+type ListingTitleRow = {
+  id: string;
+  title: string | null;
+};
+
+type EventListingIdRow = {
+  listing_id: string;
+};
+
+type CommissionAmountRow = {
+  commission_amount: number | string | null;
+};
+
+function requireServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) {
+    throw new Error("Missing Supabase server configuration. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+  }
+  return createSupabaseClient(url, serviceKey, { auth: { persistSession: false } });
+}
+
 async function countRows(table: string, filter?: CountFilter): Promise<number | null> {
   try {
     const supabase = await createClient();
@@ -46,6 +94,7 @@ async function countRows(table: string, filter?: CountFilter): Promise<number | 
     if (filter?.eq) {
       query = query.eq(filter.eq.field, filter.eq.value);
     }
+
     if (filter?.gte) {
       query = query.gte(filter.gte.field, filter.gte.value);
     }
@@ -127,6 +176,7 @@ export async function getAdminDashboardData(options: {
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const supabase = await createClient();
+  const adminClient = requireServiceRoleClient();
 
   const [
     totalUsers,
@@ -137,6 +187,8 @@ export async function getAdminDashboardData(options: {
     totalListings,
     listingsAvailable,
     listingsReserved,
+    paidCommissionPayments,
+    commissionRevenueResult,
     listingsDraft,
     listingsInactive,
     openReports,
@@ -155,6 +207,8 @@ export async function getAdminDashboardData(options: {
     countRows("listings"),
     countRows("listings", { eq: { field: "status", value: "available" } }),
     countRows("listings", { eq: { field: "status", value: "reserved" } }),
+    adminClient.from("listing_sale_payments").select("id", { count: "exact", head: true }).eq("payment_status", "paid"),
+    adminClient.from("listing_sale_payments").select("commission_amount").eq("payment_status", "paid").limit(5000),
     countRows("listings", { eq: { field: "status", value: "draft" } }),
     countRows("listings", { eq: { field: "status", value: "inactive" } }),
     countRows("reports", { eq: { field: "status", value: "open" } }),
@@ -170,12 +224,13 @@ export async function getAdminDashboardData(options: {
     supabase.from("listing_status_events").select("listing_id").order("created_at", { ascending: false }).limit(6)
   ]);
 
+  const eventListingIdRows = (listingTitlesForEvents.data ?? []) as EventListingIdRow[];
   const eventListingIds = Array.from(
-    new Set((listingTitlesForEvents.data ?? []).map((item) => item.listing_id).filter((value): value is string => typeof value === "string" && value.length > 0))
+    new Set(eventListingIdRows.map((item: EventListingIdRow) => item.listing_id).filter((value: string): value is string => value.length > 0))
   );
   const eventListingsResult =
     eventListingIds.length > 0 ? await supabase.from("listings").select("id,title").in("id", eventListingIds) : { data: [], error: null };
-  const eventListingMap = new Map((eventListingsResult.data ?? []).map((item) => [item.id, item.title ?? item.id]));
+  const eventListingMap = new Map(((eventListingsResult.data ?? []) as ListingTitleRow[]).map((item: ListingTitleRow) => [item.id, item.title ?? item.id]));
 
   const cards: AdminStatCard[] = [
     { key: "totalUsers", value: totalUsers, href: "/admin/users" },
@@ -186,15 +241,30 @@ export async function getAdminDashboardData(options: {
     { key: "totalListings", value: totalListings, href: "/admin/listings" },
     { key: "listingsAvailable", value: listingsAvailable, href: "/admin/listings" },
     { key: "listingsReserved", value: listingsReserved, href: "/admin/listings" },
+    { key: "paidCommissionPayments", value: paidCommissionPayments.count ?? 0, href: "/admin/commission-payments" },
+    {
+      key: "commissionRevenue",
+      value: commissionRevenueResult.error
+        ? null
+        : Math.round(
+            ((commissionRevenueResult.data ?? []) as CommissionAmountRow[]).reduce(
+              (sum: number, item: CommissionAmountRow) => sum + Number(item.commission_amount ?? 0),
+              0
+            )
+          ),
+      href: "/admin/commission-payments"
+    },
     { key: "listingsDraft", value: listingsDraft, href: "/admin/listings" },
     { key: "listingsInactive", value: listingsInactive, href: "/admin/listings" },
     { key: "openReports", value: openReports, href: "/admin/reports" }
   ];
 
-  const userDays = usersForChart.error ? {} : aggregateByDay((usersForChart.data ?? []).map((item) => item.created_at), options.language);
+  const userDays = usersForChart.error
+    ? {}
+    : aggregateByDay(((usersForChart.data ?? []) as TimestampRow[]).map((item: TimestampRow) => item.created_at), options.language);
   const listingDays = listingsForChart.error
     ? {}
-    : aggregateByDay((listingsForChart.data ?? []).map((item) => item.created_at), options.language);
+    : aggregateByDay(((listingsForChart.data ?? []) as TimestampRow[]).map((item: TimestampRow) => item.created_at), options.language);
   const dayKeys = Array.from(new Set([...Object.keys(userDays), ...Object.keys(listingDays)])).sort();
   const chartPoints: AdminChartPoint[] = dayKeys.map((day) => ({
     label: userDays[day]?.label ?? listingDays[day]?.label ?? day,
@@ -203,7 +273,7 @@ export async function getAdminDashboardData(options: {
   }));
 
   const activities: AdminActivityItem[] = [];
-  for (const item of recentUsers.data ?? []) {
+  for (const item of (recentUsers.data ?? []) as ProfileActivityRow[]) {
     activities.push({
       id: `user-${item.id}`,
       type: "user_signup",
@@ -212,7 +282,7 @@ export async function getAdminDashboardData(options: {
       href: `/admin/users/${item.id}`
     });
   }
-  for (const item of recentListings.data ?? []) {
+  for (const item of (recentListings.data ?? []) as ListingActivityRow[]) {
     activities.push({
       id: `listing-${item.id}`,
       type: "listing_created",
@@ -221,7 +291,7 @@ export async function getAdminDashboardData(options: {
       href: `/admin/listings/${item.id}`
     });
   }
-  for (const item of recentListingEvents.data ?? []) {
+  for (const item of (recentListingEvents.data ?? []) as ListingStatusEventRow[]) {
     const listingTitle = eventListingMap.get(item.listing_id) ?? item.listing_id;
     activities.push({
       id: `status-${item.id}`,

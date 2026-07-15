@@ -1,9 +1,12 @@
 export const ACCOUNT_TYPES = ["individual", "company"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
-export const LISTING_STATUSES = ["draft", "available", "reserved", "inactive"] as const;
+export const LISTING_STATUSES = ["draft", "available", "reserved", "sold", "inactive"] as const;
 export type ListingStatus = (typeof LISTING_STATUSES)[number];
 export type ListingFilterStatus = ListingStatus | "all";
+
+export const LISTING_SALE_PAYMENT_STATUSES = ["pending", "paid", "failed", "cancelled", "refunded"] as const;
+export type ListingSalePaymentStatus = (typeof LISTING_SALE_PAYMENT_STATUSES)[number];
 
 export const LISTING_OFFER_TYPES = ["sell", "rent", "service", "request"] as const;
 export type ListingOfferType = (typeof LISTING_OFFER_TYPES)[number];
@@ -169,6 +172,39 @@ export type MarketplaceListing = {
   longitude: number | null;
   createdAt: string;
   updatedAt?: string;
+};
+
+export type MarketplaceCommissionSettings = {
+  commissionRatePercent: number;
+  updatedAt: string;
+};
+
+export type ListingSalePayment = {
+  id: string;
+  listingId: string;
+  sellerId: string;
+  finalSaleAmount: number;
+  commissionRatePercent: number;
+  commissionAmount: number;
+  paymentStatus: ListingSalePaymentStatus;
+  paymentMethod: string | null;
+  paymentDate: string | null;
+  invoiceNumber: string | null;
+  transactionReference: string | null;
+  failureReason: string | null;
+  refundReason: string | null;
+  refundedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ListingSaleInvoice = {
+  payment: ListingSalePayment;
+  listingId: string;
+  listingTitle: string;
+  listingImageUrl: string | null;
+  sellerDisplayName: string;
+  sellerUsername: string | null;
 };
 
 export type CreateListingInput = {

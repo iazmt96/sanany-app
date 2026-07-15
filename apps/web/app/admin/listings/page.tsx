@@ -65,6 +65,7 @@ export default async function AdminListingsPage({ searchParams }: AdminListingsP
             <option value="draft">{dictionary.admin.listings.status.draft}</option>
             <option value="available">{dictionary.admin.listings.status.available}</option>
             <option value="reserved">{dictionary.admin.listings.status.reserved}</option>
+            <option value="sold">{dictionary.admin.listings.status.sold}</option>
             <option value="inactive">{dictionary.admin.listings.status.inactive}</option>
           </select>
           <button type="submit" className="h-10 rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-dark">

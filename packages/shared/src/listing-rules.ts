@@ -1,5 +1,5 @@
 import type { ListingsQuery } from "@sanany/types";
-import { normalizeListingsFilters } from "./search-filters";
+import { normalizeListingsFilters } from "./search-filters.ts";
 
 export const DEFAULT_LISTINGS_PAGE_SIZE = 9;
 

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChangeEvent, DragEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   CarAdType,
@@ -11,7 +11,9 @@ import type {
   CarPriceMode,
   ListingCategory,
   ListingOfferType,
+  ListingSalePayment,
   ListingStatus,
+  MarketplaceCommissionSettings,
   MarketplaceListing,
   PaginatedResult
 } from "@sanany/types";
@@ -28,6 +30,7 @@ import {
   buildListingImageStoragePath,
   CAR_MAKE_IDS,
   clearDraftSyncOperations,
+  buildCommissionReviewPreview,
   computeListingQualityScore,
   createDraftSyncOperation,
   createListingImageUploadItem,
@@ -36,17 +39,20 @@ import {
   getFailedListingImageUploads,
   hasPendingDraftSyncOperations,
   hasPendingListingImageUploads,
+  isListingActiveForSaleCompletion,
   isSectionBackedByMobileStatus,
   LISTING_IMAGES_BUCKET,
   LISTING_MANAGEMENT_SECTIONS,
   markListingImageForRetry,
-  mapSectionToStatus,
+  matchesListingManagementSection,
   normalizeListingImageOrder,
   OTHER_CAR_MODEL_ID,
   parseListingImageUrls,
   serializeListingImageUrls,
+  shouldShowSaleCompletionAction,
   shouldCreateDraftConflict,
   toCreateListingImageInputs,
+  type CommissionReviewPreviewState,
   type DraftRemoteConflict,
   type DraftSyncOperation,
   type ListingImageUploadItem,
@@ -59,9 +65,11 @@ import { RequireAuth } from "../auth/guards";
 import { getWebListingsRepository } from "../lib/listings-repository";
 import { getWebSupabaseClient } from "../lib/supabase-client";
 import { ListingCard } from "./listing-card";
+import { MyAdsSaleCompletion } from "./my-ads-sale-completion";
 
 type MyAdsShellProps = {
   language: string;
+  previewState?: string | null;
 };
 
 type AddStep = "category" | "details" | "preview" | "agreement";
@@ -252,11 +260,19 @@ async function compressImageDataUrl(input: { dataUrl: string; mimeType?: string 
   };
 }
 
-export function MyAdsShell({ language }: MyAdsShellProps) {
+function isCommissionPreviewState(value: string | null | undefined): value is CommissionReviewPreviewState {
+  return value === "active" || value === "calculator" || value === "confirmation" || value === "loading" || value === "failed" || value === "success" || value === "invoice" || value === "sold";
+}
+
+export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const repository = useMemo(() => getWebListingsRepository(), []);
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
+  const previewData = useMemo(
+    () => (isCommissionPreviewState(previewState) ? buildCommissionReviewPreview(resolvedLanguage, previewState) : null),
+    [previewState, resolvedLanguage]
+  );
   const [section, setSection] = useState<ListingManagementSection>("active");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -269,6 +285,9 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
     pageSize: LISTING_PAGE_SIZE,
     totalPages: 1
   });
+  const [salePayments, setSalePayments] = useState<ListingSalePayment[]>([]);
+  const [commissionSettings, setCommissionSettings] = useState<MarketplaceCommissionSettings | null>(null);
+  const [selectedSaleListingId, setSelectedSaleListingId] = useState<string | null>(null);
   const [editingListingId, setEditingListingId] = useState<string | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [offerType, setOfferType] = useState<ListingOfferType | null>(null);
@@ -340,7 +359,38 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
     }
   }, [carBrand]);
   const carYears = useMemo(() => buildCarYearsRange(), []);
-  const sectionStatus = mapSectionToStatus(section);
+  const selectedSaleListing = useMemo(
+    () => data.items.find((item) => item.id === selectedSaleListingId) ?? null,
+    [data.items, selectedSaleListingId]
+  );
+  const visibleListings = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return data.items.filter((listing) => {
+      if (!matchesListingManagementSection(listing, section)) {
+        return false;
+      }
+
+      if (!needle) {
+        return true;
+      }
+
+      const haystack = `${listing.title} ${listing.description ?? ""} ${listing.locationName ?? ""}`.toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [data.items, search, section]);
+  const visibleData = useMemo(() => {
+    const totalItems = visibleListings.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / LISTING_PAGE_SIZE));
+    const safePage = Math.min(page, totalPages);
+    const from = (safePage - 1) * LISTING_PAGE_SIZE;
+    return {
+      items: visibleListings.slice(from, from + LISTING_PAGE_SIZE),
+      totalItems,
+      page: safePage,
+      pageSize: LISTING_PAGE_SIZE,
+      totalPages
+    };
+  }, [page, visibleListings]);
   const buildDraftSnapshot = (operations = pendingSyncOperations, conflict = draftConflict): ListingDraftSnapshot => ({
     editingListingId,
     currentStepIndex,
@@ -397,51 +447,70 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
     return `${base}\n\n${meta.join("\n")}`;
   }, [carAdType, carCondition, carFuelType, carLocation, carMileage, carPriceMode, category, description, extraDetails, isCarSaleCategory, offerType, t]);
 
+  const loadManagementData = useCallback(async () => {
+    if (previewData) {
+      return;
+    }
+    if (!snapshot.user?.id) {
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const [listingsResult, paymentsResult, settingsResult] = await Promise.all([
+        repository.listByOwner(snapshot.user.id, {
+          search: "",
+          status: "all",
+          sort: "newest",
+          page: 1,
+          pageSize: 120
+        }),
+        repository.listSalePaymentsBySeller(snapshot.user.id),
+        repository.getCommissionSettings()
+      ]);
+
+      setData(listingsResult);
+      setSalePayments(paymentsResult);
+      setCommissionSettings(settingsResult);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t("marketplace.loadError"));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [previewData, repository, snapshot.user?.id, t]);
+
   useEffect(() => {
+    if (previewData) {
+      setSection(previewData.section);
+      setData({
+        items: previewData.listings,
+        totalItems: previewData.listings.length,
+        page: 1,
+        pageSize: LISTING_PAGE_SIZE,
+        totalPages: Math.max(1, Math.ceil(previewData.listings.length / LISTING_PAGE_SIZE))
+      });
+      setSalePayments(previewData.payments);
+      setCommissionSettings(previewData.settings);
+      setSelectedSaleListingId(previewData.selectedListingId);
+      setIsLoading(false);
+      setErrorMessage(null);
+      return;
+    }
     if (!snapshot.user?.id) {
       return;
     }
     if (!isSectionBackedByMobileStatus(section)) {
       setData({ items: [], totalItems: 0, page: 1, pageSize: LISTING_PAGE_SIZE, totalPages: 1 });
+      setSalePayments([]);
+      setCommissionSettings(null);
       setIsLoading(false);
       return;
     }
-    if (!sectionStatus) {
-      return;
-    }
 
-    let active = true;
-    setIsLoading(true);
-    setErrorMessage(null);
-
-    void repository
-      .listByOwner(snapshot.user.id, {
-        search,
-        status: sectionStatus,
-        sort: "newest",
-        page,
-        pageSize: LISTING_PAGE_SIZE
-      })
-      .then((result) => {
-        if (active) {
-          setData(result);
-        }
-      })
-      .catch((error) => {
-        if (active) {
-          setErrorMessage(error instanceof Error ? error.message : t("marketplace.loadError"));
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [page, repository, search, section, sectionStatus, snapshot.user?.id, t]);
+    void loadManagementData();
+  }, [loadManagementData, previewData, section, snapshot.user?.id]);
 
   useEffect(() => {
     setPage(1);
@@ -898,6 +967,7 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
       resetForm();
       setSection(status === "draft" ? "drafts" : "active");
       setPage(1);
+      await loadManagementData();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : t("marketplace.loadError"));
     } finally {
@@ -957,9 +1027,13 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
         latitude: listing.latitude ?? undefined,
         longitude: listing.longitude ?? undefined
       });
-      setActionMessage(t(status === "reserved" ? "myAds.management.markedSold" : "myAds.management.republished"));
+      setData((current) => ({
+        ...current,
+        items: current.items.map((item) => (item.id === listing.id ? { ...item, status } : item))
+      }));
+      setActionMessage(t(status === "sold" ? "myAds.management.markedSold" : "myAds.management.republished"));
       setPage(1);
-      setSection(status === "reserved" ? "sold" : "active");
+      setSection(status === "sold" ? "sold" : "active");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : t("marketplace.loadError"));
     }
@@ -976,6 +1050,7 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
     try {
       await repository.deleteById(listing.id, snapshot.user.id);
       setData((current) => ({ ...current, items: current.items.filter((item) => item.id !== listing.id), totalItems: Math.max(0, current.totalItems - 1) }));
+      setSalePayments((current) => current.filter((item) => item.listingId !== listing.id));
       setActionMessage(t("myAds.management.deleted"));
     } catch {
       setErrorMessage(t("myAds.deleteFailed"));
@@ -996,10 +1071,27 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
     }
   };
 
+  const handleSalePaymentUpdated = (nextPayment: ListingSalePayment) => {
+    setSalePayments((current) => {
+      const next = current.filter((item) => item.listingId !== nextPayment.listingId);
+      next.unshift(nextPayment);
+      return next;
+    });
+
+    if (nextPayment.paymentStatus === "paid") {
+      setData((current) => ({
+        ...current,
+        items: current.items.map((item) => (item.id === nextPayment.listingId ? { ...item, status: "sold" } : item))
+      }));
+      setActionMessage(t("myAds.management.markedSold"));
+      setSection("sold");
+      setPage(1);
+    }
+  };
+
   const previewDescription = description.trim() || extraDetails.trim() || t("marketplace.detail.noDescription");
 
-  return (
-    <RequireAuth language={resolvedLanguage}>
+  const content = (
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-8">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
@@ -1380,7 +1472,8 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
           </Card>
         </section>
 
-        <Card className="space-y-4">
+        <div data-testid="my-ads-management">
+          <Card className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             {LISTING_MANAGEMENT_SECTIONS.map((item) => (
               <button
@@ -1399,7 +1492,10 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
           <div className="grid gap-3 md:grid-cols-[1fr_220px]">
             <input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
               placeholder={t("myAds.searchPlaceholder")}
               className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none ring-brand/40 focus:ring"
             />
@@ -1420,12 +1516,39 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
           ) : null}
 
           {isLoading ? <p className="text-sm text-slate-600">{t("common.loading")}</p> : null}
-          {!isLoading && data.items.length === 0 ? <p className="text-sm text-slate-600">{t("myAds.emptyState")}</p> : null}
+          {!isLoading && visibleData.items.length === 0 ? <p className="text-sm text-slate-600">{t("myAds.emptyState")}</p> : null}
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {data.items.map((listing) => (
+            {visibleData.items.map((listing) => {
+              const salePayment = salePayments.find((item) => item.listingId === listing.id) ?? null;
+              const canCompleteSale = shouldShowSaleCompletionAction(listing, salePayments);
+              return (
               <div key={listing.id} className="space-y-2 rounded-xl border border-slate-200 bg-white p-2">
                 <ListingCard listing={listing} language={resolvedLanguage} />
+                {salePayment ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{t(`myAds.saleFlow.paymentStates.${salePayment.paymentStatus}`)}</span>
+                      <span className="font-semibold text-slate-900">
+                        {salePayment.paymentStatus === "paid"
+                          ? t("marketplace.status.sold")
+                          : isListingActiveForSaleCompletion(listing.status)
+                            ? t("myAds.saleFlow.activeTabTitle")
+                            : t(`marketplace.status.${listing.status}`)}
+                      </span>
+                    </div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.amountLabel")}</p>
+                        <p className="font-semibold text-slate-900">{salePayment.finalSaleAmount.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.commissionAmount")}</p>
+                        <p className="font-semibold text-slate-900">{salePayment.commissionAmount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => onEditListing(listing)} className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700">
                     {t("myAds.management.actions.edit")}
@@ -1436,13 +1559,13 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
                   <Link href={`/${resolvedLanguage}/listing/${listing.id}`} className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center text-xs font-medium text-slate-700">
                     {t("myAds.management.actions.preview")}
                   </Link>
-                  {listing.status !== "reserved" ? (
-                    <button type="button" onClick={() => void updateListingStatus(listing, "reserved")} className="rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-700">
-                      {t("myAds.management.actions.markSold")}
-                    </button>
-                  ) : (
+                  {listing.status === "sold" || listing.status === "inactive" ? (
                     <button type="button" onClick={() => void updateListingStatus(listing, "available")} className="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs font-medium text-emerald-700">
                       {t("myAds.management.actions.republish")}
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => setSelectedSaleListingId(listing.id)} className="rounded-lg bg-brand px-2 py-1.5 text-xs font-semibold text-white disabled:opacity-50" disabled={!canCompleteSale || !commissionSettings}>
+                      {t("myAds.saleFlow.action")}
                     </button>
                   )}
                   <button type="button" onClick={() => void shareListing(listing)} className="col-span-2 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700">
@@ -1450,32 +1573,55 @@ export function MyAdsShell({ language }: MyAdsShellProps) {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
-          {isSectionBackedByMobileStatus(section) && data.totalPages > 1 ? (
+          {isSectionBackedByMobileStatus(section) && visibleData.totalPages > 1 ? (
             <div className="flex items-center justify-between gap-2">
               <button
                 type="button"
-                disabled={page <= 1}
+                disabled={visibleData.page <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                 className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-40"
               >
                 {t("common.previous")}
               </button>
-              <p className="text-xs text-slate-500">{t("common.page", { current: data.page, total: data.totalPages })}</p>
+              <p className="text-xs text-slate-500">{t("common.page", { current: visibleData.page, total: visibleData.totalPages })}</p>
               <button
                 type="button"
-                disabled={page >= data.totalPages}
-                onClick={() => setPage((current) => current + 1)}
+                disabled={visibleData.page >= visibleData.totalPages}
+                onClick={() => setPage((current) => Math.min(visibleData.totalPages, current + 1))}
                 className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-40"
               >
                 {t("common.next")}
               </button>
             </div>
           ) : null}
-        </Card>
+          </Card>
+        </div>
+        <MyAdsSaleCompletion
+          isOpen={selectedSaleListing !== null}
+          language={resolvedLanguage}
+          listing={selectedSaleListing}
+          sellerId={previewData?.sellerId ?? snapshot.user?.id ?? null}
+          settings={commissionSettings}
+          payment={selectedSaleListing ? salePayments.find((item) => item.listingId === selectedSaleListing.id) ?? null : null}
+          onClose={() => setSelectedSaleListingId(null)}
+          onPaymentUpdated={handleSalePaymentUpdated}
+          preview={
+            previewData && selectedSaleListing
+              ? {
+                  amount: previewData.amount,
+                  isConfirmed: previewData.isConfirmed,
+                  uiState: previewData.uiState,
+                  invoice: previewData.invoice
+                }
+              : null
+          }
+        />
       </main>
-    </RequireAuth>
   );
+
+  return previewData ? content : <RequireAuth language={resolvedLanguage}>{content}</RequireAuth>;
 }

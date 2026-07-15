@@ -10,7 +10,7 @@ export function Card({ className, children }: PropsWithChildren<ClassNameProps>)
   return <div className={clsx("rounded-xl border border-slate-200 bg-white p-5 shadow-sm", className)}>{children}</div>;
 }
 
-type BadgeVariant = "default" | "available" | "reserved" | "draft" | "inactive";
+type BadgeVariant = "default" | "available" | "reserved" | "sold" | "draft" | "inactive";
 
 export function Badge({ children, className, variant = "default" }: PropsWithChildren<ClassNameProps & { variant?: BadgeVariant }>) {
   const variantClassName =
@@ -18,6 +18,8 @@ export function Badge({ children, className, variant = "default" }: PropsWithChi
       ? "bg-emerald-100 text-emerald-800"
       : variant === "reserved"
         ? "bg-amber-100 text-amber-800"
+        : variant === "sold"
+          ? "bg-rose-100 text-rose-700"
         : variant === "draft"
           ? "bg-sky-100 text-sky-800"
           : variant === "inactive"

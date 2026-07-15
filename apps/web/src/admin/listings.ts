@@ -2,7 +2,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { ListingStatus } from "@sanany/types";
 import { createClient } from "../../utils/supabase/server";
 
-const LISTING_FILTER_STATUSES = ["draft", "available", "reserved", "inactive"] as const;
+const LISTING_FILTER_STATUSES = ["draft", "available", "reserved", "sold", "inactive"] as const;
 type AdminListingFilterStatus = (typeof LISTING_FILTER_STATUSES)[number];
 
 export type AdminListingRow = {

@@ -10,7 +10,7 @@ import {
 test("maps profile listing views to listing status filters", () => {
   assert.equal(toListingStatusFilterForProfileView("active"), "available");
   assert.equal(toListingStatusFilterForProfileView("drafts"), "draft");
-  assert.equal(toListingStatusFilterForProfileView("sold"), "reserved");
+  assert.equal(toListingStatusFilterForProfileView("sold"), "sold");
   assert.equal(toListingStatusFilterForProfileView("expired"), "inactive");
   assert.equal(toListingStatusFilterForProfileView("favorites"), null);
 });

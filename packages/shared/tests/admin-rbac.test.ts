@@ -11,10 +11,12 @@ test("accepts known admin role values only", () => {
 test("grants super admin full privileges", () => {
   assert.equal(hasAdminPermission("super_admin", "settings.manage"), true);
   assert.equal(hasAdminPermission("super_admin", "listings.delete"), true);
+  assert.equal(hasAdminPermission("super_admin", "finance.manage"), true);
 });
 
 test("limits support role to non-destructive permissions", () => {
   assert.equal(hasAdminPermission("support", "users.view"), true);
   assert.equal(hasAdminPermission("support", "listings.delete"), false);
   assert.equal(hasAdminPermission("support", "settings.manage"), false);
+  assert.equal(hasAdminPermission("support", "finance.manage"), false);
 });

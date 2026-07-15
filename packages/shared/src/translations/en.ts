@@ -6,6 +6,7 @@ export const en = {
     loading: "Loading...",
     retry: "Try again",
     cancel: "Cancel",
+    close: "Close",
     signOut: "Sign out",
     next: "Next",
     previous: "Previous",
@@ -765,6 +766,7 @@ export const en = {
       draft: "Draft",
       available: "Available",
       reserved: "Reserved",
+      sold: "Sold",
       inactive: "Inactive"
     },
     favorite: {
@@ -886,6 +888,8 @@ export const en = {
     statusDraft: "Drafts",
     statusAvailable: "Published",
     statusReserved: "Reserved",
+    statusSold: "Sold",
+    statusInactive: "Expired",
     emptyState: "You have not posted any listings yet.",
     emptyTitle: "No published ads yet",
     emptyHint: "Start from the marketplace, explore current listings, and post your first ad when you're ready.",
@@ -918,7 +922,7 @@ export const en = {
     management: {
       createNew: "Post new listing",
       editing: "Editing: {{title}}",
-      markedSold: "Listing marked as sold.",
+      markedSold: "Commission paid and listing moved to Sold Ads.",
       republished: "Listing republished.",
       deleted: "Listing deleted.",
       shared: "Listing link shared/copied.",
@@ -932,6 +936,60 @@ export const en = {
         republish: "Republish",
         share: "Share"
       }
+    },
+    saleFlow: {
+      action: "Pay Commission & Complete Sale",
+      heading: "Complete sale",
+      subtitle: "Confirm the final sale amount, review the 1% commission, and issue the paid invoice only after successful payment.",
+      amountLabel: "Final Sale Amount",
+      amountPlaceholder: "Enter the final agreed amount",
+      amountHelper: "Commission is calculated from the actual final sale amount, not the listed price.",
+      calculationTitle: "Commission summary",
+      listedPrice: "Listed price",
+      commissionRate: "Commission rate",
+      commissionAmount: "Commission amount",
+      totalToPay: "Total amount to pay now",
+      confirmLabel: "I confirm that the entered amount is the actual final sale amount.",
+      payButton: "Pay Commission & Complete Sale",
+      preparing: "Preparing payment",
+      pendingTitle: "Payment in progress",
+      pendingHint: "Do not close this window while SANANY confirms the commission payment.",
+      failedTitle: "Payment failed",
+      failedHint: "The listing remains active. Review the amount and try again.",
+      cancelledTitle: "Payment cancelled",
+      cancelledHint: "The listing remains active until the commission is paid successfully.",
+      successTitle: "Sale completed successfully",
+      successHint: "The listing is now marked as sold and the official SANANY invoice is ready.",
+      successBanner: "Sale completed and invoice saved.",
+      paymentMethod: "Payment method",
+      transactionReference: "Transaction reference",
+      paymentDate: "Payment date",
+      invoiceNumber: "Invoice number",
+      invoiceStatus: "Invoice status",
+      invoiceStatusPaid: "Paid",
+      invoiceTitle: "Commission invoice",
+      invoiceDescription: "This official SANANY invoice confirms that the listing commission was paid.",
+      invoiceDownload: "Download Invoice",
+      invoiceShare: "Share invoice",
+      invoiceSaved: "Invoice file saved successfully.",
+      invoiceSaveFailed: "Could not save the invoice file right now.",
+      invoiceShared: "Invoice shared successfully.",
+      invoiceShareFailed: "Could not share the invoice right now.",
+      missingAmount: "Enter the final sale amount first.",
+      invalidAmount: "Enter a valid sale amount greater than zero.",
+      confirmationRequired: "Confirm the declaration before paying the commission.",
+      activeTabTitle: "Active Ads",
+      soldTabTitle: "Sold Ads",
+      draftsTabTitle: "Drafts",
+      expiredTabTitle: "Expired Ads",
+      paymentStates: {
+        pending: "Pending",
+        paid: "Paid",
+        failed: "Failed",
+        cancelled: "Cancelled",
+        refunded: "Refunded"
+      },
+      receiptTitle: "Payment receipt"
     }
   },
   sellerProfile: {
@@ -1373,6 +1431,8 @@ export const en = {
         totalListings: "Total listings",
         listingsAvailable: "Published listings",
         listingsReserved: "Reserved listings",
+        paidCommissionPayments: "Paid commission payments",
+        commissionRevenue: "Commission revenue",
         listingsDraft: "Draft listings",
         listingsInactive: "Inactive listings",
         openReports: "Open reports"
@@ -1383,6 +1443,7 @@ export const en = {
       users: "Users",
       companies: "Companies",
       listings: "Listings",
+      commissionPayments: "Commission payments",
       categories: "Categories",
       reports: "Reports",
       reviews: "Reviews",
@@ -1591,6 +1652,7 @@ export const en = {
         draft: "Draft",
         available: "Published",
         reserved: "Reserved",
+        sold: "Sold",
         inactive: "Inactive"
       },
       actions: {
@@ -1617,6 +1679,58 @@ export const en = {
       messages: {
         approved: "Listing approved and status updated to published.",
         rejected: "Listing rejected and status updated to inactive."
+      }
+    },
+    commissionPayments: {
+      title: "Commission payments",
+      subtitle: "Review completed sale commissions, payment outcomes, and the current marketplace commission rate.",
+      analyticsTitle: "Commission analytics",
+      analytics: {
+        totalRevenue: "Total commission revenue",
+        paid: "Paid payments",
+        pending: "Pending payments",
+        failed: "Failed payments",
+        refunded: "Refunded payments",
+        cancelled: "Cancelled payments"
+      },
+      rateCard: {
+        title: "Commission rate",
+        subtitle: "This rate is applied automatically when a seller completes a sale.",
+        inputLabel: "Commission percentage",
+        submit: "Save rate"
+      },
+      filters: {
+        search: "Search by listing, seller, invoice, or transaction reference",
+        anyStatus: "Any payment status"
+      },
+      columns: {
+        listing: "Listing",
+        seller: "Seller",
+        saleAmount: "Final sale amount",
+        rate: "Rate",
+        commission: "Commission",
+        status: "Status",
+        paymentDate: "Payment date",
+        invoiceNumber: "Invoice number",
+        transactionReference: "Transaction reference",
+        actions: "Actions"
+      },
+      status: {
+        pending: "Pending",
+        paid: "Paid",
+        failed: "Failed",
+        cancelled: "Cancelled",
+        refunded: "Refunded"
+      },
+      actions: {
+        review: "Review listing",
+        refund: "Refund payment"
+      },
+      refundReasonPlaceholder: "Refund reason",
+      messages: {
+        rateUpdated: "Commission rate updated successfully.",
+        refunded: "Commission payment refunded successfully.",
+        invalidInput: "Please provide a valid value before submitting."
       }
     },
     reports: {

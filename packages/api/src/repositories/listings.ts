@@ -1,5 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CreateListingInput, CreateListingImageInput, ListingsQuery, MarketplaceListing, PaginatedResult } from "@sanany/types";
+import type {
+  CreateListingInput,
+  CreateListingImageInput,
+  ListingSaleInvoice,
+  ListingSalePayment,
+  ListingSalePaymentStatus,
+  ListingsQuery,
+  MarketplaceCommissionSettings,
+  MarketplaceListing,
+  PaginatedResult
+} from "@sanany/types";
 import { LISTING_IMAGES_BUCKET, escapeListingsSearchTerm, normalizeListingsQuery } from "@sanany/shared";
 
 export type ListingsRepository = {
@@ -9,6 +19,17 @@ export type ListingsRepository = {
   publishDraft(input: CreateListingInput & { id?: string }): Promise<MarketplaceListing>;
   getById(id: string): Promise<MarketplaceListing | null>;
   listByOwner(ownerId: string, query: ListingsQuery): Promise<PaginatedResult<MarketplaceListing>>;
+  getCommissionSettings(): Promise<MarketplaceCommissionSettings>;
+  listSalePaymentsBySeller(sellerId: string): Promise<ListingSalePayment[]>;
+  prepareSalePayment(input: { listingId: string; sellerId: string; finalSaleAmount: number }): Promise<ListingSalePayment>;
+  finalizeSalePayment(input: {
+    listingId: string;
+    sellerId: string;
+    outcome: Extract<ListingSalePaymentStatus, "paid" | "failed" | "cancelled">;
+    paymentMethod?: string | null;
+    failureReason?: string | null;
+  }): Promise<ListingSalePayment>;
+  getSaleInvoice(listingId: string, sellerId: string): Promise<ListingSaleInvoice | null>;
   deleteById(id: string, ownerId: string): Promise<void>;
 };
 
@@ -30,8 +51,68 @@ type ListingRow = {
   updated_at?: string;
 };
 
+type CommissionSettingsRow = {
+  commission_rate_percent: number;
+  updated_at: string;
+};
+
+type SalePaymentRow = {
+  id: string;
+  listing_id: string;
+  seller_id: string;
+  final_sale_amount: number;
+  commission_rate_percent: number;
+  commission_amount: number;
+  payment_status: ListingSalePaymentStatus;
+  payment_method: string | null;
+  payment_date: string | null;
+  invoice_number: string | null;
+  transaction_reference: string | null;
+  failure_reason: string | null;
+  refund_reason: string | null;
+  refunded_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type SaleInvoiceRow = {
+  id: string;
+  listing_id: string;
+  seller_id: string;
+  final_sale_amount: number;
+  commission_rate_percent: number;
+  commission_amount: number;
+  payment_status: ListingSalePaymentStatus;
+  payment_method: string | null;
+  payment_date: string | null;
+  invoice_number: string | null;
+  transaction_reference: string | null;
+  failure_reason: string | null;
+  refund_reason: string | null;
+  refunded_at: string | null;
+  created_at: string;
+  updated_at: string;
+  listing: {
+    id: string;
+    title: string | null;
+    image_url: string | null;
+  } | null;
+  seller:
+    | {
+        display_name: string | null;
+        username: string | null;
+      }
+    | {
+        display_name: string | null;
+        username: string | null;
+      }[]
+    | null;
+};
+
 const LISTING_SELECT_WITH_OWNER_PHONE = "id,owner_id,owner_phone,offer_type,category_slug,title,description,price,status,image_url,location_name,latitude,longitude,created_at,updated_at";
 const LISTING_SELECT_LEGACY = "id,owner_id,title,description,price,status,image_url,created_at,updated_at";
+const SALE_PAYMENT_SELECT =
+  "id,listing_id,seller_id,final_sale_amount,commission_rate_percent,commission_amount,payment_status,payment_method,payment_date,invoice_number,transaction_reference,failure_reason,refund_reason,refunded_at,created_at,updated_at";
 
 function isMissingListingsColumnError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
@@ -61,6 +142,27 @@ function mapRow(row: ListingRow): MarketplaceListing {
     locationName: row.location_name ?? null,
     latitude: row.latitude ?? null,
     longitude: row.longitude ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapSalePaymentRow(row: SalePaymentRow): ListingSalePayment {
+  return {
+    id: row.id,
+    listingId: row.listing_id,
+    sellerId: row.seller_id,
+    finalSaleAmount: Number(row.final_sale_amount ?? 0),
+    commissionRatePercent: Number(row.commission_rate_percent ?? 0),
+    commissionAmount: Number(row.commission_amount ?? 0),
+    paymentStatus: row.payment_status,
+    paymentMethod: row.payment_method ?? null,
+    paymentDate: row.payment_date ?? null,
+    invoiceNumber: row.invoice_number ?? null,
+    transactionReference: row.transaction_reference ?? null,
+    failureReason: row.failure_reason ?? null,
+    refundReason: row.refund_reason ?? null,
+    refundedAt: row.refunded_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -437,6 +539,109 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
         page: normalizedQuery.page,
         pageSize: normalizedQuery.pageSize,
         totalPages
+      };
+    },
+    async getCommissionSettings() {
+      const { data, error } = await client
+        .from("marketplace_commission_settings")
+        .select("commission_rate_percent,updated_at")
+        .eq("id", true)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+      if (!data) {
+        throw new Error("Marketplace commission settings are not configured.");
+      }
+
+      const row = data as CommissionSettingsRow;
+      return {
+        commissionRatePercent: Number(row.commission_rate_percent ?? 0),
+        updatedAt: row.updated_at
+      };
+    },
+    async listSalePaymentsBySeller(sellerId) {
+      const { data, error } = await client
+        .from("listing_sale_payments")
+        .select(SALE_PAYMENT_SELECT)
+        .eq("seller_id", sellerId)
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      return ((data ?? []) as SalePaymentRow[]).map((row) => mapSalePaymentRow(row));
+    },
+    async prepareSalePayment(input) {
+      const { data, error } = await client.rpc("prepare_listing_sale_payment", {
+        p_listing_id: input.listingId,
+        p_final_sale_amount: input.finalSaleAmount
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const row = Array.isArray(data) ? (data[0] as SalePaymentRow | undefined) : (data as SalePaymentRow | null);
+      if (!row) {
+        throw new Error("Could not prepare the commission payment.");
+      }
+      if (row.seller_id !== input.sellerId) {
+        throw new Error("Commission payment ownership mismatch.");
+      }
+
+      return mapSalePaymentRow(row);
+    },
+    async finalizeSalePayment(input) {
+      const { data, error } = await client.rpc("finalize_listing_sale_payment", {
+        p_listing_id: input.listingId,
+        p_payment_status: input.outcome,
+        p_payment_method: input.paymentMethod ?? null,
+        p_failure_reason: input.failureReason ?? null
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const row = Array.isArray(data) ? (data[0] as SalePaymentRow | undefined) : (data as SalePaymentRow | null);
+      if (!row) {
+        throw new Error("Could not finalize the commission payment.");
+      }
+      if (row.seller_id !== input.sellerId) {
+        throw new Error("Commission payment ownership mismatch.");
+      }
+
+      return mapSalePaymentRow(row);
+    },
+    async getSaleInvoice(listingId, sellerId) {
+      const { data, error } = await client
+        .from("listing_sale_payments")
+        .select(
+          `${SALE_PAYMENT_SELECT},listing:listings!listing_sale_payments_listing_id_fkey(id,title,image_url),seller:profiles!listing_sale_payments_seller_id_fkey(display_name,username)`
+        )
+        .eq("listing_id", listingId)
+        .eq("seller_id", sellerId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+      if (!data) {
+        return null;
+      }
+
+      const row = data as unknown as SaleInvoiceRow;
+      const seller = Array.isArray(row.seller) ? row.seller[0] : row.seller;
+      return {
+        payment: mapSalePaymentRow(row),
+        listingId: row.listing?.id ?? listingId,
+        listingTitle: row.listing?.title?.trim() || listingId,
+        listingImageUrl: row.listing?.image_url ?? null,
+        sellerDisplayName: seller?.display_name?.trim() || seller?.username || sellerId,
+        sellerUsername: seller?.username ?? null
       };
     },
     async deleteById(id, ownerId) {

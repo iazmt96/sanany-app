@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import {
   computeListingQualityScore,
   isSectionBackedByMobileStatus,
-  mapSectionToStatus
+  mapSectionToStatus,
+  matchesListingManagementSection
 } from "../src/listing-management.ts";
 
 test("maps listing management sections to supported statuses", () => {
-  assert.equal(mapSectionToStatus("active"), "available");
+  assert.equal(mapSectionToStatus("active"), null);
   assert.equal(mapSectionToStatus("drafts"), "draft");
-  assert.equal(mapSectionToStatus("sold"), "reserved");
+  assert.equal(mapSectionToStatus("sold"), "sold");
   assert.equal(mapSectionToStatus("expired"), "inactive");
   assert.equal(mapSectionToStatus("pending"), null);
   assert.equal(mapSectionToStatus("rejected"), null);
@@ -36,4 +37,48 @@ test("computes listing quality score with mobile-aligned checkpoints", () => {
     isCarSaleCategory: true
   });
   assert.equal(score, 100);
+});
+
+test("matches active and sold management sections using updated sold state", () => {
+  assert.equal(
+    matchesListingManagementSection(
+      {
+        id: "listing-a",
+        ownerId: "owner-a",
+        ownerPhone: null,
+        title: "Toyota Camry",
+        description: null,
+        price: 50000,
+        status: "available",
+        imageUrl: null,
+        locationName: "Riyadh",
+        latitude: null,
+        longitude: null,
+        createdAt: new Date().toISOString()
+      },
+      "active"
+    ),
+    true
+  );
+
+  assert.equal(
+    matchesListingManagementSection(
+      {
+        id: "listing-b",
+        ownerId: "owner-b",
+        ownerPhone: null,
+        title: "Mazda 6",
+        description: null,
+        price: 42000,
+        status: "sold",
+        imageUrl: null,
+        locationName: "Jeddah",
+        latitude: null,
+        longitude: null,
+        createdAt: new Date().toISOString()
+      },
+      "sold"
+    ),
+    true
+  );
 });

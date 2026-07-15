@@ -61,3 +61,27 @@ export function formatHourMinute(value: string, language: string): string {
 export function formatWholeNumber(value: number, locale = "en-US"): string {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
 }
+
+export function formatCurrencySar(value: number, language: string): string {
+  return new Intl.NumberFormat(resolveLocaleTag(language) === "ar" ? "ar-SA" : "en-SA", {
+    style: "currency",
+    currency: "SAR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+export function formatDateTimeFull(value: string, language: string, fallback = "-"): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return new Intl.DateTimeFormat(resolveLocaleTag(language) === "ar" ? "ar-SA" : "en-SA", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}

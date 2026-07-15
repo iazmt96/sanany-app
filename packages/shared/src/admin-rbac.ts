@@ -23,6 +23,7 @@ export const ADMIN_PERMISSIONS = [
   "categories.manage",
   "notifications.send",
   "settings.manage",
+  "finance.manage",
   "audit_logs.view",
   "dashboard.view"
 ] as const;
@@ -44,12 +45,13 @@ const ROLE_PERMISSIONS: Record<AdminRole, ReadonlyArray<AdminPermission>> = {
     "reviews.manage",
     "categories.manage",
     "notifications.send",
+    "finance.manage",
     "audit_logs.view"
   ],
   moderator: ["dashboard.view", "users.view", "listings.view", "listings.approve", "listings.reject", "reports.manage", "reviews.manage"],
   support: ["dashboard.view", "users.view", "reports.manage", "reviews.manage"],
   content_manager: ["dashboard.view", "listings.view", "listings.approve", "listings.reject", "categories.manage"],
-  finance: ["dashboard.view", "audit_logs.view"]
+  finance: ["dashboard.view", "finance.manage", "audit_logs.view"]
 };
 
 export function isAdminRole(value: unknown): value is AdminRole {

@@ -6,6 +6,7 @@ export const ar = {
     loading: "جاري التحميل...",
     retry: "إعادة المحاولة",
     cancel: "إلغاء",
+    close: "إغلاق",
     signOut: "تسجيل الخروج",
     next: "التالي",
     previous: "السابق",
@@ -765,6 +766,7 @@ export const ar = {
       draft: "مسودة",
       available: "متاح",
       reserved: "محجوز",
+      sold: "تم البيع",
       inactive: "غير نشط"
     },
     favorite: {
@@ -885,6 +887,8 @@ export const ar = {
     statusDraft: "المسودات",
     statusAvailable: "المنشور",
     statusReserved: "المحجوز",
+    statusSold: "تم البيع",
+    statusInactive: "المنتهية",
     emptyState: "لا توجد لديك إعلانات حتى الآن.",
     emptyTitle: "لا توجد إعلانات منشورة",
     emptyHint: "ابدأ من السوق واستعرض الإعلانات الحالية ثم أضف أول إعلان لك عندما تكون جاهزًا.",
@@ -917,7 +921,7 @@ export const ar = {
     management: {
       createNew: "أضف إعلانًا جديدًا",
       editing: "جاري التعديل: {{title}}",
-      markedSold: "تم تعليم الإعلان كمباع.",
+      markedSold: "تم دفع العمولة ونقل الإعلان إلى قسم تم بيعها.",
       republished: "تمت إعادة نشر الإعلان.",
       deleted: "تم حذف الإعلان.",
       shared: "تم نسخ/مشاركة رابط الإعلان.",
@@ -931,6 +935,60 @@ export const ar = {
         republish: "إعادة نشر",
         share: "مشاركة"
       }
+    },
+    saleFlow: {
+      action: "تحويل العمولة وإتمام البيع",
+      heading: "إتمام البيع",
+      subtitle: "أدخل مبلغ البيع الفعلي، راجع عمولة 1%، ثم أصدر فاتورة سنعني الرسمية بعد نجاح الدفع.",
+      amountLabel: "مبلغ البيع الفعلي",
+      amountPlaceholder: "أدخل المبلغ المتفق عليه",
+      amountHelper: "تُحتسب العمولة من مبلغ البيع الفعلي وليس من السعر المعروض.",
+      calculationTitle: "ملخص العمولة",
+      listedPrice: "السعر المعروض",
+      commissionRate: "نسبة العمولة",
+      commissionAmount: "مبلغ العمولة",
+      totalToPay: "إجمالي المبلغ المطلوب الآن",
+      confirmLabel: "أقر بأن مبلغ البيع المدخل هو المبلغ الفعلي للصفقة.",
+      payButton: "دفع العمولة وإتمام البيع",
+      preparing: "جاري تجهيز الدفع",
+      pendingTitle: "الدفع قيد التنفيذ",
+      pendingHint: "لا تغلق هذه النافذة أثناء تأكيد دفع العمولة داخل سنعني.",
+      failedTitle: "فشل الدفع",
+      failedHint: "يبقى الإعلان نشطًا. راجع المبلغ وحاول مرة أخرى.",
+      cancelledTitle: "تم إلغاء الدفع",
+      cancelledHint: "يبقى الإعلان نشطًا حتى تُدفع العمولة بنجاح.",
+      successTitle: "اكتمل البيع بنجاح",
+      successHint: "تم تعليم الإعلان كمباع وأصبحت الفاتورة الرسمية جاهزة.",
+      successBanner: "اكتمل البيع وتم حفظ الفاتورة.",
+      paymentMethod: "طريقة الدفع",
+      transactionReference: "المرجع المالي",
+      paymentDate: "تاريخ الدفع",
+      invoiceNumber: "رقم الفاتورة",
+      invoiceStatus: "حالة الفاتورة",
+      invoiceStatusPaid: "مدفوعة",
+      invoiceTitle: "فاتورة العمولة",
+      invoiceDescription: "تؤكد هذه الفاتورة الرسمية من سنعني أن عمولة الإعلان قد دُفعت.",
+      invoiceDownload: "تحميل الفاتورة",
+      invoiceShare: "مشاركة الفاتورة",
+      invoiceSaved: "تم حفظ ملف الفاتورة بنجاح.",
+      invoiceSaveFailed: "تعذر حفظ ملف الفاتورة الآن.",
+      invoiceShared: "تمت مشاركة الفاتورة بنجاح.",
+      invoiceShareFailed: "تعذر مشاركة الفاتورة الآن.",
+      missingAmount: "أدخل مبلغ البيع الفعلي أولًا.",
+      invalidAmount: "أدخل مبلغ بيع صحيحًا أكبر من صفر.",
+      confirmationRequired: "يلزم تأكيد الإقرار قبل دفع العمولة.",
+      activeTabTitle: "الإعلانات النشطة",
+      soldTabTitle: "تم بيعها",
+      draftsTabTitle: "المسودات",
+      expiredTabTitle: "الإعلانات المنتهية",
+      paymentStates: {
+        pending: "قيد الانتظار",
+        paid: "مدفوعة",
+        failed: "فاشلة",
+        cancelled: "ملغاة",
+        refunded: "مستردة"
+      },
+      receiptTitle: "إيصال الدفع"
     }
   },
   sellerProfile: {
@@ -1372,6 +1430,8 @@ export const ar = {
         totalListings: "إجمالي الإعلانات",
         listingsAvailable: "الإعلانات المنشورة",
         listingsReserved: "الإعلانات المحجوزة",
+        paidCommissionPayments: "العمولات المدفوعة",
+        commissionRevenue: "إيراد العمولات",
         listingsDraft: "الإعلانات كمسودة",
         listingsInactive: "الإعلانات غير النشطة",
         openReports: "البلاغات المفتوحة"
@@ -1382,6 +1442,7 @@ export const ar = {
       users: "المستخدمون",
       companies: "الشركات",
       listings: "الإعلانات",
+      commissionPayments: "مدفوعات العمولات",
       categories: "الأقسام",
       reports: "البلاغات",
       reviews: "التقييمات",
@@ -1590,6 +1651,7 @@ export const ar = {
         draft: "مسودة",
         available: "منشور",
         reserved: "محجوز",
+        sold: "تم البيع",
         inactive: "غير نشط"
       },
       actions: {
@@ -1616,6 +1678,58 @@ export const ar = {
       messages: {
         approved: "تم اعتماد الإعلان وتحديث حالته إلى منشور.",
         rejected: "تم رفض الإعلان وتحديث حالته إلى غير نشط."
+      }
+    },
+    commissionPayments: {
+      title: "مدفوعات العمولات",
+      subtitle: "مراجعة عمولات إتمام البيع، نتائج الدفع، ونسبة العمولة الحالية داخل السوق.",
+      analyticsTitle: "تحليلات العمولات",
+      analytics: {
+        totalRevenue: "إجمالي إيراد العمولات",
+        paid: "المدفوعات المدفوعة",
+        pending: "المدفوعات المعلقة",
+        failed: "المدفوعات الفاشلة",
+        refunded: "المدفوعات المستردة",
+        cancelled: "المدفوعات الملغاة"
+      },
+      rateCard: {
+        title: "نسبة العمولة",
+        subtitle: "تُطبَّق هذه النسبة تلقائيًا عند إتمام البائع للبيع.",
+        inputLabel: "نسبة العمولة",
+        submit: "حفظ النسبة"
+      },
+      filters: {
+        search: "ابحث بالإعلان أو البائع أو رقم الفاتورة أو المرجع المالي",
+        anyStatus: "كل حالات الدفع"
+      },
+      columns: {
+        listing: "الإعلان",
+        seller: "البائع",
+        saleAmount: "مبلغ البيع الفعلي",
+        rate: "النسبة",
+        commission: "العمولة",
+        status: "الحالة",
+        paymentDate: "تاريخ الدفع",
+        invoiceNumber: "رقم الفاتورة",
+        transactionReference: "المرجع المالي",
+        actions: "الإجراءات"
+      },
+      status: {
+        pending: "قيد الانتظار",
+        paid: "مدفوعة",
+        failed: "فاشلة",
+        cancelled: "ملغاة",
+        refunded: "مستردة"
+      },
+      actions: {
+        review: "مراجعة الإعلان",
+        refund: "استرداد الدفع"
+      },
+      refundReasonPlaceholder: "سبب الاسترداد",
+      messages: {
+        rateUpdated: "تم تحديث نسبة العمولة بنجاح.",
+        refunded: "تم استرداد دفعة العمولة بنجاح.",
+        invalidInput: "يرجى إدخال قيمة صحيحة قبل الإرسال."
       }
     },
     reports: {

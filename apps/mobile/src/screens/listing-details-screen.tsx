@@ -360,7 +360,14 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
       <View style={styles.content}>
         <View style={[styles.metaRow, isRtl ? styles.metaRowRtl : undefined]}>
           <Text style={[styles.title, { textAlign: isRtl ? "right" : "left" }]}>{listing.title}</Text>
-          <Text style={[styles.statusBadge, listing.status === "reserved" ? styles.statusReserved : styles.statusAvailable]}>{t(`marketplace.status.${listing.status}`)}</Text>
+          <Text
+            style={[
+              styles.statusBadge,
+              listing.status === "reserved" ? styles.statusReserved : listing.status === "sold" ? styles.statusSold : styles.statusAvailable
+            ]}
+          >
+            {t(`marketplace.status.${listing.status}`)}
+          </Text>
         </View>
 
         <Text style={[styles.price, { textAlign: isRtl ? "right" : "left" }]}>{priceLabel}</Text>
@@ -628,6 +635,10 @@ const styles = StyleSheet.create({
   statusReserved: {
     backgroundColor: "#fff7ed",
     color: "#c2410c"
+  },
+  statusSold: {
+    backgroundColor: "#fee2e2",
+    color: "#b91c1c"
   },
   price: {
     fontSize: 18,

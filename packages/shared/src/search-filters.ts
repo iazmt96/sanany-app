@@ -309,7 +309,13 @@ export function matchesListingsFilters(listing: MarketplaceListing, filters: Lis
 export function parseListingsQueryFromParams(params: URLSearchParams, defaultPageSize: number): ListingsQuery {
   const query: ListingsQuery = {
     search: params.get("q")?.trim() ?? "",
-    status: params.get("status") === "available" || params.get("status") === "reserved" || params.get("status") === "draft" ? (params.get("status") as ListingsQuery["status"]) : "all",
+    status:
+      params.get("status") === "available" ||
+      params.get("status") === "reserved" ||
+      params.get("status") === "sold" ||
+      params.get("status") === "draft"
+        ? (params.get("status") as ListingsQuery["status"])
+        : "all",
     sort: params.get("sort") === "priceHigh" || params.get("sort") === "priceLow" ? (params.get("sort") as ListingsQuery["sort"]) : "newest",
     page: sanitizePage(params.get("page") ?? undefined),
     pageSize: defaultPageSize

@@ -68,6 +68,10 @@ function deriveAvailabilityState(listing: MarketplaceListing, viewerId?: string)
     return "self";
   }
 
+  if (listing.status === "sold") {
+    return "sold";
+  }
+
   const haystack = `${listing.title} ${listing.description ?? ""}`.toLowerCase();
   if (haystack.includes("مباع") || haystack.includes("sold")) {
     return "sold";
@@ -139,9 +143,11 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
         availability:
           listing.status === "reserved"
             ? "https://schema.org/LimitedAvailability"
+          : listing.status === "sold"
+            ? "https://schema.org/SoldOut"
             : listing.status === "inactive"
-              ? "https://schema.org/Discontinued"
-              : "https://schema.org/InStock"
+            ? "https://schema.org/Discontinued"
+            : "https://schema.org/InStock"
       },
       sku: listing.id
     };

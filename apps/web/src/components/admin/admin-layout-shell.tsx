@@ -28,6 +28,7 @@ const NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin/users", labelKey: "users", permission: "users.view" },
   { href: "/admin/companies", labelKey: "companies", permission: "companies.verify" },
   { href: "/admin/listings", labelKey: "listings", permission: "listings.view" },
+  { href: "/admin/commission-payments", labelKey: "commissionPayments", permission: "finance.manage" },
   { href: "/admin/categories", labelKey: "categories", permission: "categories.manage" },
   { href: "/admin/reports", labelKey: "reports", permission: "reports.manage" },
   { href: "/admin/reviews", labelKey: "reviews", permission: "reviews.manage" },

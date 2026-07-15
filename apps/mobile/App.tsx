@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { isAuthenticated } from "@sanany/auth";
 import type { MarketplaceListing } from "@sanany/types";
+import type { CommissionReviewPreviewState } from "@sanany/shared";
 import { getDirection } from "@sanany/utils";
 import { AuthProvider, useAuth } from "./src/auth/auth-context";
 import { LanguageSwitcher } from "./src/components/language-switcher";
@@ -38,6 +39,7 @@ function AppContent() {
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [isHomePreview, setIsHomePreview] = useState(false);
   const [homePreviewState, setHomePreviewState] = useState<"loading" | "error" | "empty" | "guest" | undefined>(undefined);
+  const [myAdsPreviewState, setMyAdsPreviewState] = useState<CommissionReviewPreviewState | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [homeSearchQuery, setHomeSearchQuery] = useState("");
   const sceneFade = useRef(new Animated.Value(1)).current;
@@ -81,10 +83,31 @@ function AppContent() {
       if (nextPreviewState === "loading" || nextPreviewState === "error" || nextPreviewState === "empty" || nextPreviewState === "guest") {
         setHomePreviewState(nextPreviewState);
       }
+      return;
+    }
+
+    if (params.get("previewScreen") === "myads") {
+      const nextPreviewState = params.get("previewState");
+      if (
+        nextPreviewState === "active" ||
+        nextPreviewState === "calculator" ||
+        nextPreviewState === "confirmation" ||
+        nextPreviewState === "loading" ||
+        nextPreviewState === "failed" ||
+        nextPreviewState === "success" ||
+        nextPreviewState === "invoice" ||
+        nextPreviewState === "sold"
+      ) {
+        setMyAdsPreviewState(nextPreviewState);
+      } else {
+        setMyAdsPreviewState("active");
+      }
+      setActiveTab("myAds");
+      setIsSplashVisible(false);
     }
   }, []);
 
-  if ((isSplashVisible || snapshot.status === "loading" || profileStatus === "loading") && !isHomePreview) {
+  if ((isSplashVisible || snapshot.status === "loading" || profileStatus === "loading") && !isHomePreview && !myAdsPreviewState) {
     return (
       <View style={styles.splashContainer}>
         <View style={styles.splashCard}>
@@ -101,7 +124,7 @@ function AppContent() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {isHomePreview || (isAuthenticated(snapshot) && profileStatus === "complete") ? (
+        {isHomePreview || myAdsPreviewState || (isAuthenticated(snapshot) && profileStatus === "complete") ? (
           <>
             <View style={styles.contentCard}>
               {selectedListing ? (
@@ -198,7 +221,7 @@ function AppContent() {
                     />
                   </View>
                   <View style={[styles.scene, activeTab === "myAds" ? styles.sceneActive : styles.sceneHidden]}>
-                    <MyAdsScreen direction={direction} onExploreMarketplace={() => setActiveTab("explore")} onOpenListing={setSelectedListing} />
+                    <MyAdsScreen direction={direction} previewState={myAdsPreviewState} onExploreMarketplace={() => setActiveTab("explore")} onOpenListing={setSelectedListing} />
                   </View>
                   <View style={[styles.scene, activeTab === "notifications" ? styles.sceneActive : styles.sceneHidden]}>
                     <NotificationsScreen direction={direction} />

@@ -23,7 +23,7 @@ export function toListingStatusFilterForProfileView(view: ProfileListingView): L
     return "draft";
   }
   if (view === "sold") {
-    return "reserved";
+    return "sold";
   }
   if (view === "expired") {
     return "inactive";
