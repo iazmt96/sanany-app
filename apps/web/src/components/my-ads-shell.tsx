@@ -1546,7 +1546,24 @@ export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
                         <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.commissionAmount")}</p>
                         <p className="font-semibold text-slate-900">{salePayment.commissionAmount.toLocaleString()}</p>
                       </div>
+                      <div>
+                        <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.soldDate")}</p>
+                        <p className="font-semibold text-slate-900">{salePayment.paymentDate ? new Date(salePayment.paymentDate).toLocaleDateString(resolvedLanguage === "ar" ? "ar-SA" : "en-US") : "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.invoiceNumber")}</p>
+                        <p className="font-semibold text-slate-900">{salePayment.invoiceNumber ?? "—"}</p>
+                      </div>
                     </div>
+                    {salePayment.paymentStatus === "paid" ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSaleListingId(listing.id)}
+                        className="mt-2 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                      >
+                        {t("myAds.saleFlow.invoiceView")}
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
                 <div className="grid grid-cols-2 gap-2">

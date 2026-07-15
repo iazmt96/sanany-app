@@ -1,6 +1,7 @@
 import type {
   ListingSalePayment,
   ListingSalePaymentStatus,
+  ListingSaleSource,
   ListingStatus,
   MarketplaceCommissionSettings,
   MarketplaceListing
@@ -21,6 +22,7 @@ export function calculateCommissionFromSaleAmount(input: {
   commissionRatePercent: number;
   commissionAmount: number;
   totalToPayNow: number;
+  sellerNetAmount: number;
 } {
   const finalSaleAmount = roundMoney(Math.max(0, input.finalSaleAmount));
   const commissionRatePercent = roundMoney(Math.max(0, input.commissionRatePercent));
@@ -30,8 +32,16 @@ export function calculateCommissionFromSaleAmount(input: {
     finalSaleAmount,
     commissionRatePercent,
     commissionAmount,
-    totalToPayNow: commissionAmount
+    totalToPayNow: commissionAmount,
+    sellerNetAmount: roundMoney(finalSaleAmount - commissionAmount)
   };
+}
+
+export function normalizeSaleSource(value: string | null | undefined): ListingSaleSource {
+  if (value === "sanany_chat" || value === "outside_sanany" || value === "cancelled" || value === "other") {
+    return value;
+  }
+  return "outside_sanany";
 }
 
 export function isListingActiveForSaleCompletion(status: ListingStatus): boolean {

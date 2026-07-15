@@ -26,7 +26,7 @@ export async function GET(_: Request, context: { params: Promise<{ paymentId: st
   const { data, error } = await adminClient
     .from("listing_sale_payments")
     .select(
-      "id,listing_id,seller_id,final_sale_amount,commission_rate_percent,commission_amount,payment_status,payment_method,payment_date,invoice_number,transaction_reference,profiles!listing_sale_payments_seller_id_fkey(display_name,username),listings!listing_sale_payments_listing_id_fkey(title)"
+      "id,listing_id,seller_id,sale_source,sale_source_other,buyer_name,buyer_phone,final_sale_amount,commission_rate_percent,commission_amount,payment_status,payment_method,payment_date,invoice_number,transaction_reference,profiles!listing_sale_payments_seller_id_fkey(display_name,username),listings!listing_sale_payments_listing_id_fkey(title)"
     )
     .eq("id", paymentId)
     .maybeSingle();
@@ -41,6 +41,7 @@ export async function GET(_: Request, context: { params: Promise<{ paymentId: st
   const listing = Array.isArray(data.listings) ? data.listings[0] : data.listings;
   const seller = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
   const paymentStatusKey = String(data.payment_status ?? "pending") as keyof typeof dictionary.admin.commissionPayments.status;
+  const saleSourceKey = String(data.sale_source ?? "outside_sanany") as keyof typeof dictionary.myAds.saleFlow.saleSources;
   const html = `<!doctype html>
 <html lang="${language === "ar" ? "ar" : "en"}" dir="${language === "ar" ? "rtl" : "ltr"}">
   <head>
@@ -70,6 +71,8 @@ export async function GET(_: Request, context: { params: Promise<{ paymentId: st
         <div class="item"><div class="label">${dictionary.admin.commissionPayments.columns.paymentDate}</div><div class="value">${data.payment_date ? formatDateTimeFull(data.payment_date, language) : "-"}</div></div>
         <div class="item"><div class="label">${dictionary.admin.commissionPayments.columns.transactionReference}</div><div class="value">${data.transaction_reference ?? "-"}</div></div>
         <div class="item"><div class="label">${dictionary.myAds.saleFlow.paymentMethod}</div><div class="value">${data.payment_method ?? "digital_checkout"}</div></div>
+        <div class="item"><div class="label">${dictionary.admin.commissionPayments.columns.saleSource}</div><div class="value">${dictionary.myAds.saleFlow.saleSources[saleSourceKey]}</div></div>
+        <div class="item"><div class="label">${dictionary.admin.commissionPayments.columns.buyer}</div><div class="value">${data.buyer_name ?? "-"} ${data.buyer_phone ?? ""}</div></div>
       </div>
     </div>
   </body>

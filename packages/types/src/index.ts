@@ -7,6 +7,8 @@ export type ListingFilterStatus = ListingStatus | "all";
 
 export const LISTING_SALE_PAYMENT_STATUSES = ["pending", "paid", "failed", "cancelled", "refunded"] as const;
 export type ListingSalePaymentStatus = (typeof LISTING_SALE_PAYMENT_STATUSES)[number];
+export const LISTING_SALE_SOURCES = ["sanany_chat", "outside_sanany", "cancelled", "other"] as const;
+export type ListingSaleSource = (typeof LISTING_SALE_SOURCES)[number];
 
 export const LISTING_OFFER_TYPES = ["sell", "rent", "service", "request"] as const;
 export type ListingOfferType = (typeof LISTING_OFFER_TYPES)[number];
@@ -183,9 +185,13 @@ export type ListingSalePayment = {
   id: string;
   listingId: string;
   sellerId: string;
+  saleSource: ListingSaleSource;
+  saleSourceOther: string | null;
   finalSaleAmount: number;
   commissionRatePercent: number;
   commissionAmount: number;
+  buyerName: string | null;
+  buyerPhone: string | null;
   paymentStatus: ListingSalePaymentStatus;
   paymentMethod: string | null;
   paymentDate: string | null;

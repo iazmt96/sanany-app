@@ -1,5 +1,5 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import type { ListingSalePaymentStatus } from "@sanany/types";
+import type { ListingSalePaymentStatus, ListingSaleSource } from "@sanany/types";
 import { createClient } from "../../utils/supabase/server";
 
 const COMMISSION_PAYMENT_FILTER_STATUSES = ["pending", "paid", "failed", "cancelled", "refunded"] as const;
@@ -13,6 +13,13 @@ export type AdminCommissionPaymentRow = {
   sellerId: string;
   sellerDisplayName: string;
   sellerUsername: string | null;
+  saleSource: ListingSaleSource;
+  saleSourceOther: string | null;
+  buyerName: string | null;
+  buyerPhone: string | null;
+  listingCategorySlug: string | null;
+  listingCreatedAt: string | null;
+  soldAt: string | null;
   finalSaleAmount: number;
   commissionRatePercent: number;
   commissionAmount: number;
@@ -36,11 +43,22 @@ export type AdminCommissionPaymentsData = {
   currentRatePercent: number;
   analytics: {
     totalRevenue: number;
+    revenueToday: number;
+    revenueWeek: number;
+    revenueMonth: number;
+    revenueYear: number;
     paidCount: number;
     pendingCount: number;
     failedCount: number;
     refundedCount: number;
     cancelledCount: number;
+    averageSaleAmount: number;
+    averageCommissionAmount: number;
+    averageSellingHours: number | null;
+    conversionRatePublishedToSold: number;
+    topSellers: Array<{ sellerId: string; sellerName: string; totalCommission: number; paidSalesCount: number }>;
+    highestCommission: { paymentId: string; listingTitle: string; sellerName: string; commissionAmount: number } | null;
+    topCategories: Array<{ categorySlug: string; soldCount: number; averageSaleAmount: number; averageCommissionAmount: number }>;
   };
 };
 
@@ -87,7 +105,7 @@ export async function getAdminCommissionPaymentsData(filters: AdminCommissionPay
   let paymentsQuery = adminClient
     .from("listing_sale_payments")
     .select(
-      "id,listing_id,seller_id,final_sale_amount,commission_rate_percent,commission_amount,payment_status,payment_date,invoice_number,transaction_reference,payment_method,refund_reason,failure_reason,created_at,updated_at,listings!listing_sale_payments_listing_id_fkey(id,title,image_url),profiles!listing_sale_payments_seller_id_fkey(id,display_name,username)",
+      "id,listing_id,seller_id,sale_source,sale_source_other,buyer_name,buyer_phone,final_sale_amount,commission_rate_percent,commission_amount,payment_status,payment_date,invoice_number,transaction_reference,payment_method,refund_reason,failure_reason,created_at,updated_at,listings!listing_sale_payments_listing_id_fkey(id,title,image_url,category_slug,created_at,status),profiles!listing_sale_payments_seller_id_fkey(id,display_name,username)",
       { count: "exact" }
     )
     .order("updated_at", { ascending: false })
@@ -134,7 +152,7 @@ export async function getAdminCommissionPaymentsData(filters: AdminCommissionPay
     adminClient.from("marketplace_commission_settings").select("commission_rate_percent").eq("id", true).maybeSingle(),
     adminClient
       .from("listing_sale_payments")
-      .select("payment_status,commission_amount")
+      .select("id,payment_status,payment_date,commission_amount,final_sale_amount,seller_id,sale_source,sale_source_other,buyer_name,buyer_phone,listings!listing_sale_payments_listing_id_fkey(id,title,category_slug,created_at)")
       .limit(5000)
   ]);
 
@@ -147,18 +165,84 @@ export async function getAdminCommissionPaymentsData(filters: AdminCommissionPay
 
   const analytics = {
     totalRevenue: 0,
+    revenueToday: 0,
+    revenueWeek: 0,
+    revenueMonth: 0,
+    revenueYear: 0,
     paidCount: 0,
     pendingCount: 0,
     failedCount: 0,
     refundedCount: 0,
-    cancelledCount: 0
+    cancelledCount: 0,
+    averageSaleAmount: 0,
+    averageCommissionAmount: 0,
+    averageSellingHours: null as number | null,
+    conversionRatePublishedToSold: 0,
+    topSellers: [] as Array<{ sellerId: string; sellerName: string; totalCommission: number; paidSalesCount: number }>,
+    highestCommission: null as { paymentId: string; listingTitle: string; sellerName: string; commissionAmount: number } | null,
+    topCategories: [] as Array<{ categorySlug: string; soldCount: number; averageSaleAmount: number; averageCommissionAmount: number }>
   };
+  const now = new Date();
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const weekStart = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const yearStart = new Date(now.getFullYear(), 0, 1).getTime();
+  let paidSaleAmountSum = 0;
+  let paidCommissionSum = 0;
+  let paidSellingHoursSum = 0;
+  let paidSellingHoursCount = 0;
+  const sellerBuckets = new Map<string, { sellerName: string; totalCommission: number; paidSalesCount: number }>();
+  const categoryBuckets = new Map<string, { soldCount: number; saleSum: number; commissionSum: number }>();
+  const paidListingIds = new Set<string>();
+  const paidSellerNames = new Map<string, string>();
 
   for (const row of analyticsResult.data ?? []) {
     const status = row.payment_status as ListingSalePaymentStatus;
     if (status === "paid") {
+      const paidAtMs = row.payment_date ? new Date(row.payment_date).getTime() : Number.NaN;
+      const commissionAmount = Number(row.commission_amount ?? 0);
+      const saleAmount = Number(row.final_sale_amount ?? 0);
       analytics.paidCount += 1;
-      analytics.totalRevenue += Number(row.commission_amount ?? 0);
+      analytics.totalRevenue += commissionAmount;
+      paidSaleAmountSum += saleAmount;
+      paidCommissionSum += commissionAmount;
+      if (!Number.isNaN(paidAtMs)) {
+        if (paidAtMs >= dayStart) analytics.revenueToday += commissionAmount;
+        if (paidAtMs >= weekStart) analytics.revenueWeek += commissionAmount;
+        if (paidAtMs >= monthStart) analytics.revenueMonth += commissionAmount;
+        if (paidAtMs >= yearStart) analytics.revenueYear += commissionAmount;
+      }
+      const listing = Array.isArray(row.listings) ? row.listings[0] : row.listings;
+      const sellerId = String(row.seller_id ?? "");
+      const sellerName = sellerId;
+      if (sellerId) {
+        const sellerBucket = sellerBuckets.get(sellerId) ?? { sellerName, totalCommission: 0, paidSalesCount: 0 };
+        sellerBucket.totalCommission += commissionAmount;
+        sellerBucket.paidSalesCount += 1;
+        sellerBuckets.set(sellerId, sellerBucket);
+      }
+      if (listing?.id) {
+        paidListingIds.add(listing.id);
+      }
+      const categorySlug = listing?.category_slug ?? "uncategorized";
+      const categoryBucket = categoryBuckets.get(categorySlug) ?? { soldCount: 0, saleSum: 0, commissionSum: 0 };
+      categoryBucket.soldCount += 1;
+      categoryBucket.saleSum += saleAmount;
+      categoryBucket.commissionSum += commissionAmount;
+      categoryBuckets.set(categorySlug, categoryBucket);
+      const listingCreatedAtMs = listing?.created_at ? new Date(listing.created_at).getTime() : Number.NaN;
+      if (!Number.isNaN(listingCreatedAtMs) && !Number.isNaN(paidAtMs) && paidAtMs >= listingCreatedAtMs) {
+        paidSellingHoursSum += (paidAtMs - listingCreatedAtMs) / (1000 * 60 * 60);
+        paidSellingHoursCount += 1;
+      }
+      if (!analytics.highestCommission || commissionAmount > analytics.highestCommission.commissionAmount) {
+        analytics.highestCommission = {
+          paymentId: row.id,
+          listingTitle: listing?.title?.trim() || listing?.id || row.id,
+          sellerName,
+          commissionAmount
+        };
+      }
     } else if (status === "pending") {
       analytics.pendingCount += 1;
     } else if (status === "failed") {
@@ -169,6 +253,55 @@ export async function getAdminCommissionPaymentsData(filters: AdminCommissionPay
       analytics.cancelledCount += 1;
     }
   }
+  const [publishedListingsResult, sellerProfilesResult] = await Promise.all([
+    adminClient
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["available", "reserved", "sold", "inactive"]),
+    adminClient.from("profiles").select("id,display_name,username").in("id", Array.from(sellerBuckets.keys()))
+  ]);
+  if (publishedListingsResult.error) {
+    throw new Error(publishedListingsResult.error.message);
+  }
+  if (sellerProfilesResult.error) {
+    throw new Error(sellerProfilesResult.error.message);
+  }
+  for (const seller of sellerProfilesResult.data ?? []) {
+    const name = seller.display_name?.trim() || seller.username || seller.id;
+    paidSellerNames.set(seller.id, name);
+  }
+  if (analytics.highestCommission && sellerBuckets.has(analytics.highestCommission.sellerName)) {
+    const mappedName = paidSellerNames.get(analytics.highestCommission.sellerName);
+    if (mappedName) {
+      analytics.highestCommission = {
+        ...analytics.highestCommission,
+        sellerName: mappedName
+      };
+    }
+  }
+  analytics.averageSaleAmount = analytics.paidCount > 0 ? paidSaleAmountSum / analytics.paidCount : 0;
+  analytics.averageCommissionAmount = analytics.paidCount > 0 ? paidCommissionSum / analytics.paidCount : 0;
+  analytics.averageSellingHours = paidSellingHoursCount > 0 ? paidSellingHoursSum / paidSellingHoursCount : null;
+  const publishedListingsCount = publishedListingsResult.count ?? 0;
+  analytics.conversionRatePublishedToSold = publishedListingsCount > 0 ? (analytics.paidCount / publishedListingsCount) * 100 : 0;
+  analytics.topSellers = Array.from(sellerBuckets.entries())
+    .map(([sellerId, bucket]) => ({
+      sellerId,
+      sellerName: paidSellerNames.get(sellerId) ?? bucket.sellerName,
+      totalCommission: bucket.totalCommission,
+      paidSalesCount: bucket.paidSalesCount
+    }))
+    .sort((a, b) => b.totalCommission - a.totalCommission)
+    .slice(0, 5);
+  analytics.topCategories = Array.from(categoryBuckets.entries())
+    .map(([categorySlug, bucket]) => ({
+      categorySlug,
+      soldCount: bucket.soldCount,
+      averageSaleAmount: bucket.soldCount > 0 ? bucket.saleSum / bucket.soldCount : 0,
+      averageCommissionAmount: bucket.soldCount > 0 ? bucket.commissionSum / bucket.soldCount : 0
+    }))
+    .sort((a, b) => b.soldCount - a.soldCount)
+    .slice(0, 5);
 
   const rows = (data ?? []).map((row) => {
     const listing = Array.isArray(row.listings) ? row.listings[0] : row.listings;
@@ -181,6 +314,13 @@ export async function getAdminCommissionPaymentsData(filters: AdminCommissionPay
       sellerId: row.seller_id,
       sellerDisplayName: seller?.display_name?.trim() || seller?.username || row.seller_id,
       sellerUsername: seller?.username ?? null,
+      saleSource: row.sale_source as ListingSaleSource,
+      saleSourceOther: row.sale_source_other ?? null,
+      buyerName: row.buyer_name ?? null,
+      buyerPhone: row.buyer_phone ?? null,
+      listingCategorySlug: listing?.category_slug ?? null,
+      listingCreatedAt: listing?.created_at ?? null,
+      soldAt: row.payment_date ?? null,
       finalSaleAmount: Number(row.final_sale_amount ?? 0),
       commissionRatePercent: Number(row.commission_rate_percent ?? 0),
       commissionAmount: Number(row.commission_amount ?? 0),

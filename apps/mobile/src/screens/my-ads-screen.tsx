@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { ListingSalePayment, MarketplaceCommissionSettings, MarketplaceListing, PaginatedResult } from "@sanany/types";
-import { buildCommissionReviewPreview, matchesListingManagementSection, type CommissionReviewPreviewState, shouldShowSaleCompletionAction } from "@sanany/shared";
+import { buildCommissionReviewPreview, formatCurrencySar, matchesListingManagementSection, type CommissionReviewPreviewState, shouldShowSaleCompletionAction } from "@sanany/shared";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { MobileEmptyState } from "../components/mobile-empty-state";
@@ -220,6 +220,14 @@ export function MyAdsScreen({ direction, onExploreMarketplace, onOpenListing, pr
                     <Text style={styles.paymentInfoValue}>
                       {payment.paymentStatus === "paid" ? t("marketplace.status.sold") : t("myAds.saleFlow.amountLabel")}
                     </Text>
+                    <Text style={styles.paymentMeta}>{`${t("myAds.saleFlow.amountLabel")}: ${formatCurrencySar(payment.finalSaleAmount, i18n.language || "ar")}`}</Text>
+                    <Text style={styles.paymentMeta}>{`${t("myAds.saleFlow.commissionAmount")}: ${formatCurrencySar(payment.commissionAmount, i18n.language || "ar")}`}</Text>
+                    <Text style={styles.paymentMeta}>{`${t("myAds.saleFlow.soldDate")}: ${payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString(i18n.language || "ar") : "—"}`}</Text>
+                    {payment.paymentStatus === "paid" ? (
+                      <Pressable style={styles.secondaryAction} onPress={() => setSelectedListingId(item.id)}>
+                        <Text style={styles.secondaryActionLabel}>{t("myAds.saleFlow.invoiceView")}</Text>
+                      </Pressable>
+                    ) : null}
                   </View>
                 ) : null}
                 {canComplete ? (
@@ -366,6 +374,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#0f172a"
+  },
+  paymentMeta: {
+    marginTop: 2,
+    fontSize: 11,
+    color: "#475569"
+  },
+  secondaryAction: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  secondaryActionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#334155"
   },
   primaryAction: {
     borderRadius: 16,

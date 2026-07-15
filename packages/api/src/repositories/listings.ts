@@ -5,6 +5,7 @@ import type {
   ListingSaleInvoice,
   ListingSalePayment,
   ListingSalePaymentStatus,
+  ListingSaleSource,
   ListingsQuery,
   MarketplaceCommissionSettings,
   MarketplaceListing,
@@ -21,7 +22,15 @@ export type ListingsRepository = {
   listByOwner(ownerId: string, query: ListingsQuery): Promise<PaginatedResult<MarketplaceListing>>;
   getCommissionSettings(): Promise<MarketplaceCommissionSettings>;
   listSalePaymentsBySeller(sellerId: string): Promise<ListingSalePayment[]>;
-  prepareSalePayment(input: { listingId: string; sellerId: string; finalSaleAmount: number }): Promise<ListingSalePayment>;
+  prepareSalePayment(input: {
+    listingId: string;
+    sellerId: string;
+    finalSaleAmount: number;
+    saleSource: ListingSaleSource;
+    saleSourceOther?: string | null;
+    buyerName?: string | null;
+    buyerPhone?: string | null;
+  }): Promise<ListingSalePayment>;
   finalizeSalePayment(input: {
     listingId: string;
     sellerId: string;
@@ -60,9 +69,13 @@ type SalePaymentRow = {
   id: string;
   listing_id: string;
   seller_id: string;
+  sale_source: ListingSaleSource;
+  sale_source_other: string | null;
   final_sale_amount: number;
   commission_rate_percent: number;
   commission_amount: number;
+  buyer_name: string | null;
+  buyer_phone: string | null;
   payment_status: ListingSalePaymentStatus;
   payment_method: string | null;
   payment_date: string | null;
@@ -79,9 +92,13 @@ type SaleInvoiceRow = {
   id: string;
   listing_id: string;
   seller_id: string;
+  sale_source: ListingSaleSource;
+  sale_source_other: string | null;
   final_sale_amount: number;
   commission_rate_percent: number;
   commission_amount: number;
+  buyer_name: string | null;
+  buyer_phone: string | null;
   payment_status: ListingSalePaymentStatus;
   payment_method: string | null;
   payment_date: string | null;
@@ -112,7 +129,7 @@ type SaleInvoiceRow = {
 const LISTING_SELECT_WITH_OWNER_PHONE = "id,owner_id,owner_phone,offer_type,category_slug,title,description,price,status,image_url,location_name,latitude,longitude,created_at,updated_at";
 const LISTING_SELECT_LEGACY = "id,owner_id,title,description,price,status,image_url,created_at,updated_at";
 const SALE_PAYMENT_SELECT =
-  "id,listing_id,seller_id,final_sale_amount,commission_rate_percent,commission_amount,payment_status,payment_method,payment_date,invoice_number,transaction_reference,failure_reason,refund_reason,refunded_at,created_at,updated_at";
+  "id,listing_id,seller_id,sale_source,sale_source_other,final_sale_amount,commission_rate_percent,commission_amount,buyer_name,buyer_phone,payment_status,payment_method,payment_date,invoice_number,transaction_reference,failure_reason,refund_reason,refunded_at,created_at,updated_at";
 
 function isMissingListingsColumnError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
@@ -152,9 +169,13 @@ function mapSalePaymentRow(row: SalePaymentRow): ListingSalePayment {
     id: row.id,
     listingId: row.listing_id,
     sellerId: row.seller_id,
+    saleSource: row.sale_source,
+    saleSourceOther: row.sale_source_other ?? null,
     finalSaleAmount: Number(row.final_sale_amount ?? 0),
     commissionRatePercent: Number(row.commission_rate_percent ?? 0),
     commissionAmount: Number(row.commission_amount ?? 0),
+    buyerName: row.buyer_name ?? null,
+    buyerPhone: row.buyer_phone ?? null,
     paymentStatus: row.payment_status,
     paymentMethod: row.payment_method ?? null,
     paymentDate: row.payment_date ?? null,
@@ -577,7 +598,11 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
     async prepareSalePayment(input) {
       const { data, error } = await client.rpc("prepare_listing_sale_payment", {
         p_listing_id: input.listingId,
-        p_final_sale_amount: input.finalSaleAmount
+        p_final_sale_amount: input.finalSaleAmount,
+        p_sale_source: input.saleSource,
+        p_sale_source_other: input.saleSourceOther ?? null,
+        p_buyer_name: input.buyerName ?? null,
+        p_buyer_phone: input.buyerPhone ?? null
       });
 
       if (error) {

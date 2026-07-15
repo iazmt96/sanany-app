@@ -64,6 +64,9 @@ function buildInvoiceDocument(invoice: ListingSaleInvoice, language: string, t: 
         <div class="item"><div class="label">${t("myAds.saleFlow.commissionAmount")}</div><div class="value">${formatCurrencySar(invoice.payment.commissionAmount, language)}</div></div>
         <div class="item"><div class="label">${t("myAds.saleFlow.heading")}</div><div class="value">${invoice.listingTitle}</div></div>
         <div class="item"><div class="label">${t("admin.commissionPayments.columns.seller")}</div><div class="value">${invoice.sellerDisplayName}</div></div>
+        <div class="item"><div class="label">${t("myAds.saleFlow.saleSourceLabel")}</div><div class="value">${t(`myAds.saleFlow.saleSources.${invoice.payment.saleSource}`)}</div></div>
+        <div class="item"><div class="label">${t("myAds.saleFlow.buyerNameLabel")}</div><div class="value">${invoice.payment.buyerName ?? "-"}</div></div>
+        <div class="item"><div class="label">${t("myAds.saleFlow.buyerPhoneLabel")}</div><div class="value">${invoice.payment.buyerPhone ?? "-"}</div></div>
       </div>
     </div>
   </body>
@@ -84,6 +87,10 @@ export function MyAdsSaleCompletion({
   const { t } = useTranslation();
   const repository = useMemo(() => getWebListingsRepository(), []);
   const [amount, setAmount] = useState("");
+  const [saleSource, setSaleSource] = useState<"sanany_chat" | "outside_sanany" | "cancelled" | "other">("outside_sanany");
+  const [saleSourceOther, setSaleSourceOther] = useState("");
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [uiState, setUiState] = useState<SaleUiState>("idle");
@@ -97,6 +104,10 @@ export function MyAdsSaleCompletion({
     }
 
     setAmount(preview?.amount ?? String(Math.max(1, payment?.finalSaleAmount ?? listing.price ?? 0)));
+    setSaleSource(payment?.saleSource ?? "outside_sanany");
+    setSaleSourceOther(payment?.saleSourceOther ?? "");
+    setBuyerName(payment?.buyerName ?? "");
+    setBuyerPhone(payment?.buyerPhone ?? "");
     setIsConfirmed(preview?.isConfirmed ?? false);
     setIsWorking(false);
     setUiState(preview?.uiState ?? (payment?.paymentStatus === "paid" ? "success" : "idle"));
@@ -134,7 +145,11 @@ export function MyAdsSaleCompletion({
     const nextPayment = await repository.prepareSalePayment({
       listingId: listing.id,
       sellerId,
-      finalSaleAmount: calculation.finalSaleAmount
+      finalSaleAmount: calculation.finalSaleAmount,
+      saleSource,
+      saleSourceOther: saleSourceOther.trim() || null,
+      buyerName: buyerName.trim() || null,
+      buyerPhone: buyerPhone.trim() || null
     });
     onPaymentUpdated(nextPayment);
     return nextPayment;
@@ -159,6 +174,10 @@ export function MyAdsSaleCompletion({
       setErrorMessage(t("myAds.saleFlow.confirmationRequired"));
       return;
     }
+    if (saleSource === "other" && !saleSourceOther.trim()) {
+      setErrorMessage(t("myAds.saleFlow.missingOtherSaleSource"));
+      return;
+    }
 
     setIsWorking(true);
     setErrorMessage(null);
@@ -169,13 +188,17 @@ export function MyAdsSaleCompletion({
       const result = await repository.finalizeSalePayment({
         listingId: listing.id,
         sellerId,
-        outcome: "paid",
+        outcome: saleSource === "cancelled" ? "cancelled" : "paid",
         paymentMethod: DEFAULT_MARKETPLACE_PAYMENT_METHOD
       });
       onPaymentUpdated(result);
-      const nextInvoice = await repository.getSaleInvoice(listing.id, sellerId);
-      setInvoice(nextInvoice);
-      setUiState("success");
+      if (saleSource === "cancelled") {
+        setUiState("cancelled");
+      } else {
+        const nextInvoice = await repository.getSaleInvoice(listing.id, sellerId);
+        setInvoice(nextInvoice);
+        setUiState("success");
+      }
     } catch (error) {
       setUiState("failed");
       setErrorMessage(error instanceof Error ? error.message : t("marketplace.loadError"));
@@ -274,13 +297,44 @@ export function MyAdsSaleCompletion({
         <div className="space-y-5 px-5 py-5">
           <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-4 md:flex-row">
             <div className="h-28 w-full overflow-hidden rounded-2xl bg-slate-100 md:w-40">
-              {primaryImage ? <img src={primaryImage} alt={listing.title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-slate-400">SANANY</div>}
+              {primaryImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={primaryImage} alt={listing.title} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-slate-400">SANANY</div>
+              )}
             </div>
             <div className="flex-1 space-y-2">
               <p className="text-sm text-slate-500">{t("myAds.saleFlow.listedPrice")}</p>
               <h3 className="text-lg font-semibold text-slate-900">{listing.title}</h3>
               <p className="text-base font-bold text-brand">{formatCurrencySar(listing.price, language)}</p>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <p className="text-sm font-semibold text-slate-900">{t("myAds.saleFlow.saleSourceLabel")}</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {(["sanany_chat", "outside_sanany", "cancelled", "other"] as const).map((source) => (
+                <button
+                  key={source}
+                  type="button"
+                  onClick={() => setSaleSource(source)}
+                  className={`rounded-xl border px-3 py-2 text-sm ${
+                    saleSource === source ? "border-brand bg-brand/10 text-brand" : "border-slate-300 bg-white text-slate-700"
+                  }`}
+                >
+                  {t(`myAds.saleFlow.saleSources.${source}`)}
+                </button>
+              ))}
+            </div>
+            {saleSource === "other" ? (
+              <input
+                value={saleSourceOther}
+                onChange={(event) => setSaleSourceOther(event.target.value)}
+                placeholder={t("myAds.saleFlow.otherSaleSourcePlaceholder")}
+                className="mt-3 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-brand/20 focus:border-brand focus:ring"
+              />
+            ) : null}
           </div>
 
           <label className="space-y-2">
@@ -294,6 +348,28 @@ export function MyAdsSaleCompletion({
             />
             <p className="text-xs text-slate-500">{t("myAds.saleFlow.amountHelper")}</p>
           </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-slate-800">{t("myAds.saleFlow.buyerNameLabel")}</span>
+              <input
+                value={buyerName}
+                onChange={(event) => setBuyerName(event.target.value)}
+                placeholder={t("myAds.saleFlow.buyerNamePlaceholder")}
+                className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-brand/20 focus:border-brand focus:ring"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-slate-800">{t("myAds.saleFlow.buyerPhoneLabel")}</span>
+              <input
+                value={buyerPhone}
+                onChange={(event) => setBuyerPhone(event.target.value)}
+                inputMode="tel"
+                placeholder={t("myAds.saleFlow.buyerPhonePlaceholder")}
+                className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-brand/20 focus:border-brand focus:ring"
+              />
+            </label>
+          </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-900">{t("myAds.saleFlow.calculationTitle")}</p>
@@ -314,6 +390,10 @@ export function MyAdsSaleCompletion({
                 <p className="text-xs text-slate-500">{t("myAds.saleFlow.totalToPay")}</p>
                 <p className="text-base font-semibold text-slate-900">{formatCurrencySar(calculation.totalToPayNow, language)}</p>
               </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs text-slate-500">{t("myAds.saleFlow.youWillReceive")}</p>
+                <p className="text-base font-semibold text-emerald-700">{formatCurrencySar(calculation.sellerNetAmount, language)}</p>
+              </div>
             </div>
           </div>
 
@@ -327,6 +407,31 @@ export function MyAdsSaleCompletion({
           {uiState === "cancelled" ? <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{t("myAds.saleFlow.cancelledHint")}</div> : null}
           {uiState === "success" ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{t("myAds.saleFlow.successBanner")}</div> : null}
           {errorMessage && uiState === "idle" ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage}</div> : null}
+
+          {uiState === "success" && invoice ? (
+            <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-base font-bold text-emerald-900">{t("myAds.saleFlow.saleCompletedTitle")}</p>
+              <ul className="list-inside list-disc space-y-1 text-sm text-emerald-900">
+                <li>{t("myAds.saleFlow.saleCompletedPoints.markedSold")}</li>
+                <li>{t("myAds.saleFlow.saleCompletedPoints.commissionPaid")}</li>
+                <li>{t("myAds.saleFlow.saleCompletedPoints.invoiceGenerated")}</li>
+              </ul>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => void shareInvoice()} className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800">
+                  {t("myAds.saleFlow.invoiceView")}
+                </button>
+                <button type="button" onClick={() => void downloadInvoice()} className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800">
+                  {t("myAds.saleFlow.invoiceDownload")}
+                </button>
+                <button type="button" onClick={() => void shareInvoice()} className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800">
+                  {t("myAds.saleFlow.invoiceSharePdf")}
+                </button>
+                <button type="button" onClick={onClose} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
+                  {t("myAds.saleFlow.returnToSalesHistory")}
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {invoice ? (
             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -371,7 +476,7 @@ export function MyAdsSaleCompletion({
             {t("common.cancel")}
           </button>
           <button type="button" onClick={() => void onPay()} disabled={Boolean(preview) || isWorking || uiState === "success"} className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
-            {isWorking ? t("myAds.saleFlow.preparing") : t("myAds.saleFlow.payButton")}
+            {isWorking ? t("myAds.saleFlow.preparing") : saleSource === "cancelled" ? t("myAds.saleFlow.saveCancellation") : t("myAds.saleFlow.payButton")}
           </button>
         </div>
       </div>

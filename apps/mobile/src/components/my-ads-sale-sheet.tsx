@@ -35,7 +35,10 @@ function buildInvoiceText(invoice: ListingSaleInvoice, language: string, t: Retu
     `${t("myAds.saleFlow.transactionReference")}: ${invoice.payment.transactionReference ?? "-"}`,
     `${t("myAds.saleFlow.amountLabel")}: ${formatCurrencySar(invoice.payment.finalSaleAmount, language)}`,
     `${t("myAds.saleFlow.commissionRate")}: ${invoice.payment.commissionRatePercent}%`,
-    `${t("myAds.saleFlow.commissionAmount")}: ${formatCurrencySar(invoice.payment.commissionAmount, language)}`
+    `${t("myAds.saleFlow.commissionAmount")}: ${formatCurrencySar(invoice.payment.commissionAmount, language)}`,
+    `${t("myAds.saleFlow.saleSourceLabel")}: ${t(`myAds.saleFlow.saleSources.${invoice.payment.saleSource}`)}`,
+    `${t("myAds.saleFlow.buyerNameLabel")}: ${invoice.payment.buyerName ?? "-"}`,
+    `${t("myAds.saleFlow.buyerPhoneLabel")}: ${invoice.payment.buyerPhone ?? "-"}`
   ].join("\n");
 }
 
@@ -54,6 +57,10 @@ export function MyAdsSaleSheet({
   const { t } = useTranslation();
   const repository = useMemo(() => getMobileListingsRepository(), []);
   const [amount, setAmount] = useState("");
+  const [saleSource, setSaleSource] = useState<"sanany_chat" | "outside_sanany" | "cancelled" | "other">("outside_sanany");
+  const [saleSourceOther, setSaleSourceOther] = useState("");
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [uiState, setUiState] = useState<SaleUiState>("idle");
@@ -66,6 +73,10 @@ export function MyAdsSaleSheet({
       return;
     }
     setAmount(preview?.amount ?? String(Math.max(1, payment?.finalSaleAmount ?? listing.price ?? 0)));
+    setSaleSource(payment?.saleSource ?? "outside_sanany");
+    setSaleSourceOther(payment?.saleSourceOther ?? "");
+    setBuyerName(payment?.buyerName ?? "");
+    setBuyerPhone(payment?.buyerPhone ?? "");
     setIsConfirmed(preview?.isConfirmed ?? false);
     setUiState(preview?.uiState ?? (payment?.paymentStatus === "paid" ? "success" : "idle"));
     setIsWorking(false);
@@ -103,7 +114,11 @@ export function MyAdsSaleSheet({
     const nextPayment = await repository.prepareSalePayment({
       listingId: listing.id,
       sellerId,
-      finalSaleAmount: calculation.finalSaleAmount
+      finalSaleAmount: calculation.finalSaleAmount,
+      saleSource,
+      saleSourceOther: saleSourceOther.trim() || null,
+      buyerName: buyerName.trim() || null,
+      buyerPhone: buyerPhone.trim() || null
     });
     onPaymentUpdated(nextPayment);
     return nextPayment;
@@ -128,6 +143,10 @@ export function MyAdsSaleSheet({
       setErrorMessage(t("myAds.saleFlow.confirmationRequired"));
       return;
     }
+    if (saleSource === "other" && !saleSourceOther.trim()) {
+      setErrorMessage(t("myAds.saleFlow.missingOtherSaleSource"));
+      return;
+    }
 
     setIsWorking(true);
     setUiState("pending");
@@ -138,13 +157,17 @@ export function MyAdsSaleSheet({
       const nextPayment = await repository.finalizeSalePayment({
         listingId: listing.id,
         sellerId,
-        outcome: "paid",
+        outcome: saleSource === "cancelled" ? "cancelled" : "paid",
         paymentMethod: DEFAULT_MARKETPLACE_PAYMENT_METHOD
       });
       onPaymentUpdated(nextPayment);
-      const nextInvoice = await repository.getSaleInvoice(listing.id, sellerId);
-      setInvoice(nextInvoice);
-      setUiState("success");
+      if (saleSource === "cancelled") {
+        setUiState("cancelled");
+      } else {
+        const nextInvoice = await repository.getSaleInvoice(listing.id, sellerId);
+        setInvoice(nextInvoice);
+        setUiState("success");
+      }
     } catch (error) {
       setUiState("failed");
       setErrorMessage(error instanceof Error ? error.message : t("marketplace.loadError"));
@@ -230,6 +253,31 @@ export function MyAdsSaleSheet({
                 </View>
 
                 <View style={styles.fieldBlock}>
+                  <Text style={[styles.fieldLabel, { textAlign: isRtl ? "right" : "left" }]}>{t("myAds.saleFlow.saleSourceLabel")}</Text>
+                  <View style={[styles.saleSourceGrid, isRtl ? styles.headerRtl : undefined]}>
+                    {(["sanany_chat", "outside_sanany", "cancelled", "other"] as const).map((source) => (
+                      <Pressable
+                        key={source}
+                        style={[styles.saleSourceButton, saleSource === source ? styles.saleSourceButtonActive : undefined]}
+                        onPress={() => setSaleSource(source)}
+                      >
+                        <Text style={[styles.saleSourceLabel, saleSource === source ? styles.saleSourceLabelActive : undefined]}>
+                          {t(`myAds.saleFlow.saleSources.${source}`)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {saleSource === "other" ? (
+                    <TextInput
+                      value={saleSourceOther}
+                      onChangeText={setSaleSourceOther}
+                      placeholder={t("myAds.saleFlow.otherSaleSourcePlaceholder")}
+                      style={[styles.input, { textAlign: isRtl ? "right" : "left" }]}
+                    />
+                  ) : null}
+                </View>
+
+                <View style={styles.fieldBlock}>
                   <Text style={[styles.fieldLabel, { textAlign: isRtl ? "right" : "left" }]}>{t("myAds.saleFlow.amountLabel")}</Text>
                   <TextInput
                     value={amount}
@@ -239,6 +287,20 @@ export function MyAdsSaleSheet({
                     style={[styles.input, { textAlign: isRtl ? "right" : "left" }]}
                   />
                   <Text style={[styles.helperText, { textAlign: isRtl ? "right" : "left" }]}>{t("myAds.saleFlow.amountHelper")}</Text>
+                </View>
+                <View style={styles.fieldBlock}>
+                  <Text style={[styles.fieldLabel, { textAlign: isRtl ? "right" : "left" }]}>{t("myAds.saleFlow.buyerNameLabel")}</Text>
+                  <TextInput value={buyerName} onChangeText={setBuyerName} placeholder={t("myAds.saleFlow.buyerNamePlaceholder")} style={[styles.input, { textAlign: isRtl ? "right" : "left" }]} />
+                </View>
+                <View style={styles.fieldBlock}>
+                  <Text style={[styles.fieldLabel, { textAlign: isRtl ? "right" : "left" }]}>{t("myAds.saleFlow.buyerPhoneLabel")}</Text>
+                  <TextInput
+                    value={buyerPhone}
+                    onChangeText={setBuyerPhone}
+                    placeholder={t("myAds.saleFlow.buyerPhonePlaceholder")}
+                    keyboardType="phone-pad"
+                    style={[styles.input, { textAlign: isRtl ? "right" : "left" }]}
+                  />
                 </View>
 
                 <View style={styles.summaryGrid}>
@@ -257,6 +319,10 @@ export function MyAdsSaleSheet({
                   <View style={styles.metricCard}>
                     <Text style={styles.metricLabel}>{t("myAds.saleFlow.totalToPay")}</Text>
                     <Text style={styles.metricValue}>{formatCurrencySar(calculation.totalToPayNow, language)}</Text>
+                  </View>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricLabel}>{t("myAds.saleFlow.youWillReceive")}</Text>
+                    <Text style={styles.metricValue}>{formatCurrencySar(calculation.sellerNetAmount, language)}</Text>
                   </View>
                 </View>
 
@@ -308,7 +374,7 @@ export function MyAdsSaleSheet({
               onPress={() => void completePayment()}
               disabled={Boolean(preview) || isWorking || uiState === "success"}
             >
-              <Text style={styles.primaryLabel}>{isWorking ? t("myAds.saleFlow.preparing") : t("myAds.saleFlow.payButton")}</Text>
+              <Text style={styles.primaryLabel}>{isWorking ? t("myAds.saleFlow.preparing") : saleSource === "cancelled" ? t("myAds.saleFlow.saveCancellation") : t("myAds.saleFlow.payButton")}</Text>
             </Pressable>
           </View>
         </View>
@@ -396,6 +462,31 @@ const styles = StyleSheet.create({
   },
   fieldBlock: {
     gap: 8
+  },
+  saleSourceGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  saleSourceButton: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  saleSourceButtonActive: {
+    borderColor: "#0f766e",
+    backgroundColor: "#ecfdf5"
+  },
+  saleSourceLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#475569"
+  },
+  saleSourceLabelActive: {
+    color: "#0f766e"
   },
   fieldLabel: {
     fontSize: 13,

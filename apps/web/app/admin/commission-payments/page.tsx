@@ -117,6 +117,30 @@ export default async function AdminCommissionPaymentsPage({ searchParams }: Admi
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <div className="rounded-xl border border-slate-200 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {dictionary.admin.commissionPayments.analytics.todayRevenue}
+              </p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencySar(data.analytics.revenueToday, language)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {dictionary.admin.commissionPayments.analytics.weekRevenue}
+              </p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencySar(data.analytics.revenueWeek, language)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {dictionary.admin.commissionPayments.analytics.monthRevenue}
+              </p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencySar(data.analytics.revenueMonth, language)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {dictionary.admin.commissionPayments.analytics.yearRevenue}
+              </p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencySar(data.analytics.revenueYear, language)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {dictionary.admin.commissionPayments.analytics.totalRevenue}
               </p>
               <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencySar(data.analytics.totalRevenue, language)}</p>
@@ -150,6 +174,35 @@ export default async function AdminCommissionPaymentsPage({ searchParams }: Admi
                 {dictionary.admin.commissionPayments.analytics.cancelled}
               </p>
               <p className="mt-2 text-2xl font-bold text-slate-900">{data.analytics.cancelledCount.toLocaleString(language)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {dictionary.admin.commissionPayments.analytics.averageSaleAmount}
+              </p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencySar(data.analytics.averageSaleAmount, language)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {dictionary.admin.commissionPayments.analytics.averageCommissionAmount}
+              </p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrencySar(data.analytics.averageCommissionAmount, language)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {dictionary.admin.commissionPayments.analytics.averageSellingTime}
+              </p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">
+                {data.analytics.averageSellingHours === null
+                  ? "—"
+                  : dictionary.admin.commissionPayments.analytics.hours
+                      .replace("{{value}}", data.analytics.averageSellingHours.toFixed(1))}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {dictionary.admin.commissionPayments.analytics.conversionRate}
+              </p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{data.analytics.conversionRatePublishedToSold.toFixed(1)}%</p>
             </div>
           </div>
         </div>
@@ -205,12 +258,53 @@ export default async function AdminCommissionPaymentsPage({ searchParams }: Admi
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="grid gap-3 border-b border-slate-200 bg-slate-50 p-4 md:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-white p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {dictionary.admin.commissionPayments.analytics.highestCommission}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-slate-900">
+              {data.analytics.highestCommission?.listingTitle ?? "—"}
+            </p>
+            <p className="text-xs text-slate-600">
+              {data.analytics.highestCommission
+                ? formatCurrencySar(data.analytics.highestCommission.commissionAmount, language)
+                : "—"}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {dictionary.admin.commissionPayments.analytics.topSellers}
+            </p>
+            <div className="mt-2 space-y-1 text-xs text-slate-700">
+              {data.analytics.topSellers.length > 0 ? data.analytics.topSellers.map((seller) => (
+                <p key={seller.sellerId}>
+                  {seller.sellerName} — {formatCurrencySar(seller.totalCommission, language)}
+                </p>
+              )) : <p>—</p>}
+            </div>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {dictionary.admin.commissionPayments.analytics.topCategories}
+            </p>
+            <div className="mt-2 space-y-1 text-xs text-slate-700">
+              {data.analytics.topCategories.length > 0 ? data.analytics.topCategories.map((category) => (
+                <p key={category.categorySlug}>
+                  {category.categorySlug} — {category.soldCount.toLocaleString(language)}
+                </p>
+              )) : <p>—</p>}
+            </div>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-start">{dictionary.admin.commissionPayments.columns.listing}</th>
                 <th className="px-3 py-2 text-start">{dictionary.admin.commissionPayments.columns.seller}</th>
+                <th className="px-3 py-2 text-start">{dictionary.admin.commissionPayments.columns.saleSource}</th>
+                <th className="px-3 py-2 text-start">{dictionary.admin.commissionPayments.columns.buyer}</th>
                 <th className="px-3 py-2 text-start">{dictionary.admin.commissionPayments.columns.saleAmount}</th>
                 <th className="px-3 py-2 text-start">{dictionary.admin.commissionPayments.columns.rate}</th>
                 <th className="px-3 py-2 text-start">{dictionary.admin.commissionPayments.columns.commission}</th>
@@ -235,6 +329,22 @@ export default async function AdminCommissionPaymentsPage({ searchParams }: Admi
                       <p className="font-medium text-slate-900">{row.sellerDisplayName}</p>
                       <p className="text-xs text-slate-500">{row.sellerUsername ?? row.sellerId}</p>
                     </div>
+                  </td>
+                  <td className="px-3 py-3 text-slate-700">
+                    {dictionary.myAds.saleFlow.saleSources[row.saleSource]}
+                    {row.saleSource === "other" && row.saleSourceOther ? (
+                      <p className="text-xs text-slate-500">{row.saleSourceOther}</p>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-3 text-slate-700">
+                    {row.buyerName || row.buyerPhone ? (
+                      <div className="space-y-1">
+                        <p>{row.buyerName ?? "—"}</p>
+                        <p className="text-xs text-slate-500">{row.buyerPhone ?? "—"}</p>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className="px-3 py-3 text-slate-700">{formatCurrencySar(row.finalSaleAmount, language)}</td>
                   <td className="px-3 py-3 text-slate-700">{row.commissionRatePercent}%</td>

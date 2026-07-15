@@ -16,7 +16,8 @@ test("calculates 1 percent commission and payable total", () => {
     finalSaleAmount: 50000,
     commissionRatePercent: 1,
     commissionAmount: 500,
-    totalToPayNow: 500
+    totalToPayNow: 500,
+    sellerNetAmount: 49500
   });
 });
 
@@ -48,9 +49,13 @@ test("hides sale completion action after a paid commission payment exists", () =
         id: "payment-1",
         listingId: "listing-paid",
         sellerId: "seller-1",
+        saleSource: "outside_sanany",
+        saleSourceOther: null,
         finalSaleAmount: 118000,
         commissionRatePercent: 1,
         commissionAmount: 1180,
+        buyerName: null,
+        buyerPhone: null,
         paymentStatus: "paid",
         paymentMethod: "digital_checkout",
         paymentDate: new Date().toISOString(),
