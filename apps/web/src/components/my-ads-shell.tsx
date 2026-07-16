@@ -535,7 +535,12 @@ export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
       setCarCondition(draft.carCondition);
       setCarFuelType(draft.carFuelType);
       setCarPriceMode(draft.carPriceMode);
-      setSelectedImages(draft.selectedImages);
+      // Restore images but reset failed ones so user can retry
+      setSelectedImages(
+        (draft.selectedImages ?? []).map((img) =>
+          img.status === "failed" ? { ...img, status: "pending", error: undefined, progress: 0 } : img
+        )
+      );
       setIsAgreementAccepted(draft.isAgreementAccepted);
       setPendingSyncOperations(Array.isArray(draft.pendingSyncOperations) ? draft.pendingSyncOperations : []);
       setLastSyncedRemoteAt(draft.lastSyncedRemoteAt ?? null);
