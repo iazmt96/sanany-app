@@ -46,7 +46,15 @@ export async function updateSession(request: NextRequest) {
         response = NextResponse.next({
           request
         });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, {
+            ...options,
+            // Keep auth cookies for 7 days (matches refresh token lifetime).
+            // Without this the cookie expires with the access token (1 hour),
+            // requiring re-login on every inactive session over an hour.
+            maxAge: 60 * 60 * 24 * 7
+          })
+        );
       }
     }
   });

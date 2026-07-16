@@ -11,5 +11,14 @@ if (!supabaseKey) {
   throw new Error("Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY)");
 }
 
-export const createClient = () => createBrowserClient(supabaseUrl, supabaseKey);
+const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+export const createClient = () =>
+  createBrowserClient(supabaseUrl, supabaseKey, {
+    cookieOptions: {
+      maxAge: AUTH_COOKIE_MAX_AGE,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production"
+    }
+  });
 
