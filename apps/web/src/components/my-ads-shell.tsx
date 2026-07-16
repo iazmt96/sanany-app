@@ -41,7 +41,6 @@ import {
   hasPendingListingImageUploads,
   isListingActiveForSaleCompletion,
   isSectionBackedByMobileStatus,
-  LISTING_IMAGES_BUCKET,
   LISTING_MANAGEMENT_SECTIONS,
   markListingImageForRetry,
   matchesListingManagementSection,
@@ -182,14 +181,6 @@ function normalizeImages(items: SelectedImage[]): SelectedImage[] {
 
 function updateSelectedImageState(items: SelectedImage[], localId: string, patch: Partial<SelectedImage>): SelectedImage[] {
   return normalizeImages(items.map((item) => (item.localId === localId ? { ...item, ...patch } : item)));
-}
-
-function isStorageRlsError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-  const message = error.message.toLowerCase();
-  return message.includes("row-level security policy");
 }
 
 function parseImageFilesToDataUrls(files: File[]): Promise<Array<{ uri: string; fileSize: number; mimeType: string }>> {
@@ -614,22 +605,29 @@ export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
         nextItems = updateSelectedImageState(nextItems, item.localId, { status: "uploading", progress: 55, storagePath });
         setSelectedImages(nextItems);
 
-        const uploadResult = await client.storage.from(LISTING_IMAGES_BUCKET).upload(storagePath, compressed.blob, {
-          upsert: true,
-          contentType: compressed.mimeType,
-          cacheControl: "3600"
+        // Upload via server-side API route (bypasses storage RLS)
+        const formData = new FormData();
+        formData.append("file", compressed.blob, `image.${compressed.mimeType.split("/")[1] ?? "jpg"}`);
+        formData.append("storagePath", storagePath);
+
+        const uploadResponse = await fetch("/api/listings/upload-image", {
+          method: "POST",
+          body: formData
         });
-        if (uploadResult.error) {
-          throw uploadResult.error;
+
+        if (!uploadResponse.ok) {
+          const errBody = await uploadResponse.json().catch(() => ({ error: "Upload failed" }));
+          throw new Error(errBody.error ?? "Upload failed");
         }
 
-        const { data } = client.storage.from(LISTING_IMAGES_BUCKET).getPublicUrl(storagePath);
+        const uploadResult = await uploadResponse.json() as { publicUrl: string; storagePath: string };
+
         nextItems = updateSelectedImageState(nextItems, item.localId, {
           status: "uploaded",
           progress: 100,
-          storagePath,
-          publicUrl: data.publicUrl,
-          previewUri: data.publicUrl,
+          storagePath: uploadResult.storagePath,
+          publicUrl: uploadResult.publicUrl,
+          previewUri: uploadResult.publicUrl,
           width: compressed.width,
           height: compressed.height,
           fileSize: compressed.blob.size,
@@ -638,9 +636,7 @@ export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
         });
         setSelectedImages(nextItems);
       } catch (error) {
-        const message = isStorageRlsError(error)
-          ? t("marketplace.create.images.storagePolicyMissing")
-          : error instanceof Error
+        const message = error instanceof Error
             ? error.message
             : t("marketplace.create.images.imagePickFailed");
         nextItems = updateSelectedImageState(nextItems, item.localId, {
