@@ -1233,6 +1233,60 @@
         saveFailed: "تعذر حفظ التعديلات الآن."
       }
     },
+    dashboard: {
+      editPageSubtitle: "حدّث بيانات حسابك العامة وهوية البائع.",
+      futureReady: "قريبًا",
+      header: {
+        editAriaLabel: "تعديل الملف الشخصي",
+        bioFallback: "لا توجد نبذة مضافة حتى الآن.",
+        location: "الموقع: {{value}}",
+        trustScorePending: "مؤشر الثقة: قريبًا",
+        trustScoreValue: "مؤشر الثقة: {{value}}%"
+      },
+      statsTitle: "إحصائيات الملف",
+      stats: {
+        activeAds: "الإعلانات النشطة",
+        soldAds: "الإعلانات المباعة",
+        drafts: "المسودات",
+        favorites: "المفضلة",
+        profileViews: "زيارات الملف",
+        trustScore: "مؤشر الثقة"
+      },
+      quickActions: {
+        title: "إجراءات سريعة",
+        items: {
+          myAds: "إعلاناتي",
+          soldAds: "المباعة",
+          drafts: "المسودات",
+          commission: "العمولات والفواتير",
+          savedSearches: "البحثات المحفوظة",
+          verification: "توثيق الحساب",
+          settings: "الإعدادات"
+        }
+      },
+      ads: {
+        title: "إعلاناتي",
+        subtitle: "إدارة أداء أحدث إعلاناتك.",
+        emptyTitle: "لا يوجد لديك أي إعلانات حتى الآن.",
+        addAction: "+ أضف إعلانًا",
+        card: {
+          published: "تاريخ النشر: {{value}}",
+          views: "المشاهدات",
+          favorites: "المفضلة",
+          chats: "المحادثات",
+          status: "الحالة",
+          metricUnavailable: "—"
+        }
+      },
+      avatarEditor: {
+        title: "معاينة تعديل الصورة",
+        zoom: "التكبير",
+        positionX: "الموضع الأفقي",
+        positionY: "الموضع العمودي",
+        apply: "تطبيق الصورة",
+        reset: "إعادة ضبط"
+      }
+    },
     more: {
       myAdsSection: "إعلاناتي",
       myAdsActive: "الإعلانات النشطة",

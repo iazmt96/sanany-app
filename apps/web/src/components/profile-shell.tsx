@@ -1,114 +1,81 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { createAccountRepository } from "@sanany/api";
-import type { AccountVerificationRequest, MarketplaceListing, PaginatedResult, SellerProfile } from "@sanany/types";
-import {
-  FAVORITES_STORAGE_KEY,
-  getProfileCompletionPercentage,
-  parseStoredIdList,
-  parseNotificationPreferences,
-  PROFILE_LISTING_VIEWS,
-  serializeNotificationPreferences,
-  toListingStatusFilterForProfileView,
-  type NotificationPreferences,
-  type ProfileListingView
-} from "@sanany/shared";
+import type { MarketplaceListing, PaginatedResult, SellerProfile } from "@sanany/types";
+import { FAVORITES_STORAGE_KEY, getPrimaryListingImageUrl, parseStoredIdList } from "@sanany/shared";
 import { Card } from "@sanany/ui";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { RequireAuth } from "../auth/guards";
 import { getWebListingsRepository } from "../lib/listings-repository";
 import { getWebSellersRepository } from "../lib/sellers-repository";
-import { getWebSupabaseClient } from "../lib/supabase-client";
-import { ListingCard } from "./listing-card";
 
 type ProfileShellProps = {
   language: string;
-};
-
-type ProfileSectionId =
-  | "overview"
-  | ProfileListingView
-  | "settings-account"
-  | "settings-company"
-  | "settings-privacy"
-  | "settings-notifications"
-  | "settings-language"
-  | "settings-password"
-  | "settings-blocked"
-  | "settings-verification"
-  | "settings-delete";
-
-type ProfileFormState = {
-  displayName: string;
-  bio: string;
-  city: string;
-  phone: string;
-  birthDate: string;
-  gender: string;
-  preferredContactMethod: string;
 };
 
 type ProfileStatsState = {
   active: number;
   drafts: number;
   sold: number;
-  expired: number;
   favorites: number;
 };
 
-const LISTING_PAGE_SIZE = 12;
-const NOTIFICATION_SETTINGS_KEY = "sanany.notification.preferences";
+const LISTING_PAGE_SIZE = 9;
 
-function getInitialForm(profile: SellerProfile | null): ProfileFormState {
-  return {
-    displayName: profile?.displayName ?? "",
-    bio: profile?.bio ?? "",
-    city: profile?.city ?? "",
-    phone: profile?.phone ?? "",
-    birthDate: "",
-    gender: "",
-    preferredContactMethod: ""
-  };
+function formatMemberSince(value: string, language: string): string {
+  try {
+    return new Date(value).toLocaleDateString(language === "ar" ? "ar-SA" : "en-US", {
+      year: "numeric",
+      month: "long"
+    });
+  } catch {
+    return value;
+  }
 }
 
-function updateLanguagePath(pathname: string, nextLanguage: string): string {
-  const segments = pathname.split("/");
-  if (segments.length > 1) {
-    segments[1] = nextLanguage;
+function formatPublishedDate(value: string, language: string): string {
+  try {
+    return new Date(value).toLocaleDateString(language === "ar" ? "ar-SA" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+  } catch {
+    return value;
   }
-  return segments.join("/") || `/${nextLanguage}`;
+}
+
+function VerifiedBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor">
+        <path d="M10 1.75a1 1 0 0 1 .64.23l1.66 1.39 2.12.18a1 1 0 0 1 .84.6l.82 1.97 1.72 1.27a1 1 0 0 1 .37 1.02l-.56 2.05.56 2.05a1 1 0 0 1-.37 1.02l-1.72 1.27-.82 1.97a1 1 0 0 1-.84.6l-2.12.18-1.66 1.39a1 1 0 0 1-1.28 0l-1.66-1.39-2.12-.18a1 1 0 0 1-.84-.6l-.82-1.97-1.72-1.27a1 1 0 0 1-.37-1.02l.56-2.05-.56-2.05a1 1 0 0 1 .37-1.02l1.72-1.27.82-1.97a1 1 0 0 1 .84-.6l2.12-.18 1.66-1.39A1 1 0 0 1 10 1.75Zm2.78 6.74a.75.75 0 0 0-1.06-1.06l-2.47 2.47-.97-.97a.75.75 0 0 0-1.06 1.06l1.5 1.5a.75.75 0 0 0 1.06 0l3-3Z" />
+      </svg>
+      {label}
+    </span>
+  );
 }
 
 export function ProfileShell({ language }: ProfileShellProps) {
-  const { t, i18n } = useTranslation();
-  const { accountProfile, refreshAccountProfile, requestPasswordReset, signOut, snapshot, updateOptionalProfile } = useAuth();
+  const { t } = useTranslation();
+  const { accountProfile, snapshot } = useAuth();
+  const searchParams = useSearchParams();
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
   const listingsRepository = useMemo(() => getWebListingsRepository(), []);
   const sellersRepository = useMemo(() => getWebSellersRepository(), []);
-  const accountRepository = useMemo(() => createAccountRepository(getWebSupabaseClient()), []);
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [section, setSection] = useState<ProfileSectionId>("overview");
   const [profile, setProfile] = useState<SellerProfile | null>(null);
-  const [profileForm, setProfileForm] = useState<ProfileFormState>(getInitialForm(null));
-  const [showPhone, setShowPhone] = useState(true);
-  const [showLastSeen, setShowLastSeen] = useState(false);
-  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(() =>
-    parseNotificationPreferences(null)
-  );
   const [stats, setStats] = useState<ProfileStatsState>({
     active: 0,
     drafts: 0,
     sold: 0,
-    expired: 0,
     favorites: 0
   });
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [listingsPage, setListingsPage] = useState(1);
   const [listingsData, setListingsData] = useState<PaginatedResult<MarketplaceListing>>({
     items: [],
@@ -117,72 +84,9 @@ export function ProfileShell({ language }: ProfileShellProps) {
     pageSize: LISTING_PAGE_SIZE,
     totalPages: 1
   });
-  const [favoritesData, setFavoritesData] = useState<MarketplaceListing[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [isLoadingSection, setIsLoadingSection] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingListings, setIsLoadingListings] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [verificationRequest, setVerificationRequest] = useState<AccountVerificationRequest | null>(null);
-  const [verificationForm, setVerificationForm] = useState({
-    legalFullName: "",
-    nationalId: "",
-    birthDate: "",
-    city: "",
-    email: "",
-    documentFrontUrl: "",
-    documentBackUrl: "",
-    selfieUrl: "",
-    businessName: "",
-    businessRegistration: ""
-  });
-
-  useEffect(() => {
-    const sectionParam = searchParams.get("section");
-    const validSections: ProfileSectionId[] = [
-      "overview",
-      ...PROFILE_LISTING_VIEWS,
-      "settings-account",
-      "settings-company",
-      "settings-privacy",
-      "settings-notifications",
-      "settings-language",
-      "settings-password",
-      "settings-blocked",
-      "settings-verification",
-      "settings-delete"
-    ];
-    if (sectionParam && validSections.includes(sectionParam as ProfileSectionId)) {
-      setSection(sectionParam as ProfileSectionId);
-      return;
-    }
-    setSection("overview");
-  }, [searchParams]);
-
-  useEffect(() => {
-    setListingsPage(1);
-  }, [section]);
-
-  useEffect(() => {
-    const raw = window.localStorage.getItem(NOTIFICATION_SETTINGS_KEY);
-    setNotificationPreferences(parseNotificationPreferences(raw));
-  }, []);
-
-  useEffect(() => {
-    if (!accountProfile) {
-      return;
-    }
-
-    setProfileForm({
-      displayName: accountProfile.displayName ?? "",
-      bio: accountProfile.bio ?? "",
-      city: accountProfile.city ?? "",
-      phone: accountProfile.phone ?? "",
-      birthDate: accountProfile.birthDate ?? "",
-      gender: accountProfile.gender ?? "",
-      preferredContactMethod: accountProfile.preferredContactMethod ?? ""
-    });
-  }, [accountProfile]);
 
   useEffect(() => {
     const userId = snapshot.user?.id;
@@ -195,29 +99,25 @@ export function ProfileShell({ language }: ProfileShellProps) {
     setErrorMessage(null);
 
     const load = async () => {
-      const favoriteIds = parseStoredIdList(window.localStorage.getItem(FAVORITES_STORAGE_KEY));
-      const [profileResult, activeResult, draftsResult, soldResult, expiredResult] = await Promise.all([
+      const parsedFavoriteIds = parseStoredIdList(window.localStorage.getItem(FAVORITES_STORAGE_KEY));
+      const [profileResult, activeResult, draftsResult, soldResult] = await Promise.all([
         sellersRepository.getProfile(userId, userId),
         listingsRepository.listByOwner(userId, { search: "", status: "available", sort: "newest", page: 1, pageSize: 1 }),
         listingsRepository.listByOwner(userId, { search: "", status: "draft", sort: "newest", page: 1, pageSize: 1 }),
-        listingsRepository.listByOwner(userId, { search: "", status: "reserved", sort: "newest", page: 1, pageSize: 1 }),
-        listingsRepository.listByOwner(userId, { search: "", status: "inactive", sort: "newest", page: 1, pageSize: 1 })
+        listingsRepository.listByOwner(userId, { search: "", status: "reserved", sort: "newest", page: 1, pageSize: 1 })
       ]);
 
       if (!active) {
         return;
       }
 
+      setFavoriteIds(parsedFavoriteIds);
       setProfile(profileResult);
-      setProfileForm(getInitialForm(profileResult));
-      setShowPhone(profileResult?.canShowPhone ?? true);
-      setShowLastSeen(profileResult?.canShowLastSeen ?? false);
       setStats({
         active: activeResult.totalItems,
         drafts: draftsResult.totalItems,
         sold: soldResult.totalItems,
-        expired: expiredResult.totalItems,
-        favorites: favoriteIds.length
+        favorites: parsedFavoriteIds.length
       });
     };
 
@@ -241,92 +141,26 @@ export function ProfileShell({ language }: ProfileShellProps) {
   useEffect(() => {
     const userId = snapshot.user?.id;
     if (!userId) {
-      setVerificationRequest(null);
       return;
     }
 
     let active = true;
-    void accountRepository
-      .getVerificationRequest(userId)
-      .then((request) => {
-        if (!active) {
-          return;
-        }
-        setVerificationRequest(request);
-        setVerificationForm({
-          legalFullName: request?.legalFullName ?? accountProfile?.displayName ?? "",
-          nationalId: request?.nationalId ?? "",
-          birthDate: request?.birthDate ?? accountProfile?.birthDate ?? "",
-          city: request?.city ?? accountProfile?.city ?? "",
-          email: request?.email ?? snapshot.user?.email ?? "",
-          documentFrontUrl: request?.documentFrontUrl ?? "",
-          documentBackUrl: request?.documentBackUrl ?? "",
-          selfieUrl: request?.selfieUrl ?? "",
-          businessName: request?.businessName ?? "",
-          businessRegistration: request?.businessRegistration ?? ""
-        });
-      })
-      .catch((requestError) => {
-        if (active) {
-          setErrorMessage(requestError instanceof Error ? requestError.message : t("profile.errorLoad"));
-        }
-      });
+    setIsLoadingListings(true);
 
-    return () => {
-      active = false;
-    };
-  }, [accountProfile?.birthDate, accountProfile?.city, accountProfile?.displayName, accountRepository, snapshot.user?.email, snapshot.user?.id, t]);
-
-  useEffect(() => {
-    const userId = snapshot.user?.id;
-    if (!userId) {
-      return;
-    }
-
-    const sectionIsListing = PROFILE_LISTING_VIEWS.includes(section as ProfileListingView);
-    if (!sectionIsListing) {
-      return;
-    }
-
-    let active = true;
-    setIsLoadingSection(true);
-    setErrorMessage(null);
-
-    const loadSection = async () => {
-      if (section === "favorites") {
-        const favoriteIds = parseStoredIdList(window.localStorage.getItem(FAVORITES_STORAGE_KEY));
-        if (!favoriteIds.length) {
-          if (active) {
-            setFavoritesData([]);
-          }
-          return;
-        }
-
-        const listings = await Promise.all(favoriteIds.map((id) => listingsRepository.getById(id)));
-        if (active) {
-          setFavoritesData(listings.filter((item): item is MarketplaceListing => item !== null));
-        }
-        return;
-      }
-
-      const status = toListingStatusFilterForProfileView(section as ProfileListingView);
-      if (!status) {
-        return;
-      }
-
-      const result = await listingsRepository.listByOwner(userId, {
+    void listingsRepository
+      .listByOwner(userId, {
         search: "",
-        status,
+        status: "all",
         sort: "newest",
         page: listingsPage,
         pageSize: LISTING_PAGE_SIZE
-      });
-      if (active) {
+      })
+      .then((result) => {
+        if (!active) {
+          return;
+        }
         setListingsData(result);
-      }
-    };
-
-    void loadSection()
+      })
       .catch((requestError) => {
         if (active) {
           setErrorMessage(requestError instanceof Error ? requestError.message : t("profile.errorLoad"));
@@ -334,749 +168,248 @@ export function ProfileShell({ language }: ProfileShellProps) {
       })
       .finally(() => {
         if (active) {
-          setIsLoadingSection(false);
+          setIsLoadingListings(false);
         }
       });
 
     return () => {
       active = false;
     };
-  }, [listingsPage, listingsRepository, section, snapshot.user?.id, t]);
+  }, [listingsPage, listingsRepository, snapshot.user?.id, t]);
 
-  const setSectionWithUrl = (nextSection: ProfileSectionId) => {
-    const next = new URLSearchParams(searchParams.toString());
-    if (nextSection === "overview") {
-      next.delete("section");
-    } else {
-      next.set("section", nextSection);
-    }
-    router.replace(next.toString().length > 0 ? `${pathname}?${next.toString()}` : pathname);
-  };
-
-  const saveProfile = async () => {
-    if (!snapshot.user?.id) {
-      return;
-    }
-    setIsSaving(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    try {
-      await updateOptionalProfile({
-        displayName: profileForm.displayName,
-        bio: profileForm.bio,
-        city: profileForm.city,
-        phone: profileForm.phone,
-        birthDate: profileForm.birthDate || null,
-        gender: profileForm.gender ? (profileForm.gender as "male" | "female" | "prefer_not_to_say") : null,
-        preferredContactMethod: profileForm.preferredContactMethod
-          ? (profileForm.preferredContactMethod as "phone" | "chat" | "whatsapp" | "email")
-          : null
-      });
-      await refreshAccountProfile();
-      setProfile((current) =>
-        current
-          ? {
-              ...current,
-              displayName: profileForm.displayName.trim() || current.displayName,
-              bio: profileForm.bio.trim() || null,
-              city: profileForm.city.trim() || null,
-              phone: profileForm.phone.trim() || null
-            }
-          : current
-      );
-      setSuccessMessage(t("profile.messages.profileSaved"));
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : t("auth.errors.unknown"));
-      setIsSaving(false);
-      return;
-    }
-    setIsSaving(false);
-  };
-
-  const savePrivacy = async () => {
-    if (!snapshot.user?.id) {
-      return;
-    }
-    setIsSaving(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    const { error } = await getWebSupabaseClient()
-      .from("profiles")
-      .update({
-        show_phone: showPhone,
-        show_last_seen: showLastSeen
-      })
-      .eq("id", snapshot.user.id);
-    if (error) {
-      setErrorMessage(error.message);
-      setIsSaving(false);
-      return;
-    }
-    setProfile((current) =>
-      current
-        ? {
-            ...current,
-            canShowPhone: showPhone,
-            canShowLastSeen: showLastSeen
-          }
-        : current
-    );
-    setSuccessMessage(t("profile.messages.privacySaved"));
-    setIsSaving(false);
-  };
-
-  const saveNotifications = () => {
-    window.localStorage.setItem(NOTIFICATION_SETTINGS_KEY, serializeNotificationPreferences(notificationPreferences));
-    setSuccessMessage(t("profile.messages.notificationsSaved"));
-  };
-
-  const changeLanguage = (nextLanguage: "ar" | "en") => {
-    if (nextLanguage === resolvedLanguage) {
-      return;
-    }
-    void i18n.changeLanguage(nextLanguage);
-    const targetPath = updateLanguagePath(pathname, nextLanguage);
-    const query = searchParams.toString();
-    router.push(query ? `${targetPath}?${query}` : targetPath);
-  };
-
-  const resetPassword = async () => {
-    const email = snapshot.user?.email;
-    if (!email) {
-      setErrorMessage(t("profile.settings.password.missingEmail"));
-      return;
-    }
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    await requestPasswordReset(email, `${window.location.origin}/${resolvedLanguage}/auth`);
-    setSuccessMessage(t("profile.settings.password.sent"));
-  };
-
-  const saveVerification = async (submit: boolean) => {
-    if (!snapshot.user?.id) {
-      return;
-    }
-
-    setIsSaving(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    try {
-      const nextRequest = await accountRepository.upsertVerificationRequest(snapshot.user.id, {
-        legalFullName: verificationForm.legalFullName,
-        nationalId: verificationForm.nationalId,
-        birthDate: verificationForm.birthDate,
-        city: verificationForm.city,
-        email: verificationForm.email,
-        documentFrontUrl: verificationForm.documentFrontUrl || null,
-        documentBackUrl: verificationForm.documentBackUrl || null,
-        selfieUrl: verificationForm.selfieUrl || null,
-        businessName: verificationForm.businessName || null,
-        businessRegistration: verificationForm.businessRegistration || null,
-        submit
-      });
-      setVerificationRequest(nextRequest);
-      setSuccessMessage(submit ? t("profile.verificationFlow.submit") : t("profile.verificationFlow.saveDraft"));
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : t("auth.errors.unknown"));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const signOutNow = async () => {
-    await signOut();
-    router.push(`/${resolvedLanguage}/auth`);
-  };
-
-  const openDeleteRequest = () => {
-    const userId = snapshot.user?.id ?? "";
-    const subject = encodeURIComponent(`SANANY account deletion request (${userId})`);
-    const body = encodeURIComponent(`Account ID: ${userId}\nEmail: ${snapshot.user?.email ?? "-"}\n\nPlease delete my SANANY account.`);
-    window.location.href = `mailto:support@sanany.app?subject=${subject}&body=${body}`;
-  };
-
-  const listingSectionTitle =
-    section === "active"
-      ? t("profile.listingSections.active")
-      : section === "drafts"
-      ? t("profile.listingSections.drafts")
-      : section === "sold"
-      ? t("profile.listingSections.sold")
-      : section === "expired"
-      ? t("profile.listingSections.expired")
-      : t("profile.listingSections.favorites");
-
-  const completionPercentage = getProfileCompletionPercentage(accountProfile, snapshot.user?.email);
-
-  const sidebarItems: Array<{ id: ProfileSectionId; label: string; count?: number }> = [
-    { id: "overview", label: t("profile.sidebar.overview") },
-    { id: "active", label: t("profile.listingSections.active"), count: stats.active },
-    { id: "drafts", label: t("profile.listingSections.drafts"), count: stats.drafts },
-    { id: "sold", label: t("profile.listingSections.sold"), count: stats.sold },
-    { id: "expired", label: t("profile.listingSections.expired"), count: stats.expired },
-    { id: "favorites", label: t("profile.listingSections.favorites"), count: stats.favorites },
-    { id: "settings-account", label: t("profile.settings.sidebar.account") },
-    { id: "settings-company", label: t("profile.settings.sidebar.company") },
-    { id: "settings-privacy", label: t("profile.settings.sidebar.privacy") },
-    { id: "settings-notifications", label: t("profile.settings.sidebar.notifications") },
-    { id: "settings-language", label: t("profile.settings.sidebar.language") },
-    { id: "settings-password", label: t("profile.settings.sidebar.password") },
-    { id: "settings-blocked", label: t("profile.settings.sidebar.blocked") },
-    { id: "settings-verification", label: t("profile.settings.sidebar.verification") },
-    { id: "settings-delete", label: t("profile.settings.sidebar.delete") }
-  ];
+  const trustScore = profile?.ratingCount ? Math.min(100, Math.max(0, Math.round(profile.ratingAverage * 20))) : null;
+  const accountWebsite = accountProfile?.website ?? null;
+  const editLink = `/${resolvedLanguage}/profile/edit`;
+  const quickActions = [
+    { id: "myAds", href: `/${resolvedLanguage}/my-ads`, label: t("profile.dashboard.quickActions.items.myAds") },
+    { id: "soldAds", href: `/${resolvedLanguage}/my-ads?section=sold`, label: t("profile.dashboard.quickActions.items.soldAds") },
+    { id: "drafts", href: `/${resolvedLanguage}/my-ads?section=drafts`, label: t("profile.dashboard.quickActions.items.drafts") },
+    { id: "commission", href: `/${resolvedLanguage}/my-ads?section=sold`, label: t("profile.dashboard.quickActions.items.commission") },
+    { id: "savedSearches", href: `/${resolvedLanguage}/search`, label: t("profile.dashboard.quickActions.items.savedSearches") },
+    { id: "verification", href: editLink, label: t("profile.dashboard.quickActions.items.verification") },
+    { id: "settings", href: editLink, label: t("profile.dashboard.quickActions.items.settings") }
+  ] as const;
 
   return (
     <RequireAuth language={resolvedLanguage}>
-      <div dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="space-y-2 lg:sticky lg:top-24 lg:h-fit">
-          <Card className="space-y-3">
-            <h2 className="text-sm font-semibold text-slate-900">{t("profile.sidebar.title")}</h2>
-            <nav className="hidden space-y-1 lg:block">
-              {sidebarItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setSectionWithUrl(item.id)}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
-                    section === item.id ? "bg-brand/10 text-brand" : "text-slate-700 hover:bg-slate-100"
-                  }`}
+      <div dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="space-y-6">
+        {searchParams.get("saved") === "1" ? (
+          <Card>
+            <p className="text-sm font-semibold text-emerald-700">{t("profile.edit.success")}</p>
+          </Card>
+        ) : null}
+
+        {isLoadingProfile ? <Card><p className="text-sm text-slate-600">{t("common.loading")}</p></Card> : null}
+        {errorMessage ? <Card><p className="text-sm text-rose-600">{errorMessage}</p></Card> : null}
+
+        {!isLoadingProfile && profile ? (
+          <>
+            <Card className="relative space-y-6">
+              {profile.isOwner ? (
+                <Link
+                  href={editLink}
+                  aria-label={t("profile.dashboard.header.editAriaLabel")}
+                  className="absolute end-5 top-5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-brand/40 hover:text-brand"
                 >
-                  <span>{item.label}</span>
-                  {typeof item.count === "number" ? (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{item.count}</span>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M4 20h4l10.6-10.6a1.8 1.8 0 0 0 0-2.5l-1.5-1.5a1.8 1.8 0 0 0-2.5 0L4 16v4Z" />
+                    <path d="m13.5 6.5 4 4" />
+                  </svg>
+                </Link>
+              ) : null}
+
+              <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                <div className="relative h-28 w-28 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                  {profile.avatarUrl ? (
+                    <Image src={profile.avatarUrl} alt={profile.displayName} fill className="object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-100 via-cyan-50 to-slate-100 text-3xl font-bold text-slate-500">
+                      {(profile.displayName || t("profile.accountNameFallback")).slice(0, 1)}
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{profile.displayName}</h1>
+                    {profile.isVerified ? <VerifiedBadge label={t("home.verifiedBadge")} /> : null}
+                  </div>
+                  <p className="text-sm font-medium text-slate-500">@{profile.username ?? t("home.seller.defaultUsername")}</p>
+                  <p className="max-w-3xl whitespace-pre-line text-sm leading-6 text-slate-700">
+                    {profile.bio?.trim() || t("profile.dashboard.header.bioFallback")}
+                  </p>
+                  {accountWebsite ? (
+                    <a href={accountWebsite} target="_blank" rel="noreferrer" className="inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
+                      {accountWebsite}
+                    </a>
                   ) : null}
-                </button>
-              ))}
-            </nav>
-            <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
-              {sidebarItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setSectionWithUrl(item.id)}
-                  className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs ${
-                    section === item.id ? "border-brand bg-brand/10 text-brand" : "border-slate-200 bg-white text-slate-700"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </Card>
-        </aside>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                      {t("profile.header.memberSince", { value: formatMemberSince(profile.joinedAt, resolvedLanguage) })}
+                    </span>
+                    {profile.city ? (
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                        {t("profile.dashboard.header.location", { value: profile.city })}
+                      </span>
+                    ) : null}
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                      {trustScore === null
+                        ? t("profile.dashboard.header.trustScorePending")
+                        : t("profile.dashboard.header.trustScoreValue", { value: trustScore })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
-        <div className="space-y-4">
-          <Card className="space-y-1">
-            <h1 className="text-2xl font-bold text-slate-900">{t("profile.pageTitle")}</h1>
-            <p className="text-sm text-slate-600">{t("profile.pageSubtitle")}</p>
-          </Card>
+            <Card className="space-y-4">
+              <h2 className="text-lg font-semibold text-slate-900">{t("profile.dashboard.statsTitle")}</h2>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.activeAds")}</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">{stats.active}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.soldAds")}</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">{stats.sold}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.drafts")}</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">{stats.drafts}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.favorites")}</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">{stats.favorites}</p>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.profileViews")}</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-700">{t("profile.dashboard.futureReady")}</p>
+                </div>
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.trustScore")}</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-700">{t("profile.dashboard.futureReady")}</p>
+                </div>
+              </div>
+            </Card>
 
-          {isLoadingProfile ? <Card><p className="text-sm text-slate-600">{t("common.loading")}</p></Card> : null}
-          {errorMessage ? <Card><p className="text-sm text-red-600">{errorMessage}</p></Card> : null}
-          {successMessage ? <Card><p className="text-sm text-emerald-700">{successMessage}</p></Card> : null}
+            <Card className="space-y-4">
+              <h2 className="text-lg font-semibold text-slate-900">{t("profile.dashboard.quickActions.title")}</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {quickActions.map((action) => (
+                  <Link
+                    key={action.id}
+                    href={action.href}
+                    className="rounded-xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-800 transition hover:-translate-y-0.5 hover:border-brand/35 hover:text-brand"
+                  >
+                    {action.label}
+                  </Link>
+                ))}
+              </div>
+            </Card>
 
-          {!isLoadingProfile && profile ? (
-            <>
-              {section === "overview" ? (
-                <div className="space-y-4">
-                  <Card className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-900">{profile.displayName}</h2>
-                        <p className="text-sm text-slate-600">
-                          {t(`sellerProfile.accountType.${profile.accountType}`)} • {profile.city ?? t("profile.notProvided")}
-                        </p>
-                      </div>
-                      <Link
-                        href={`/${resolvedLanguage}/seller/${profile.id}`}
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-brand/40 hover:text-brand"
-                      >
-                        {t("profile.publicProfile.title")}
-                      </Link>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-xs text-slate-500">{t("profile.listingSections.active")}</p>
-                        <p className="text-lg font-semibold text-slate-900">{stats.active}</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-xs text-slate-500">{t("profile.listingSections.drafts")}</p>
-                        <p className="text-lg font-semibold text-slate-900">{stats.drafts}</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-xs text-slate-500">{t("profile.listingSections.sold")}</p>
-                        <p className="text-lg font-semibold text-slate-900">{stats.sold}</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-xs text-slate-500">{t("profile.listingSections.expired")}</p>
-                        <p className="text-lg font-semibold text-slate-900">{stats.expired}</p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-xs text-slate-500">{t("profile.listingSections.favorites")}</p>
-                        <p className="text-lg font-semibold text-slate-900">{stats.favorites}</p>
-                      </div>
-                    </div>
-                  </Card>
+            <Card className="space-y-4">
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold text-slate-900">{t("profile.dashboard.ads.title")}</h2>
+                <p className="text-sm text-slate-600">{t("profile.dashboard.ads.subtitle")}</p>
+              </div>
 
-                  <Card className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-slate-900">{t("profile.completion.title")}</h3>
-                        <p className="text-sm text-slate-600">{t("profile.completion.subtitle")}</p>
-                      </div>
-                      <div className="rounded-full bg-brand/10 px-3 py-1 text-sm font-semibold text-brand">
-                        {t("profile.completion.progress", { value: completionPercentage })}
-                      </div>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div className="h-full rounded-full bg-brand" style={{ width: `${completionPercentage}%` }} />
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                      {(["avatar", "email", "city", "birthDate", "gender", "bio", "preferredContactMethod"] as const).map((item) => (
-                        <div key={item} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                          {t(`profile.completion.items.${item}`)}
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
+              {isLoadingListings ? <p className="text-sm text-slate-600">{t("common.loading")}</p> : null}
 
-                  <Card className="space-y-3">
-                    <h3 className="text-base font-semibold text-slate-900">{t("profile.edit.title")}</h3>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <label className="space-y-1 text-sm">
-                        <span className="text-slate-600">{t("profile.edit.displayName")}</span>
-                        <input
-                          value={profileForm.displayName}
-                          onChange={(event) => setProfileForm((current) => ({ ...current, displayName: event.target.value }))}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                        />
-                      </label>
-                      <label className="space-y-1 text-sm">
-                        <span className="text-slate-600">{t("profile.edit.city")}</span>
-                        <input
-                          value={profileForm.city}
-                          onChange={(event) => setProfileForm((current) => ({ ...current, city: event.target.value }))}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                        />
-                      </label>
-                      <label className="space-y-1 text-sm">
-                        <span className="text-slate-600">{t("profile.edit.phone")}</span>
-                        <input
-                          value={profileForm.phone}
-                          onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                        />
-                      </label>
-                      <label className="space-y-1 text-sm">
-                        <span className="text-slate-600">{t("profile.completion.items.birthDate")}</span>
-                        <input
-                          type="date"
-                          value={profileForm.birthDate}
-                          onChange={(event) => setProfileForm((current) => ({ ...current, birthDate: event.target.value }))}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                        />
-                      </label>
-                      <label className="space-y-1 text-sm">
-                        <span className="text-slate-600">{t("profile.completion.items.gender")}</span>
-                        <select
-                          value={profileForm.gender}
-                          onChange={(event) => setProfileForm((current) => ({ ...current, gender: event.target.value }))}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                        >
-                          <option value="">{t("profile.notProvided")}</option>
-                          <option value="male">{t("profile.genderOptions.male")}</option>
-                          <option value="female">{t("profile.genderOptions.female")}</option>
-                          <option value="prefer_not_to_say">{t("profile.genderOptions.prefer_not_to_say")}</option>
-                        </select>
-                      </label>
-                      <label className="space-y-1 text-sm">
-                        <span className="text-slate-600">{t("profile.completion.items.preferredContactMethod")}</span>
-                        <select
-                          value={profileForm.preferredContactMethod}
-                          onChange={(event) => setProfileForm((current) => ({ ...current, preferredContactMethod: event.target.value }))}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                        >
-                          <option value="">{t("profile.notProvided")}</option>
-                          <option value="phone">{t("profile.contactMethodOptions.phone")}</option>
-                          <option value="chat">{t("profile.contactMethodOptions.chat")}</option>
-                          <option value="whatsapp">{t("profile.contactMethodOptions.whatsapp")}</option>
-                          <option value="email">{t("profile.contactMethodOptions.email")}</option>
-                        </select>
-                      </label>
-                      <label className="space-y-1 text-sm md:col-span-2">
-                        <span className="text-slate-600">{t("profile.edit.bio")}</span>
-                        <textarea
-                          value={profileForm.bio}
-                          onChange={(event) => setProfileForm((current) => ({ ...current, bio: event.target.value }))}
-                          rows={3}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                        />
-                      </label>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void saveProfile()}
-                      disabled={isSaving}
-                      className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                    >
-                      {t("profile.edit.save")}
-                    </button>
-                  </Card>
+              {!isLoadingListings && listingsData.items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+                  <svg aria-hidden="true" viewBox="0 0 96 96" className="h-20 w-20 text-slate-300" fill="none">
+                    <rect x="12" y="18" width="72" height="60" rx="12" stroke="currentColor" strokeWidth="4" />
+                    <circle cx="35" cy="40" r="6" stroke="currentColor" strokeWidth="4" />
+                    <path d="M24 66 44 50l12 10 16-14" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <p className="text-base font-semibold text-slate-700">{t("profile.dashboard.ads.emptyTitle")}</p>
+                  <Link href={`/${resolvedLanguage}/my-ads`} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
+                    {t("profile.dashboard.ads.addAction")}
+                  </Link>
                 </div>
               ) : null}
 
-              {PROFILE_LISTING_VIEWS.includes(section as ProfileListingView) ? (
-                <Card className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-900">{listingSectionTitle}</h3>
-                  {isLoadingSection ? <p className="text-sm text-slate-600">{t("common.loading")}</p> : null}
-                  {section === "favorites" ? (
-                    favoritesData.length === 0 ? (
-                      <p className="text-sm text-slate-600">{t("favorites.emptyHint")}</p>
-                    ) : (
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        {favoritesData.map((item) => (
-                          <ListingCard key={item.id} listing={item} language={resolvedLanguage} />
-                        ))}
-                      </div>
-                    )
-                  ) : listingsData.items.length === 0 ? (
-                    <p className="text-sm text-slate-600">{t("myAds.emptyState")}</p>
-                  ) : (
-                    <>
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        {listingsData.items.map((item) => (
-                          <ListingCard key={item.id} listing={item} language={resolvedLanguage} />
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <button
-                          type="button"
-                          disabled={listingsPage <= 1}
-                          onClick={() => setListingsPage((current) => Math.max(1, current - 1))}
-                          className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-40"
-                        >
-                          {t("common.previous")}
-                        </button>
-                        <p className="text-xs text-slate-500">
-                          {t("common.page", { current: listingsData.page, total: listingsData.totalPages })}
-                        </p>
-                        <button
-                          type="button"
-                          disabled={listingsPage >= listingsData.totalPages}
-                          onClick={() => setListingsPage((current) => current + 1)}
-                          className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-40"
-                        >
-                          {t("common.next")}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </Card>
-              ) : null}
-
-              {section === "settings-account" ? (
-                <Card className="space-y-3">
-                  <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.account")}</h3>
-                  <p className="text-sm text-slate-600">{t("profile.settings.account.hint")}</p>
-                  <p className="text-sm text-slate-700">
-                    <span className="font-semibold">{t("profile.accountDetails.emailLabel")}:</span> {snapshot.user?.email ?? t("profile.notProvided")}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void saveProfile()}
-                    disabled={isSaving}
-                    className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                  >
-                    {t("profile.edit.save")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void signOutNow()}
-                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
-                  >
-                    {t("profile.settings.account.signOut")}
-                  </button>
-                </Card>
-              ) : null}
-
-              {section === "settings-company" ? (
-                <Card className="space-y-3">
-                  <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.company")}</h3>
-                  <p className="text-sm text-slate-600">{t("profile.settings.company.hint")}</p>
-                  <p className="text-sm text-slate-700">
-                    <span className="font-semibold">{t("profile.settings.company.accountType")}:</span>{" "}
-                    {t(`sellerProfile.accountType.${profile.accountType}`)}
-                  </p>
-                  <p className="text-sm text-slate-700">
-                    <span className="font-semibold">{t("profile.settings.company.businessType")}:</span>{" "}
-                    {profile.companyBusinessType ?? t("profile.notProvided")}
-                  </p>
-                  <p className="text-sm text-slate-700">
-                    <span className="font-semibold">{t("profile.settings.company.verification")}:</span>{" "}
-                    {profile.companyVerificationStatus
-                      ? t(`profile.settings.verification.status.${profile.companyVerificationStatus}`)
-                      : t("profile.settings.verification.status.unverified")}
-                  </p>
-                  <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">{t("profile.settings.company.sensitiveHint")}</p>
-                </Card>
-              ) : null}
-
-              {section === "settings-privacy" ? (
-                <Card className="space-y-3">
-                  <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.privacy")}</h3>
-                  <label className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
-                    <span className="text-sm text-slate-700">{t("profile.settings.privacy.showPhone")}</span>
-                    <input type="checkbox" checked={showPhone} onChange={(event) => setShowPhone(event.target.checked)} />
-                  </label>
-                  <label className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
-                    <span className="text-sm text-slate-700">{t("profile.settings.privacy.showLastSeen")}</span>
-                    <input type="checkbox" checked={showLastSeen} onChange={(event) => setShowLastSeen(event.target.checked)} />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => void savePrivacy()}
-                    disabled={isSaving}
-                    className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                  >
-                    {t("profile.edit.save")}
-                  </button>
-                </Card>
-              ) : null}
-
-              {section === "settings-notifications" ? (
-                <Card className="space-y-3">
-                  <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.notifications")}</h3>
-                  <label className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
-                    <span className="text-sm text-slate-700">{t("profile.settings.notifications.marketing")}</span>
-                    <input
-                      type="checkbox"
-                      checked={notificationPreferences.marketing}
-                      onChange={(event) =>
-                        setNotificationPreferences((current) => ({ ...current, marketing: event.target.checked }))
-                      }
-                    />
-                  </label>
-                  <label className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
-                    <span className="text-sm text-slate-700">{t("profile.settings.notifications.messages")}</span>
-                    <input
-                      type="checkbox"
-                      checked={notificationPreferences.messages}
-                      onChange={(event) =>
-                        setNotificationPreferences((current) => ({ ...current, messages: event.target.checked }))
-                      }
-                    />
-                  </label>
-                  <label className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
-                    <span className="text-sm text-slate-700">{t("profile.settings.notifications.listingUpdates")}</span>
-                    <input
-                      type="checkbox"
-                      checked={notificationPreferences.listingUpdates}
-                      onChange={(event) =>
-                        setNotificationPreferences((current) => ({ ...current, listingUpdates: event.target.checked }))
-                      }
-                    />
-                  </label>
-                  <button type="button" onClick={saveNotifications} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
-                    {t("profile.edit.save")}
-                  </button>
-                </Card>
-              ) : null}
-
-              {section === "settings-language" ? (
-                <Card className="space-y-3">
-                  <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.language")}</h3>
-                  <p className="text-sm text-slate-600">{t("profile.settings.language.hint")}</p>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => changeLanguage("ar")}
-                      className={`rounded-lg border px-4 py-2 text-sm ${resolvedLanguage === "ar" ? "border-brand bg-brand/10 text-brand" : "border-slate-300 bg-white text-slate-700"}`}
-                    >
-                      {t("languages.ar")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => changeLanguage("en")}
-                      className={`rounded-lg border px-4 py-2 text-sm ${resolvedLanguage === "en" ? "border-brand bg-brand/10 text-brand" : "border-slate-300 bg-white text-slate-700"}`}
-                    >
-                      {t("languages.en")}
-                    </button>
-                  </div>
-                </Card>
-              ) : null}
-
-              {section === "settings-password" ? (
-                <Card className="space-y-3">
-                  <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.password")}</h3>
-                  <p className="text-sm text-slate-600">{t("profile.settings.password.hint")}</p>
-                  <button type="button" onClick={() => void resetPassword()} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
-                    {t("profile.settings.password.action")}
-                  </button>
-                </Card>
-              ) : null}
-
-              {section === "settings-blocked" ? (
-                <Card className="space-y-2">
-                  <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.blocked")}</h3>
-                  <p className="text-sm text-slate-600">{t("profile.settings.blocked.empty")}</p>
-                </Card>
-              ) : null}
-
-              {section === "settings-verification" ? (
-                <Card className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-900">{t("profile.settings.sidebar.verification")}</h3>
-                  <p className="text-sm text-slate-700">
-                    {t("profile.settings.verification.current", {
-                      value: verificationRequest
-                        ? t(`profile.verificationFlow.status.${verificationRequest.status}`)
-                        : profile.companyVerificationStatus
-                        ? t(`profile.settings.verification.status.${profile.companyVerificationStatus}`)
-                        : profile.isVerified
-                        ? t("profile.settings.verification.status.verified")
-                        : t("profile.settings.verification.status.unverified")
+              {!isLoadingListings && listingsData.items.length > 0 ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {listingsData.items.map((listing) => {
+                      const imageUrl = getPrimaryListingImageUrl(listing.imageUrl);
+                      const isFavorite = favoriteIds.includes(listing.id);
+                      return (
+                        <article key={listing.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                          <Link href={`/${resolvedLanguage}/listing/${listing.id}`} className="relative block h-44 w-full bg-slate-100">
+                            {imageUrl ? (
+                              <Image src={imageUrl} alt={listing.title} fill className="object-cover" />
+                            ) : (
+                              <div className="h-full w-full bg-gradient-to-br from-slate-100 to-cyan-50" />
+                            )}
+                            <span className="absolute start-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                              {t(`marketplace.status.${listing.status}`)}
+                            </span>
+                          </Link>
+                          <div className="space-y-3 p-4">
+                            <p className="text-lg font-extrabold text-slate-900">{t("marketplace.pricePerDay", { value: listing.price })}</p>
+                            <h3 className="line-clamp-2 text-sm font-semibold text-slate-900">{listing.title}</h3>
+                            <div className="space-y-1 text-xs text-slate-500">
+                              <p>{listing.locationName ?? t("marketplace.detail.approximateLocation")}</p>
+                              <p>{t("profile.dashboard.ads.card.published", { value: formatPublishedDate(listing.createdAt, resolvedLanguage) })}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-600">
+                                <p className="text-[11px] text-slate-500">{t("profile.dashboard.ads.card.views")}</p>
+                                <p className="font-semibold text-slate-800">{t("profile.dashboard.ads.card.metricUnavailable")}</p>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-600">
+                                <p className="text-[11px] text-slate-500">{t("profile.dashboard.ads.card.favorites")}</p>
+                                <p className="font-semibold text-slate-800">{isFavorite ? "1" : "0"}</p>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-600">
+                                <p className="text-[11px] text-slate-500">{t("profile.dashboard.ads.card.chats")}</p>
+                                <p className="font-semibold text-slate-800">{t("profile.dashboard.ads.card.metricUnavailable")}</p>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 px-2.5 py-2 text-slate-600">
+                                <p className="text-[11px] text-slate-500">{t("profile.dashboard.ads.card.status")}</p>
+                                <p className="font-semibold text-slate-800">{t(`marketplace.status.${listing.status}`)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      );
                     })}
-                  </p>
-                  <p className="text-sm text-slate-600">{t("profile.verificationFlow.subtitle")}</p>
-                  <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">{t("profile.verificationFlow.trustHint")}</p>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.legalName")}</span>
-                      <input
-                        value={verificationForm.legalFullName}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, legalFullName: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.legalName")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.nationalId")}</span>
-                      <input
-                        value={verificationForm.nationalId}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, nationalId: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.nationalId")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.birthDate")}</span>
-                      <input
-                        type="date"
-                        value={verificationForm.birthDate}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, birthDate: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.birthDate")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.city")}</span>
-                      <input
-                        value={verificationForm.city}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, city: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.city")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm md:col-span-2">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.email")}</span>
-                      <input
-                        value={verificationForm.email}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, email: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.email")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.documentFront")}</span>
-                      <input
-                        value={verificationForm.documentFrontUrl}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, documentFrontUrl: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.documentFront")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.documentBack")}</span>
-                      <input
-                        value={verificationForm.documentBackUrl}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, documentBackUrl: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.documentBack")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.selfie")}</span>
-                      <input
-                        value={verificationForm.selfieUrl}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, selfieUrl: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.selfie")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.businessName")}</span>
-                      <input
-                        value={verificationForm.businessName}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, businessName: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.businessName")}</span>
-                    </label>
-                    <label className="space-y-1 text-sm md:col-span-2">
-                      <span className="font-medium text-slate-700">{t("profile.verificationFlow.fields.businessRegistration")}</span>
-                      <input
-                        value={verificationForm.businessRegistration}
-                        onChange={(event) => setVerificationForm((current) => ({ ...current, businessRegistration: event.target.value }))}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-brand focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-500">{t("profile.verificationFlow.reasons.businessRegistration")}</span>
-                    </label>
                   </div>
-                  <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    <p>{t("profile.verificationFlow.steps.personal")}</p>
-                    <p>{t("profile.verificationFlow.steps.document")}</p>
-                    <p>{t("profile.verificationFlow.steps.face")}</p>
-                    <p>{t("profile.verificationFlow.steps.review")}</p>
-                    <p>{t("profile.verificationFlow.steps.result")}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => void saveVerification(false)}
-                      disabled={isSaving}
-                      className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-60"
-                    >
-                      {t("profile.verificationFlow.saveDraft")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void saveVerification(true)}
-                      disabled={isSaving}
-                      className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                    >
-                      {t("profile.verificationFlow.submit")}
-                    </button>
-                  </div>
-                </Card>
-              ) : null}
 
-              {section === "settings-delete" ? (
-                <Card className="space-y-3 border-rose-200">
-                  <h3 className="text-lg font-semibold text-rose-700">{t("profile.settings.sidebar.delete")}</h3>
-                  <p className="text-sm text-slate-600">{t("profile.settings.delete.hint")}</p>
-                  <button
-                    type="button"
-                    onClick={openDeleteRequest}
-                    className="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700"
-                  >
-                    {t("profile.settings.delete.action")}
-                  </button>
-                </Card>
+                  {listingsData.totalPages > 1 ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        disabled={listingsPage <= 1}
+                        onClick={() => setListingsPage((current) => Math.max(1, current - 1))}
+                        className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-40"
+                      >
+                        {t("common.previous")}
+                      </button>
+                      <p className="text-xs text-slate-500">
+                        {t("common.page", { current: listingsData.page, total: listingsData.totalPages })}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={listingsPage >= listingsData.totalPages}
+                        onClick={() => setListingsPage((current) => Math.min(listingsData.totalPages, current + 1))}
+                        className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-40"
+                      >
+                        {t("common.next")}
+                      </button>
+                    </div>
+                  ) : null}
+                </>
               ) : null}
-            </>
-          ) : null}
-        </div>
+            </Card>
+          </>
+        ) : null}
       </div>
     </RequireAuth>
   );
 }
+

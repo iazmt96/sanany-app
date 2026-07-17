@@ -1234,6 +1234,60 @@
         saveFailed: "Could not save profile changes right now."
       }
     },
+    dashboard: {
+      editPageSubtitle: "Update your public account details and seller identity.",
+      futureReady: "Coming soon",
+      header: {
+        editAriaLabel: "Edit profile",
+        bioFallback: "No bio added yet.",
+        location: "Location: {{value}}",
+        trustScorePending: "Trust score: coming soon",
+        trustScoreValue: "Trust score: {{value}}%"
+      },
+      statsTitle: "Profile statistics",
+      stats: {
+        activeAds: "Active ads",
+        soldAds: "Sold ads",
+        drafts: "Drafts",
+        favorites: "Favorites",
+        profileViews: "Profile views",
+        trustScore: "Trust score"
+      },
+      quickActions: {
+        title: "Quick actions",
+        items: {
+          myAds: "My ads",
+          soldAds: "Sold ads",
+          drafts: "Drafts",
+          commission: "Commission & invoices",
+          savedSearches: "Saved searches",
+          verification: "Account verification",
+          settings: "Settings"
+        }
+      },
+      ads: {
+        title: "My advertisements",
+        subtitle: "Manage your latest listing performance.",
+        emptyTitle: "You don't have any advertisements yet.",
+        addAction: "+ Add Advertisement",
+        card: {
+          published: "Published: {{value}}",
+          views: "Views",
+          favorites: "Favorites",
+          chats: "Chats",
+          status: "Status",
+          metricUnavailable: "—"
+        }
+      },
+      avatarEditor: {
+        title: "Edit photo preview",
+        zoom: "Zoom",
+        positionX: "Horizontal position",
+        positionY: "Vertical position",
+        apply: "Apply photo",
+        reset: "Reset"
+      }
+    },
     more: {
       myAdsSection: "My ads",
       myAdsActive: "Active listings",
