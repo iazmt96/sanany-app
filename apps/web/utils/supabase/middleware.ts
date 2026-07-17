@@ -35,10 +35,10 @@ function resolveSupabasePublicKey(): string {
   throw new Error("Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY)");
 }
 
-const supabaseUrl = requiredEnv("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
-const supabaseKey = resolveSupabasePublicKey();
-
 export async function updateSession(request: NextRequest) {
+  const supabaseUrl = requiredEnv("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const supabaseKey = resolveSupabasePublicKey();
+
   let response = NextResponse.next({
     request: {
       headers: request.headers
