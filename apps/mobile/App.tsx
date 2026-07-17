@@ -128,7 +128,7 @@ function AppContent() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {isHomePreview || myAdsPreviewState || (isAuthenticated(snapshot) && profileStatus === "complete") ? (
+        {isHomePreview || myAdsPreviewState || (isAuthenticated(snapshot) && profileStatus !== "loading" && profileStatus !== "anonymous") ? (
           <>
             <View style={styles.contentCard}>
               {selectedListing && editingListing ? (

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import type { AuthController, AuthSnapshot } from "@sanany/auth";
 import { createAccountRepository } from "@sanany/api";
 import type {
@@ -54,6 +54,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>("loading");
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  const refreshingForRef = useRef<string | null>(null);
+
   const refreshAccountProfile = useCallback(async () => {
     const userId = controller.getSnapshot().user?.id;
     if (!userId) {
@@ -63,6 +65,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
 
+    // Deduplicate: skip if already fetching for this user
+    if (refreshingForRef.current === userId) {
+      return;
+    }
+    refreshingForRef.current = userId;
+
     setProfileStatus("loading");
     setProfileError(null);
     try {
@@ -70,7 +78,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAccountProfile(profile);
       setProfileStatus(isBasicAccountProfileComplete(profile) ? "complete" : "required");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to load account profile.";
+      const errorMessage = error instanceof Error ? error.message : typeof error === "object" && error !== null && "message" in error ? String((error as { message: unknown }).message) : "Failed to load account profile.";
       const loweredMessage = errorMessage.toLowerCase();
       if (loweredMessage.includes("website") && loweredMessage.includes("column")) {
         const [profileResult, privateResult] = await Promise.all([
@@ -111,6 +119,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAccountProfile(null);
       setProfileStatus("error");
       setProfileError(errorMessage);
+    } finally {
+      refreshingForRef.current = null;
     }
   }, [client, controller, repository]);
 

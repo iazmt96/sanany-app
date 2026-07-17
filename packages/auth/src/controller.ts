@@ -78,7 +78,8 @@ export function createAuthController(service: AuthService): AuthController {
           cleanupSubscription();
           cleanupSubscription = null;
           initialized = false;
-          snapshot = initialSnapshot;
+          // Do NOT reset snapshot here — preserves session across React StrictMode
+          // double-invoke cycles so the next subscriber sees the restored session.
         }
       };
     },
