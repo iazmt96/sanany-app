@@ -1,4 +1,4 @@
-export const en = {
+﻿export const en = {
   app: {
     title: "SANANY"
   },
@@ -41,7 +41,8 @@ export const en = {
     skipToContent: "Skip to content",
     auth: {
       signIn: "Sign in",
-      signUp: "Create account"
+      signUp: "Create account",
+      signOut: "Sign out"
     },
     header: {
       searchLabel: "Search",
@@ -216,8 +217,8 @@ export const en = {
     subtitle: "Your access gateway to SANANY marketplace",
     signUpDescription: "Choose the account type that fits you.",
     phoneOnboarding: {
-      title: "Create your account in under a minute",
-      subtitle: "Start with your mobile number and confirm it with a one-time code.",
+      title: "Welcome to SANANY",
+      subtitle: "Start buying and selling with confidence through fast, secure phone verification.",
       otpTitle: "Verify your mobile number",
       otpSubtitle: "Enter the verification code we sent to continue securely.",
       profileTitle: "Complete your basic account",
@@ -249,6 +250,21 @@ export const en = {
       resendCountdown: "Resend in {{seconds}}s",
       changePhone: "Change phone number",
       trustHint: "Free to join · Your number is never shared",
+      progressLabel: "Step {{current}} of {{total}}",
+      steps: {
+        phone: "Phone",
+        otp: "Code verification",
+        profile: "Account profile"
+      },
+      authHeaderTagline: "Secure and fast sign-in",
+      heroEyebrow: "SANANY identity",
+      heroTitle: "A trusted gateway to a premium Saudi marketplace",
+      heroSubtitle: "Verify in minutes and enter a marketplace journey designed for Saudi users with confidence and clarity.",
+      heroPoints: {
+        trust: "Phone-first identity verification with privacy by default",
+        clarity: "Clear steps: phone, one-time code, then account details",
+        local: "A native Arabic-first experience crafted for SANANY"
+      },
       countries: {
         sa: "Saudi Arabia",
         ae: "United Arab Emirates",

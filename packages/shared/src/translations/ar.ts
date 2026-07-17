@@ -1,4 +1,4 @@
-export const ar = {
+﻿export const ar = {
   app: {
     title: "سنعني"
   },
@@ -41,7 +41,8 @@ export const ar = {
     skipToContent: "تجاوز إلى المحتوى",
     auth: {
       signIn: "تسجيل الدخول",
-      signUp: "إنشاء حساب"
+      signUp: "إنشاء حساب",
+      signOut: "تسجيل الخروج"
     },
     header: {
       searchLabel: "بحث",
@@ -216,8 +217,8 @@ export const ar = {
     subtitle: "بوابة الوصول إلى سوق سنعني",
     signUpDescription: "اختر نوع الحساب المناسب لك.",
     phoneOnboarding: {
-      title: "أنشئ حسابك في أقل من دقيقة",
-      subtitle: "ابدأ برقم جوالك ثم أكّده برمز تحقق لمرة واحدة.",
+      title: "مرحبًا بك في SANANY",
+      subtitle: "ابدأ البيع والشراء بثقة عبر تحقق جوال سريع وآمن.",
       otpTitle: "تحقق من رقم الجوال",
       otpSubtitle: "أدخل رمز التحقق المرسل إليك للمتابعة بأمان.",
       profileTitle: "أكمل بيانات حسابك الأساسية",
@@ -249,6 +250,21 @@ export const ar = {
       resendCountdown: "إعادة الإرسال بعد {{seconds}} ث",
       changePhone: "تغيير رقم الجوال",
       trustHint: "مجاني تمامًا · رقمك لن يُشارك مع أحد",
+      progressLabel: "الخطوة {{current}} من {{total}}",
+      steps: {
+        phone: "رقم الجوال",
+        otp: "تأكيد الرمز",
+        profile: "بيانات الحساب"
+      },
+      authHeaderTagline: "تسجيل آمن وسريع",
+      heroEyebrow: "هوية SANANY",
+      heroTitle: "بوابة موثوقة لسوق سعودي راقٍ",
+      heroSubtitle: "ابدأ التحقق خلال دقائق، وانضم إلى تجربة بيع وشراء مصممة للسوق السعودي بثقة ووضوح.",
+      heroPoints: {
+        trust: "حماية رقم الجوال وإثبات الهوية من أول خطوة",
+        clarity: "خطوات واضحة: جوال، رمز تحقق، ثم بيانات الحساب",
+        local: "واجهة عربية أصلية مصممة لتجربة SANANY فقط"
+      },
       countries: {
         sa: "السعودية",
         ae: "الإمارات",
