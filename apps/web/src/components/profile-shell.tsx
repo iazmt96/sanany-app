@@ -192,7 +192,7 @@ export function ProfileShell({ language }: ProfileShellProps) {
 
   return (
     <RequireAuth language={resolvedLanguage}>
-      <div dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="space-y-6">
+      <div dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="space-y-5 overflow-x-hidden sm:space-y-6">
         {searchParams.get("saved") === "1" ? (
           <Card>
             <p className="text-sm font-semibold text-emerald-700">{t("profile.edit.success")}</p>
@@ -204,12 +204,12 @@ export function ProfileShell({ language }: ProfileShellProps) {
 
         {!isLoadingProfile && profile ? (
           <>
-            <Card className="relative space-y-6">
+            <Card className="relative space-y-5 sm:space-y-6">
               {profile.isOwner ? (
                 <Link
                   href={editLink}
                   aria-label={t("profile.dashboard.header.editAriaLabel")}
-                  className="absolute end-5 top-5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-brand/40 hover:text-brand"
+                  className="absolute end-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-brand/40 hover:text-brand sm:end-5 sm:top-5 sm:h-9 sm:w-9"
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
                     <path d="M4 20h4l10.6-10.6a1.8 1.8 0 0 0 0-2.5l-1.5-1.5a1.8 1.8 0 0 0-2.5 0L4 16v4Z" />
@@ -218,7 +218,7 @@ export function ProfileShell({ language }: ProfileShellProps) {
                 </Link>
               ) : null}
 
-              <div className="flex flex-col gap-5 md:flex-row md:items-center">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-5">
                 <div className="relative h-28 w-28 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
                   {profile.avatarUrl ? (
                     <Image src={profile.avatarUrl} alt={profile.displayName} fill className="object-cover" />
@@ -231,15 +231,20 @@ export function ProfileShell({ language }: ProfileShellProps) {
 
                 <div className="min-w-0 flex-1 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{profile.displayName}</h1>
+                    <h1 className="break-words text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">{profile.displayName}</h1>
                     {profile.isVerified ? <VerifiedBadge label={t("home.verifiedBadge")} /> : null}
                   </div>
-                  <p className="text-sm font-medium text-slate-500">@{profile.username ?? t("home.seller.defaultUsername")}</p>
-                  <p className="max-w-3xl whitespace-pre-line text-sm leading-6 text-slate-700">
+                  <p className="break-all text-sm font-medium text-slate-500">@{profile.username ?? t("home.seller.defaultUsername")}</p>
+                  <p className="max-w-full whitespace-pre-line text-sm leading-6 text-slate-700 sm:max-w-3xl">
                     {profile.bio?.trim() || t("profile.dashboard.header.bioFallback")}
                   </p>
                   {accountWebsite ? (
-                    <a href={accountWebsite} target="_blank" rel="noreferrer" className="inline-flex text-sm font-semibold text-brand hover:text-brand-dark">
+                    <a
+                      href={accountWebsite}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex max-w-full break-all text-sm font-semibold text-brand hover:text-brand-dark"
+                    >
                       {accountWebsite}
                     </a>
                   ) : null}
@@ -264,7 +269,7 @@ export function ProfileShell({ language }: ProfileShellProps) {
 
             <Card className="space-y-4">
               <h2 className="text-lg font-semibold text-slate-900">{t("profile.dashboard.statsTitle")}</h2>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="text-xs text-slate-500">{t("profile.dashboard.stats.activeAds")}</p>
                   <p className="mt-1 text-2xl font-bold text-slate-900">{stats.active}</p>
@@ -349,7 +354,7 @@ export function ProfileShell({ language }: ProfileShellProps) {
                               {t(`marketplace.status.${listing.status}`)}
                             </span>
                           </Link>
-                          <div className="space-y-3 p-4">
+                          <div className="space-y-3 p-3.5 sm:p-4">
                             <p className="text-lg font-extrabold text-slate-900">{t("marketplace.pricePerDay", { value: listing.price })}</p>
                             <h3 className="line-clamp-2 text-sm font-semibold text-slate-900">{listing.title}</h3>
                             <div className="space-y-1 text-xs text-slate-500">
@@ -381,7 +386,7 @@ export function ProfileShell({ language }: ProfileShellProps) {
                   </div>
 
                   {listingsData.totalPages > 1 ? (
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                       <button
                         type="button"
                         disabled={listingsPage <= 1}
@@ -412,4 +417,3 @@ export function ProfileShell({ language }: ProfileShellProps) {
     </RequireAuth>
   );
 }
-
