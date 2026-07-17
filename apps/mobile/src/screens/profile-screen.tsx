@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FlatList, Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { getProfileCompletionPercentage } from "@sanany/shared";
+import { getProfileCompletionPercentage, formatMonthYear } from "@sanany/shared";
 import type { MarketplaceListing, PaginatedResult, SellerProfile, SellerProfileListingsTab, SellerRating } from "@sanany/types";
-import { formatMonthYear } from "@sanany/shared";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { MobileIcon } from "../components/mobile-icons";
@@ -12,9 +11,9 @@ import { getMobileSellersRepository } from "../lib/sellers-repository";
 
 type ProfileScreenProps = {
   direction: Direction;
-  onBack(): void;
   onOpenListing(listing: MarketplaceListing): void;
   onOpenVerification(): void;
+  onOpenEditProfile(): void;
 };
 
 type ProfileTab = "all" | "active" | "sold" | "ratings";
@@ -26,9 +25,23 @@ function getRatingStars(value: number): string {
   return `${"★".repeat(Math.max(0, rounded))}${"☆".repeat(Math.max(0, 5 - rounded))}`;
 }
 
-export function ProfileScreen({ direction, onBack, onOpenListing, onOpenVerification }: ProfileScreenProps) {
+function normalizeWebsiteForOpen(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function getTrustScore(profile: SellerProfile, completionPercentage: number): number {
+  const ratingPart = Math.min(100, Math.max(0, Math.round(profile.ratingAverage * 20)));
+  const score = Math.round((ratingPart * 0.65) + (completionPercentage * 0.25) + (profile.isVerified ? 10 : 0));
+  return Math.max(0, Math.min(100, score));
+}
+
+export function ProfileScreen({ direction, onOpenListing, onOpenVerification, onOpenEditProfile }: ProfileScreenProps) {
   const { t, i18n } = useTranslation();
-  const { accountProfile, snapshot, updateOptionalProfile } = useAuth();
+  const { accountProfile, snapshot } = useAuth();
   const repository = useMemo(() => getMobileSellersRepository(), []);
   const isRtl = direction === "rtl";
   const textAlign = isRtl ? "right" : "left";
@@ -51,104 +64,59 @@ export function ProfileScreen({ direction, onBack, onOpenListing, onOpenVerifica
     totalPages: 1
   });
   const [error, setError] = useState<string | null>(null);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<string | null>(null);
-  const [optionalProfile, setOptionalProfile] = useState({
-    city: "",
-    birthDate: "",
-    gender: "",
-    preferredContactMethod: "",
-    bio: ""
-  });
+
+  const loadProfileData = useCallback(async () => {
+    if (!snapshot.user?.id) {
+      setIsLoading(false);
+      setProfile(null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    const listingsTab: SellerProfileListingsTab = tab === "sold" ? "sold" : tab === "active" ? "available" : "all";
+    try {
+      const [profileResult, listingsResult, ratingsResult] = await Promise.all([
+        repository.getProfile(snapshot.user.id, snapshot.user.id),
+        repository.listSellerListings({ sellerId: snapshot.user.id, viewerId: snapshot.user.id, tab: listingsTab, sort: "newest", page, pageSize: PAGE_SIZE }),
+        repository.listSellerRatings({ sellerId: snapshot.user.id, sort: "newest", page, pageSize: PAGE_SIZE })
+      ]);
+      setProfile(profileResult);
+      setListingsData(listingsResult);
+      setRatingsData(ratingsResult);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : t("sellerProfile.errorLoad"));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, repository, snapshot.user?.id, t, tab]);
 
   useEffect(() => {
     setPage(1);
   }, [tab]);
 
   useEffect(() => {
-    setOptionalProfile({
-      city: accountProfile?.city ?? "",
-      birthDate: accountProfile?.birthDate ?? "",
-      gender: accountProfile?.gender ?? "",
-      preferredContactMethod: accountProfile?.preferredContactMethod ?? "",
-      bio: accountProfile?.bio ?? ""
-    });
-  }, [accountProfile?.bio, accountProfile?.birthDate, accountProfile?.city, accountProfile?.gender, accountProfile?.preferredContactMethod]);
-
-  useEffect(() => {
-    if (!snapshot.user?.id) {
-      setIsLoading(false);
-      return;
-    }
-
-    let active = true;
-    setIsLoading(true);
-    setError(null);
-    const listingsTab: SellerProfileListingsTab = tab === "sold" ? "sold" : tab === "active" ? "available" : "all";
-
-    void Promise.all([
-      repository.getProfile(snapshot.user.id, snapshot.user.id),
-      repository.listSellerListings({ sellerId: snapshot.user.id, viewerId: snapshot.user.id, tab: listingsTab, sort: "newest", page, pageSize: PAGE_SIZE }),
-      repository.listSellerRatings({ sellerId: snapshot.user.id, sort: "newest", page, pageSize: PAGE_SIZE })
-    ])
-      .then(([profileResult, listingsResult, ratingsResult]) => {
-        if (!active) return;
-        setProfile(profileResult);
-        setListingsData(listingsResult);
-        setRatingsData(ratingsResult);
-      })
-      .catch((requestError) => {
-        if (active) {
-          setError(requestError instanceof Error ? requestError.message : t("sellerProfile.errorLoad"));
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [page, repository, snapshot.user?.id, t, tab]);
+    void loadProfileData();
+  }, [loadProfileData]);
 
   const joinedLabel = profile?.joinedAt ? formatMonthYear(profile.joinedAt, i18n.language || "ar", "-") : "-";
   const completionPercentage = getProfileCompletionPercentage(accountProfile, snapshot.user?.email);
-
-  const saveOptionalDetails = async () => {
-    setIsSavingProfile(true);
-    setProfileMessage(null);
-    try {
-      await updateOptionalProfile({
-        city: optionalProfile.city,
-        birthDate: optionalProfile.birthDate || null,
-        gender: optionalProfile.gender ? (optionalProfile.gender as "male" | "female" | "prefer_not_to_say") : null,
-        preferredContactMethod: optionalProfile.preferredContactMethod
-          ? (optionalProfile.preferredContactMethod as "phone" | "chat" | "whatsapp" | "email")
-          : null,
-        bio: optionalProfile.bio
-      });
-      setProfileMessage(t("profile.messages.profileSaved"));
-    } catch (saveError) {
-      setProfileMessage(saveError instanceof Error ? saveError.message : t("auth.errors.unknown"));
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
+  const trustScore = profile ? getTrustScore(profile, completionPercentage) : 0;
+  const profileAvatarUri = accountProfile?.avatarUrl ?? profile?.avatarUrl;
+  const websiteValue = accountProfile?.website?.trim() ?? "";
+  const websiteLink = normalizeWebsiteForOpen(websiteValue);
 
   return (
     <View style={styles.container}>
-      <Pressable style={[styles.backButton, isRtl ? styles.backButtonRtl : undefined]} onPress={onBack}>
-        <MobileIcon name="chevron" size={16} color="#334155" />
-        <Text style={styles.backButtonLabel}>{t("sellerProfile.back")}</Text>
-      </Pressable>
-
       {profile ? (
         <View style={styles.headerCard}>
           <View style={[styles.headerTopRow, isRtl ? styles.rowRtl : undefined]}>
             <View style={styles.avatar}>
-              <MobileIcon name="profile" size={30} color="#0f766e" focused />
+              {profileAvatarUri ? (
+                <Image source={{ uri: profileAvatarUri }} style={styles.avatarImage} />
+              ) : (
+                <MobileIcon name="profile" size={30} color="#0f766e" focused />
+              )}
             </View>
             <View style={styles.headerMeta}>
               <View style={[styles.nameRow, isRtl ? styles.rowRtl : undefined]}>
@@ -158,15 +126,29 @@ export function ProfileScreen({ direction, onBack, onOpenListing, onOpenVerifica
                 {profile.isVerified ? <MobileIcon name="verified" size={16} color="#0f766e" focused /> : null}
               </View>
               <Text style={[styles.username, { textAlign }]}>{profile.username ? `@${profile.username}` : `#${profile.id.slice(0, 8)}`}</Text>
+              {accountProfile?.bio?.trim() ? <Text style={[styles.bio, { textAlign }]}>{accountProfile.bio}</Text> : null}
+              {websiteLink ? (
+                <Pressable onPress={() => void Linking.openURL(websiteLink)}>
+                  <Text style={[styles.website, { textAlign }]} numberOfLines={1}>
+                    {websiteValue}
+                  </Text>
+                </Pressable>
+              ) : null}
               <View style={[styles.ratingRow, isRtl ? styles.rowRtl : undefined]}>
                 <Text style={styles.ratingValue}>{profile.ratingAverage.toFixed(1)}</Text>
                 <Text style={styles.ratingStars}>{getRatingStars(profile.ratingAverage)}</Text>
                 <Text style={styles.ratingCount}>{t("sellerProfile.ratingCount", { count: profile.ratingCount })}</Text>
               </View>
               <Text style={[styles.info, { textAlign }]}>
-                {t(`sellerProfile.accountType.${profile.accountType}`)} • {profile.city ?? t("sellerProfile.unknownCity")} • {t("sellerProfile.memberSince", { value: joinedLabel })}
+                {t("profile.header.memberSince", { value: joinedLabel })} • {profile.city ?? t("sellerProfile.unknownCity")}
               </Text>
+              <Text style={[styles.trustScore, { textAlign }]}>{t("profile.header.trustScore", { value: trustScore })}</Text>
             </View>
+            {profile.isOwner ? (
+              <Pressable style={styles.editButton} onPress={onOpenEditProfile}>
+                <MobileIcon name="edit" size={18} color="#0f766e" focused />
+              </Pressable>
+            ) : null}
           </View>
         </View>
       ) : null}
@@ -208,45 +190,6 @@ export function ProfileScreen({ direction, onBack, onOpenListing, onOpenVerifica
         </View>
         <Pressable style={styles.verificationAction} onPress={onOpenVerification}>
           <Text style={styles.verificationActionLabel}>{t("profile.verificationFlow.action")}</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.editCard}>
-        <Text style={[styles.editTitle, { textAlign }]}>{t("profile.completion.action")}</Text>
-        <TextInput
-          style={[styles.editInput, { textAlign }]}
-          value={optionalProfile.city}
-          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, city: value }))}
-          placeholder={t("profile.completion.items.city")}
-        />
-        <TextInput
-          style={[styles.editInput, { textAlign }]}
-          value={optionalProfile.birthDate}
-          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, birthDate: value }))}
-          placeholder={t("profile.datePlaceholder")}
-        />
-        <TextInput
-          style={[styles.editInput, { textAlign }]}
-          value={optionalProfile.gender}
-          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, gender: value }))}
-          placeholder={t("profile.completion.items.gender")}
-        />
-        <TextInput
-          style={[styles.editInput, { textAlign }]}
-          value={optionalProfile.preferredContactMethod}
-          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, preferredContactMethod: value }))}
-          placeholder={t("profile.completion.items.preferredContactMethod")}
-        />
-        <TextInput
-          style={[styles.editInput, styles.editInputMultiline, { textAlign }]}
-          value={optionalProfile.bio}
-          onChangeText={(value) => setOptionalProfile((current) => ({ ...current, bio: value }))}
-          placeholder={t("profile.completion.items.bio")}
-          multiline
-        />
-        {profileMessage ? <Text style={[styles.profileMessage, { textAlign }]}>{profileMessage}</Text> : null}
-        <Pressable style={styles.saveButton} onPress={() => void saveOptionalDetails()} disabled={isSavingProfile}>
-          <Text style={styles.saveButtonLabel}>{isSavingProfile ? t("common.loading") : t("profile.edit.save")}</Text>
         </Pressable>
       </View>
 
@@ -302,25 +245,6 @@ const styles = StyleSheet.create({
   rowRtl: {
     flexDirection: "row-reverse"
   },
-  backButton: {
-    minHeight: 44,
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 12,
-    paddingVertical: 8
-  },
-  backButtonRtl: {
-    flexDirection: "row-reverse"
-  },
-  backButtonLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#334155"
-  },
   headerCard: {
     borderRadius: 18,
     backgroundColor: "#ffffff",
@@ -328,7 +252,8 @@ const styles = StyleSheet.create({
   },
   headerTopRow: {
     flexDirection: "row",
-    gap: 10
+    gap: 10,
+    alignItems: "flex-start"
   },
   avatar: {
     width: 64,
@@ -336,11 +261,24 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ecfdfa"
+    backgroundColor: "#ecfdfa",
+    overflow: "hidden"
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%"
   },
   headerMeta: {
     flex: 1,
     gap: 3
+  },
+  editButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ecfdfa"
   },
   nameRow: {
     flexDirection: "row",
@@ -355,6 +293,16 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 12,
     color: "#0f766e"
+  },
+  bio: {
+    fontSize: 11,
+    lineHeight: 17,
+    color: "#334155"
+  },
+  website: {
+    fontSize: 12,
+    color: "#0f766e",
+    textDecorationLine: "underline"
   },
   ratingRow: {
     flexDirection: "row",
@@ -377,6 +325,11 @@ const styles = StyleSheet.create({
   info: {
     fontSize: 11,
     color: "#64748b"
+  },
+  trustScore: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0f766e"
   },
   statsRow: {
     flexDirection: "row",
@@ -434,47 +387,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#0f766e"
-  },
-  editCard: {
-    borderRadius: 16,
-    backgroundColor: "#ffffff",
-    padding: 12,
-    gap: 8
-  },
-  editTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#0f172a"
-  },
-  editInput: {
-    minHeight: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#dbe4ee",
-    backgroundColor: "#f8fafc",
-    paddingHorizontal: 12,
-    fontSize: 12,
-    color: "#0f172a"
-  },
-  editInputMultiline: {
-    minHeight: 84,
-    paddingTop: 10
-  },
-  profileMessage: {
-    fontSize: 11,
-    color: "#0f766e"
-  },
-  saveButton: {
-    minHeight: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0f766e"
-  },
-  saveButtonLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#ffffff"
   },
   statCell: {
     flex: 1,

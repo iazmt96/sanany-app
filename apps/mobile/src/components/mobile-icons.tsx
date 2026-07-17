@@ -32,6 +32,7 @@ type MobileIconName =
   | "chat"
   | "views"
   | "trash"
+  | "edit"
   | "star"
   | "heart"
   | "verified";
@@ -75,6 +76,7 @@ const iconMap: Record<MobileIconName, { inactive: keyof typeof Ionicons.glyphMap
   chat: { inactive: "chatbubble-ellipses-outline", active: "chatbubble-ellipses" },
   views: { inactive: "eye-outline", active: "eye" },
   trash: { inactive: "trash-outline", active: "trash" },
+  edit: { inactive: "pencil-outline", active: "pencil" },
   star: { inactive: "star-outline", active: "star" },
   heart: { inactive: "heart-outline", active: "heart" },
   verified: { inactive: "checkmark-circle-outline", active: "checkmark-circle" }

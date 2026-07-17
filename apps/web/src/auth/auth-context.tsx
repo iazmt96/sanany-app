@@ -72,11 +72,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAccountProfile(profile);
       setProfileStatus(isBasicAccountProfileComplete(profile) ? "complete" : "required");
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to load account profile.";
+      const loweredMessage = errorMessage.toLowerCase();
+      if (loweredMessage.includes("website") && loweredMessage.includes("column")) {
+        const [profileResult, privateResult] = await Promise.all([
+          client
+            .from("profiles")
+            .select("id,display_name,username,avatar_url,bio,city,phone,account_type,is_verified")
+            .eq("id", userId)
+            .maybeSingle(),
+          client
+            .from("account_private_profiles")
+            .select("user_id,birth_date,gender,preferred_contact_method")
+            .eq("user_id", userId)
+            .maybeSingle()
+        ]);
+
+        if (!profileResult.error && !privateResult.error && profileResult.data) {
+          const profile: AccountProfile = {
+            id: profileResult.data.id,
+            displayName: profileResult.data.display_name,
+            username: profileResult.data.username,
+            avatarUrl: profileResult.data.avatar_url,
+            bio: profileResult.data.bio,
+            website: null,
+            city: profileResult.data.city,
+            phone: profileResult.data.phone,
+            birthDate: privateResult.data?.birth_date ?? null,
+            gender: privateResult.data?.gender ?? null,
+            preferredContactMethod: privateResult.data?.preferred_contact_method ?? null,
+            accountType: profileResult.data.account_type ?? "individual",
+            isVerified: profileResult.data.is_verified ?? false
+          };
+          setAccountProfile(profile);
+          setProfileStatus(isBasicAccountProfileComplete(profile) ? "complete" : "required");
+          setProfileError(null);
+          return;
+        }
+      }
       setAccountProfile(null);
       setProfileStatus("error");
-      setProfileError(error instanceof Error ? error.message : "Failed to load account profile.");
+      setProfileError(errorMessage);
     }
-  }, [controller, repository]);
+  }, [client, controller, repository]);
 
   useEffect(() => {
     const unsubscribe = controller.subscribe((nextSnapshot) => {
@@ -113,7 +151,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         controller.requestPhoneOtp({
           ...payload,
           channel: env.phoneOtpChannel,
-          fallbackChannel: env.phoneOtpChannel === "whatsapp" ? "sms" : undefined
+          fallbackChannel: env.phoneOtpChannel === "whatsapp" ? "sms" : "whatsapp"
         }),
       verifyPhoneOtp: (payload) => controller.verifyPhoneOtp(payload),
       completeBasicProfile: async (input) => {

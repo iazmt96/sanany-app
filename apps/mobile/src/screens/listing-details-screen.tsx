@@ -33,6 +33,8 @@ type ListingDetailsScreenProps = {
   onOpenChat(listing: MarketplaceListing): void;
   onOpenListing(listing: MarketplaceListing): void;
   onOpenSellerProfile(sellerId: string): void;
+  onEditListing?(): void;
+  onMarkAsSold?(): void;
 };
 
 function getPrimaryImage(imageUrl: string | null): string | null {
@@ -95,7 +97,7 @@ function resolveSpecIcon(label: string): "cars" | "location" | "time" | "filter"
   return "filter";
 }
 
-export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, onOpenListing, onOpenSellerProfile }: ListingDetailsScreenProps) {
+export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, onOpenListing, onOpenSellerProfile, onEditListing, onMarkAsSold }: ListingDetailsScreenProps) {
   const { t, i18n } = useTranslation();
   const { snapshot } = useAuth();
   const isRtl = direction === "rtl";
@@ -116,6 +118,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const [isFavorite, setIsFavorite] = useState(false);
   const [isReported, setIsReported] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarkingAsSold, setIsMarkingAsSold] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [similarListings, setSimilarListings] = useState<MarketplaceListing[]>([]);
   const priceModeSpec = parsedCarSpecs.specs.find((item) => {
@@ -303,6 +306,52 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
     ]);
   };
 
+  const markAsSold = () => {
+    const ownerId = snapshot.user?.id;
+    if (!ownerId || !isListingOwner || isMarkingAsSold) {
+      return;
+    }
+
+    Alert.alert(t("marketplace.detail.markAsSoldConfirmTitle"), t("marketplace.detail.markAsSoldConfirmMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("marketplace.detail.markAsSoldConfirmButton"),
+        style: "default",
+        onPress: () => {
+          setIsMarkingAsSold(true);
+          void listingsRepository
+            .publishDraft({
+              id: listing.id,
+              ownerId,
+              title: listing.title,
+              description: listing.description ?? "",
+              price: listing.price,
+              status: "sold",
+              imageUrl: listing.imageUrl ?? undefined,
+              locationName: listing.locationName ?? undefined,
+              latitude: listing.latitude ?? undefined,
+              longitude: listing.longitude ?? undefined,
+              ownerPhone: listing.ownerPhone ?? undefined,
+              offerType: listing.offerType ?? undefined,
+              categorySlug: listing.categorySlug ?? undefined
+            })
+            .then(() => {
+              setActionMessage(t("marketplace.detail.markAsSoldSuccess"));
+              if (onMarkAsSold) {
+                onMarkAsSold();
+              }
+            })
+            .catch(() => {
+              setActionMessage(t("marketplace.detail.markAsSoldFailed"));
+            })
+            .finally(() => {
+              setIsMarkingAsSold(false);
+            });
+        }
+      }
+    ]);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={[styles.topBar, isRtl ? styles.topBarRtl : undefined]}>
@@ -333,28 +382,52 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
       </View>
 
       <View style={[styles.actionsRow, isRtl ? styles.actionsRowRtl : undefined]}>
-        <Pressable style={[styles.actionButton, isReported ? styles.actionButtonWarn : undefined]} onPress={() => void reportListing()}>
-          <MobileIcon name="report" size={15} color={isReported ? "#b45309" : "#334155"} focused={isReported} />
-          <Text style={[styles.actionButtonLabel, isReported ? styles.actionButtonWarnLabel : undefined]}>{t("marketplace.detail.report")}</Text>
-        </Pressable>
-        <Pressable style={styles.actionButton} onPress={() => void shareListing()}>
-          <MobileIcon name="share" size={15} color="#334155" />
-          <Text style={styles.actionButtonLabel}>{t("marketplace.detail.share")}</Text>
-        </Pressable>
-        <Pressable style={[styles.actionButton, isFavorite ? styles.actionButtonFav : undefined]} onPress={() => void toggleFavorite()}>
-          <MobileIcon name="favorites" size={15} color={isFavorite ? "#be185d" : "#334155"} focused={isFavorite} />
-          <Text style={[styles.actionButtonLabel, isFavorite ? styles.actionButtonFavLabel : undefined]}>{t("marketplace.detail.favorite")}</Text>
-        </Pressable>
         {isListingOwner ? (
-          <Pressable
-            style={[styles.actionButton, styles.actionButtonDanger, isDeleting ? styles.actionButtonDisabled : undefined]}
-            disabled={isDeleting}
-            onPress={deleteListing}
-          >
-            <MobileIcon name="trash" size={15} color="#dc2626" />
-            <Text style={[styles.actionButtonLabel, styles.actionButtonDangerLabel]}>{t("marketplace.detail.deleteAction")}</Text>
-          </Pressable>
-        ) : null}
+          <>
+            <Pressable
+              style={[styles.actionButton, styles.actionButtonPrimary]}
+              onPress={onEditListing}
+            >
+              <MobileIcon name="edit" size={15} color="#ffffff" />
+              <Text style={[styles.actionButtonLabel, styles.actionButtonPrimaryLabel]}>{t("marketplace.detail.editAction")}</Text>
+            </Pressable>
+            <Pressable style={styles.actionButton} onPress={() => void shareListing()}>
+              <MobileIcon name="share" size={15} color="#334155" />
+              <Text style={styles.actionButtonLabel}>{t("marketplace.detail.share")}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, isMarkingAsSold ? styles.actionButtonDisabled : undefined]}
+              disabled={isMarkingAsSold || listing.status === "sold"}
+              onPress={markAsSold}
+            >
+              <MobileIcon name="verified" size={15} color={listing.status === "sold" ? "#64748b" : "#0f766e"} focused={listing.status === "sold"} />
+              <Text style={[styles.actionButtonLabel, listing.status === "sold" ? styles.actionButtonMutedLabel : undefined]}>{t("marketplace.detail.markAsSoldAction")}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, styles.actionButtonDanger, isDeleting ? styles.actionButtonDisabled : undefined]}
+              disabled={isDeleting}
+              onPress={deleteListing}
+            >
+              <MobileIcon name="trash" size={15} color="#dc2626" />
+              <Text style={[styles.actionButtonLabel, styles.actionButtonDangerLabel]}>{t("marketplace.detail.deleteAction")}</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable style={[styles.actionButton, isReported ? styles.actionButtonWarn : undefined]} onPress={() => void reportListing()}>
+              <MobileIcon name="report" size={15} color={isReported ? "#b45309" : "#334155"} focused={isReported} />
+              <Text style={[styles.actionButtonLabel, isReported ? styles.actionButtonWarnLabel : undefined]}>{t("marketplace.detail.report")}</Text>
+            </Pressable>
+            <Pressable style={styles.actionButton} onPress={() => void shareListing()}>
+              <MobileIcon name="share" size={15} color="#334155" />
+              <Text style={styles.actionButtonLabel}>{t("marketplace.detail.share")}</Text>
+            </Pressable>
+            <Pressable style={[styles.actionButton, isFavorite ? styles.actionButtonFav : undefined]} onPress={() => void toggleFavorite()}>
+              <MobileIcon name="favorites" size={15} color={isFavorite ? "#be185d" : "#334155"} focused={isFavorite} />
+              <Text style={[styles.actionButtonLabel, isFavorite ? styles.actionButtonFavLabel : undefined]}>{t("marketplace.detail.favorite")}</Text>
+            </Pressable>
+          </>
+        )}
       </View>
 
       <View style={styles.content}>
@@ -576,6 +649,15 @@ const styles = StyleSheet.create({
   },
   actionButtonWarn: {
     backgroundColor: "#fff7ed"
+  },
+  actionButtonPrimary: {
+    backgroundColor: "#0f766e"
+  },
+  actionButtonPrimaryLabel: {
+    color: "#ffffff"
+  },
+  actionButtonMutedLabel: {
+    color: "#94a3b8"
   },
   actionButtonFav: {
     backgroundColor: "#fdf2f8"

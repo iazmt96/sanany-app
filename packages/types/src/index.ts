@@ -294,6 +294,7 @@ export type AccountProfile = {
   username: string | null;
   avatarUrl: string | null;
   bio: string | null;
+  website: string | null;
   city: string | null;
   phone: string | null;
   birthDate: string | null;
@@ -308,6 +309,7 @@ export type UpdateAccountProfileInput = {
   username?: string;
   avatarUrl?: string | null;
   bio?: string | null;
+  website?: string | null;
   city?: string | null;
   phone?: string | null;
   birthDate?: string | null;

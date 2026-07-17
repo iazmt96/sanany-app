@@ -749,6 +749,26 @@
         agreementRequired: "يجب الموافقة على اتفاقية الرسوم."
       }
     },
+    edit: {
+      title: "تعديل الإعلان",
+      titleLabel: "عنوان الإعلان",
+      descriptionLabel: "وصف الإعلان",
+      priceLabel: "السعر",
+      locationLabel: "الموقع",
+      imagesTitle: "صور الإعلان",
+      imagesHint: "يمكنك إضافة حتى 10 صور.",
+      saveChanges: "حفظ التعديلات",
+      saving: "جاري الحفظ...",
+      success: "تم تحديث الإعلان بنجاح",
+      errors: {
+        authRequired: "يجب تسجيل الدخول لتعديل الإعلان.",
+        titleRequired: "عنوان الإعلان مطلوب.",
+        priceInvalid: "السعر يجب أن يكون رقمًا صحيحًا أكبر من صفر.",
+        imageRequired: "يرجى الاحتفاظ بصورة واحدة على الأقل.",
+        imagesProcessing: "انتظر حتى يكتمل تجهيز الصور.",
+        saveFailed: "تعذر حفظ التعديلات. حاول مرة أخرى."
+      }
+    },
     sort: {
       label: "الترتيب",
       newest: "الأحدث",
@@ -836,7 +856,18 @@
         expired: "منتهي"
       },
       similarAdsTitle: "إعلانات مشابهة",
-      similarAdsSubtitle: "قد تهمك هذه الإعلانات أيضًا"
+      similarAdsSubtitle: "قد تهمك هذه الإعلانات أيضًا",
+      editAction: "تعديل",
+      markAsSoldAction: "تم البيع",
+      markAsSoldConfirmTitle: "تأكيد البيع",
+      markAsSoldConfirmMessage: "هل تريد وضع علامة على هذا الإعلان كمباع؟",
+      markAsSoldConfirmButton: "تأكيد البيع",
+      markAsSoldSuccess: "تم تحديث الإعلان إلى مباع",
+      markAsSoldFailed: "تعذر تحديث حالة الإعلان. حاول مرة أخرى.",
+      unsavedChangesTitle: "تعديلات غير محفوظة",
+      unsavedChangesMessage: "لديك تعديلات غير محفوظة. هل تريد الخروج دون حفظها؟",
+      continueEditing: "متابعة التعديل",
+      leaveWithoutSaving: "الخروج دون حفظ"
     }
   },
   search: {
@@ -1125,9 +1156,82 @@
       sold: "المباعة",
       ratings: "التقييمات"
     },
+    header: {
+      memberSince: "عضو منذ {{value}}",
+      trustScore: "مؤشر الثقة {{value}}%"
+    },
     accountInfo: {
       title: "بيانات الحساب",
       subtitle: "تعديل البيانات"
+    },
+    edit: {
+      title: "تعديل الملف الشخصي",
+      displayName: "الاسم الظاهر",
+      city: "المدينة",
+      phone: "رقم الجوال",
+      bio: "نبذة",
+      save: "حفظ التغييرات",
+      avatarAction: "تغيير الصورة",
+      avatarUploading: "جاري رفع الصورة...",
+      photoCropHint: "بعد اختيار الصورة يمكنك قصّها وتكبيرها وتحريكها قبل التأكيد.",
+      photoActions: {
+        gallery: "المعرض",
+        camera: "الكاميرا",
+        remove: "إزالة الصورة"
+      },
+      removePhotoConfirm: "هل تريد إزالة صورتك الحالية؟",
+      removeAction: "إزالة",
+      usernameChecking: "جاري التحقق من اسم المستخدم...",
+      usernameAvailable: "اسم المستخدم متاح",
+      usernameSuggestions: "اقتراحات",
+      displayNameLimit: "متبقي {{value}} حرف",
+      bioRemaining: "متبقي {{value}} حرف",
+      websiteHint: "إذا كتبت example.com سيتم حفظه تلقائيًا كـ https://example.com",
+      phoneOtpHint: "تغيير رقم الجوال يتطلب التحقق برمز OTP قبل الحفظ.",
+      phoneVerified: "تم التحقق من رقم الجوال.",
+      phoneActions: {
+        sendOtp: "إرسال الرمز",
+        verifyOtp: "تأكيد الرمز"
+      },
+      saveAction: "حفظ التغييرات",
+      cancelAction: "إلغاء",
+      success: "تم تحديث الملف الشخصي بنجاح.",
+      fields: {
+        displayName: "الاسم",
+        username: "اسم المستخدم",
+        bio: "النبذة",
+        website: "الموقع الإلكتروني",
+        location: "الموقع",
+        phone: "رقم الجوال"
+      },
+      placeholders: {
+        displayName: "اكتب اسمك",
+        username: "اكتب اسم المستخدم",
+        bio: "اكتب نبذة قصيرة عنك",
+        website: "https://example.com",
+        location: "المدينة أو المنطقة",
+        phone: "05XXXXXXXX",
+        otp: "أدخل رمز التحقق"
+      },
+      errors: {
+        displayNameRequired: "يرجى إدخال الاسم.",
+        displayNameTooLong: "يجب ألا يتجاوز الاسم 50 حرفًا.",
+        usernameRequired: "يرجى إدخال اسم المستخدم.",
+        usernameInvalid: "اسم المستخدم غير صالح.",
+        usernameTaken: "اسم المستخدم مستخدم بالفعل.",
+        usernameCheckFailed: "تعذر التحقق من اسم المستخدم الآن.",
+        bioTooLong: "يجب ألا تتجاوز النبذة 160 حرفًا.",
+        websiteInvalid: "يرجى إدخال رابط موقع صحيح.",
+        phoneInvalid: "يرجى إدخال رقم جوال صحيح.",
+        phoneOtpSendFailed: "تعذر إرسال رمز التحقق الآن.",
+        phoneOtpVerifyFailed: "فشل التحقق من رمز OTP.",
+        phoneOtpRequired: "يرجى إدخال رمز التحقق كاملًا.",
+        phoneVerificationRequired: "يلزم التحقق من رقم الجوال الجديد أولًا.",
+        imagePermissionDenied: "يلزم السماح بالوصول للصور لتغيير الصورة الشخصية.",
+        imagePickFailed: "تعذر اختيار الصورة.",
+        imageUploadFailed: "تعذر رفع الصورة الآن.",
+        saveFailed: "تعذر حفظ التعديلات الآن."
+      }
     },
     more: {
       myAdsSection: "إعلاناتي",
@@ -1261,14 +1365,6 @@
       sold: "الإعلانات المباعة",
       expired: "الإعلانات المنتهية",
       favorites: "المفضلة"
-    },
-    edit: {
-      title: "تعديل بيانات الملف",
-      displayName: "الاسم الظاهر",
-      city: "المدينة",
-      phone: "رقم الجوال",
-      bio: "نبذة",
-      save: "حفظ التغييرات"
     },
     messages: {
       profileSaved: "تم تحديث الملف الشخصي بنجاح.",

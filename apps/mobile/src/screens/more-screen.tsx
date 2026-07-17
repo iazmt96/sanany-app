@@ -49,38 +49,37 @@ export function MoreScreen({ direction, onOpenProfile, onOpenMyAds, onOpenFavori
         </View>
       </View>
 
-      <Section title={t("more.myAdsSection")}>
-        <ActionItem direction={direction} icon="myAds" label={t("more.myAdsActive")} onPress={onOpenMyAds} />
-        <ActionItem direction={direction} icon="myAds" label={t("more.myAdsDrafts")} onPress={onOpenMyAds} />
-        <ActionItem direction={direction} icon="myAds" label={t("more.myAdsSold")} onPress={onOpenMyAds} />
-        <ActionItem direction={direction} icon="myAds" label={t("more.myAdsExpired")} onPress={onOpenMyAds} />
+      <Section title={t("profile.more.myAdsSection")}>
+        <ActionItem direction={direction} icon="myAds" label={t("profile.more.myAdsActive")} onPress={onOpenMyAds} />
+        <ActionItem direction={direction} icon="myAds" label={t("profile.more.myAdsDrafts")} onPress={onOpenMyAds} />
+        <ActionItem direction={direction} icon="myAds" label={t("profile.more.myAdsSold")} onPress={onOpenMyAds} />
+        <ActionItem direction={direction} icon="myAds" label={t("profile.more.myAdsExpired")} onPress={onOpenMyAds} />
       </Section>
 
-      <Section title={t("more.accountSection")}>
-        <ActionItem direction={direction} icon="profile" label={t("more.profile")} onPress={onOpenProfile} />
-        <ActionItem direction={direction} icon="profile" label={t("more.editProfile")} onPress={onOpenProfile} />
-        <ActionItem direction={direction} icon="verified" label={t("more.verification")} onPress={onOpenVerification} />
+      <Section title={t("profile.more.accountSection")}>
+        <ActionItem direction={direction} icon="profile" label={t("profile.more.profile")} onPress={onOpenProfile} />
+        <ActionItem direction={direction} icon="verified" label={t("profile.more.verification")} onPress={onOpenVerification} />
       </Section>
 
-      <Section title={t("more.communitySection")}>
-        <ActionItem direction={direction} icon="heart" label={t("more.favorites")} onPress={onOpenFavorites} />
-        <ActionItem direction={direction} icon="profile" label={t("more.followers")} />
-        <ActionItem direction={direction} icon="notifications" label={t("more.notifications")} onPress={onOpenNotifications} />
+      <Section title={t("profile.more.communitySection")}>
+        <ActionItem direction={direction} icon="heart" label={t("profile.more.favorites")} onPress={onOpenFavorites} />
+        <ActionItem direction={direction} icon="profile" label={t("profile.more.followers")} />
+        <ActionItem direction={direction} icon="notifications" label={t("profile.more.notifications")} onPress={onOpenNotifications} />
       </Section>
 
-      <Section title={t("more.settingsSection")}>
+      <Section title={t("profile.more.settingsSection")}>
         <View style={styles.languageRow}>
-          <Text style={[styles.sectionTitle, { textAlign }]}>{t("more.language")}</Text>
+          <Text style={[styles.sectionTitle, { textAlign }]}>{t("profile.more.language")}</Text>
           <LanguageSwitcher />
         </View>
-        <ActionItem direction={direction} icon="settings" label={t("more.darkMode")} />
+        <ActionItem direction={direction} icon="settings" label={t("profile.more.darkMode")} />
       </Section>
 
-      <Section title={t("more.supportSection")}>
-        <ActionItem direction={direction} icon="call" label={t("more.contact")} />
-        <ActionItem direction={direction} icon="settings" label={t("more.terms")} />
-        <ActionItem direction={direction} icon="settings" label={t("more.privacy")} />
-        <ActionItem direction={direction} icon="settings" label={t("more.about")} />
+      <Section title={t("profile.more.supportSection")}>
+        <ActionItem direction={direction} icon="call" label={t("profile.more.contact")} />
+        <ActionItem direction={direction} icon="settings" label={t("profile.more.terms")} />
+        <ActionItem direction={direction} icon="settings" label={t("profile.more.privacy")} />
+        <ActionItem direction={direction} icon="settings" label={t("profile.more.about")} />
       </Section>
 
       <Pressable

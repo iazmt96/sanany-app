@@ -310,7 +310,7 @@ export function AuthScreen() {
         {mode === "phone" && step === "phone" && (
           <>
             <Text style={[styles.fieldLabel, { textAlign }]}>{t("auth.phoneOnboarding.phoneStepLabel")}</Text>
-            <View style={[styles.phoneRow, isRtl ? styles.rowRtl : undefined]}>
+            <View style={styles.phoneRow}>
               <Pressable
                 accessibilityRole="button"
                 style={styles.countrySelector}
@@ -531,8 +531,23 @@ const styles = StyleSheet.create({
   termsCheckboxActive: { borderColor: TEAL, backgroundColor: TEAL },
   termsLabel: { flex: 1, fontSize: 12, lineHeight: 18, color: "#475569" },
   // OTP
-  otpRow: { flexDirection: "row", justifyContent: "space-between", gap: 8, marginVertical: 8 },
-  otpInput: { flex: 1, height: 64, borderRadius: 16, borderWidth: 2, borderColor: BORDER, backgroundColor: BG_INPUT, fontSize: 26, fontWeight: "800", color: TEXT_MAIN },
+  otpRow: { flexDirection: "row", justifyContent: "center", gap: 6, marginVertical: 8 },
+  otpInput: {
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    backgroundColor: BG_INPUT,
+    textAlign: "center",
+    writingDirection: "ltr",
+    paddingHorizontal: 0,
+    fontSize: 21,
+    fontWeight: "800",
+    color: TEXT_MAIN
+  },
   otpInputFilled: { borderColor: TEAL, backgroundColor: TEAL_LIGHT },
   inlineActions: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   inlineActionLabel: { fontSize: 12, fontWeight: "700", color: TEAL },

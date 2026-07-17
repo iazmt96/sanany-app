@@ -135,6 +135,7 @@ export function buildOptionalProfileUpdate(input: UpdateAccountProfileInput): Up
     username: input.username ? normalizeUsername(input.username) : undefined,
     avatarUrl: input.avatarUrl ?? undefined,
     bio: input.bio?.trim() || null,
+    website: input.website?.trim() || null,
     city: input.city?.trim() || null,
     phone: input.phone ? normalizePhoneNumber(input.phone) : undefined,
     birthDate: input.birthDate || null,

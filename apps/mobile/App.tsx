@@ -11,9 +11,11 @@ import { AuthProvider, useAuth } from "./src/auth/auth-context";
 import { LanguageSwitcher } from "./src/components/language-switcher";
 import { MobileNavigation, type MobileTab } from "./src/components/mobile-navigation";
 import { AddListingScreen } from "./src/screens/add-listing-screen";
+import { EditListingScreen } from "./src/screens/edit-listing-screen";
 import { AuthScreen } from "./src/screens/auth-screen";
 import { ChatScreen } from "./src/screens/chat-screen";
 import { FavoritesScreen } from "./src/screens/favorites-screen";
+import { EditProfileScreen } from "./src/screens/edit-profile-screen";
 import { ListingDetailsScreen } from "./src/screens/listing-details-screen";
 import { MarketplaceScreen } from "./src/screens/marketplace-screen";
 import { MoreScreen } from "./src/screens/more-screen";
@@ -35,6 +37,8 @@ function AppContent() {
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [editingListing, setEditingListing] = useState<MarketplaceListing | null>(null);
   const [chatIntentListing, setChatIntentListing] = useState<MarketplaceListing | null>(null);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [isHomePreview, setIsHomePreview] = useState(false);
@@ -127,7 +131,17 @@ function AppContent() {
         {isHomePreview || myAdsPreviewState || (isAuthenticated(snapshot) && profileStatus === "complete") ? (
           <>
             <View style={styles.contentCard}>
-              {selectedListing ? (
+              {selectedListing && editingListing ? (
+                <EditListingScreen
+                  direction={direction}
+                  listing={editingListing}
+                  onBack={() => setEditingListing(null)}
+                  onSaved={(updated) => {
+                    setEditingListing(null);
+                    setSelectedListing(updated);
+                  }}
+                />
+              ) : selectedListing ? (
                 <ListingDetailsScreen
                   direction={direction}
                   listing={selectedListing}
@@ -146,6 +160,8 @@ function AppContent() {
                     setSelectedListing(null);
                     setSelectedSellerId(sellerId);
                   }}
+                  onEditListing={() => setEditingListing(selectedListing)}
+                  onMarkAsSold={() => setSelectedListing(null)}
                 />
               ) : selectedSellerId ? (
                 <SellerProfileScreen
@@ -164,6 +180,14 @@ function AppContent() {
                   direction={direction}
                   onBack={() => {
                     setIsVerificationOpen(false);
+                  }}
+                />
+              ) : isEditProfileOpen ? (
+                <EditProfileScreen
+                  direction={direction}
+                  onBack={() => {
+                    setIsEditProfileOpen(false);
+                    setActiveTab("profile");
                   }}
                 />
               ) : (
@@ -230,12 +254,17 @@ function AppContent() {
                     <FavoritesScreen direction={direction} />
                   </View>
                   <View style={[styles.scene, activeTab === "profile" ? styles.sceneActive : styles.sceneHidden]}>
-                    <ProfileScreen direction={direction} onBack={() => setActiveTab("more")} onOpenListing={setSelectedListing} onOpenVerification={() => setIsVerificationOpen(true)} />
+                    <ProfileScreen
+                      direction={direction}
+                      onOpenListing={setSelectedListing}
+                      onOpenVerification={() => setIsVerificationOpen(true)}
+                      onOpenEditProfile={() => setIsEditProfileOpen(true)}
+                    />
                   </View>
                 </Animated.View>
               )}
             </View>
-            {selectedListing || selectedSellerId || isVerificationOpen ? null : (
+            {selectedListing || selectedSellerId || isVerificationOpen || isEditProfileOpen || editingListing ? null : (
               <MobileNavigation
                 direction={direction}
                 activeTab={activeTab}
@@ -244,6 +273,8 @@ function AppContent() {
                   setSelectedListing(null);
                   setSelectedSellerId(null);
                   setIsVerificationOpen(false);
+                  setIsEditProfileOpen(false);
+                  setEditingListing(null);
                   setIsSearchOpen(false);
                   if (tab !== "chat") {
                     setChatIntentListing(null);

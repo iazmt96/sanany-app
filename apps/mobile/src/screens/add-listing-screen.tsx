@@ -44,7 +44,6 @@ import { getMobileSupabaseEnv } from "../config/env";
 import { getMobileListingsRepository } from "../lib/listings-repository";
 import { getMobileSupabaseClient } from "../lib/supabase-client";
 import { MobileIcon } from "../components/mobile-icons";
-import { MobileSectionHeader } from "../components/mobile-section-header";
 
 type AddListingScreenProps = {
   direction: Direction;
@@ -1728,12 +1727,6 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
 
   return (
     <View style={styles.container}>
-      <MobileSectionHeader
-        direction={direction}
-        title={t("marketplace.create.title")}
-        subtitle={t("marketplace.create.flow.stepProgress", { current: currentStepIndex + 1, total: FLOW_STEPS.length })}
-      />
-
       <View style={styles.stepsRow}>
         {FLOW_STEPS.map((step, index) => {
           const isActive = index === currentStepIndex;
@@ -1800,7 +1793,6 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
 
           {currentStep === "details" ? (
             <View>
-              <Text style={[styles.stepTitle, { textAlign }]}>{t("marketplace.create.flow.detailsTitle")}</Text>
               <Text style={[styles.sectionLabel, { textAlign }]}>{t("marketplace.create.images.title")}</Text>
               <View style={styles.imageSlotsRow}>
                 {selectedImages.map((image, index) => (
@@ -1842,14 +1834,10 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
                   </Pressable>
                 ) : null}
               </View>
-              <Text style={[styles.imageHint, { textAlign }]}>{t("marketplace.create.images.hint")}</Text>
               <Text style={[styles.imageHint, { textAlign }]}>{t("marketplace.create.images.selectedCount", { count: selectedImagesCount })}</Text>
               <Text style={[styles.imageHint, { textAlign }]}>{t("marketplace.create.images.idealCountHint", { count: IDEAL_IMAGE_COUNT })}</Text>
               {getFailedListingImageUploads(selectedImages).length > 0 ? (
                 <Text style={[styles.imageHint, styles.imageHintWarning, { textAlign }]}>{t("marketplace.create.images.uploadFailed")}</Text>
-              ) : null}
-              {hasPendingDraftSyncOperations(pendingSyncOperations) ? (
-                <Text style={[styles.imageHint, { textAlign }]}>{t("marketplace.create.draft.queuePending", { count: pendingSyncOperations.length })}</Text>
               ) : null}
               {hasPendingListingImageUploads(selectedImages) ? (
                 <Text style={[styles.imageHint, { textAlign }]}>{t("marketplace.create.images.uploadPending")}</Text>
@@ -2270,7 +2258,6 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
 
           {errorKey ? <Text style={[styles.errorLabel, { textAlign }]}>{t(errorKey)}</Text> : null}
           {errorMessage ? <Text style={[styles.errorLabel, { textAlign }]}>{errorMessage}</Text> : null}
-          {isDraftSaving ? <Text style={[styles.infoLabel, { textAlign }]}>{t("marketplace.create.draft.saving")}</Text> : null}
           {!isDraftSaving && draftSavedAtLabel ? <Text style={[styles.infoLabel, { textAlign }]}>{t("marketplace.create.draft.savedAt", { value: draftSavedAtLabel })}</Text> : null}
 
           <View style={[styles.actionsRow, direction === "rtl" ? styles.actionsRowRtl : undefined]}>

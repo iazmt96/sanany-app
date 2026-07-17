@@ -14,18 +14,39 @@ export type AuthService = {
   onAuthStateChange(listener: (session: Session | null, event: AuthChangeEvent) => void): AuthSubscription;
 };
 
-function shouldFallbackToSms(error: unknown, primaryChannel: PhoneOtpChannel, fallbackChannel?: PhoneOtpChannel): boolean {
-  if (primaryChannel !== "whatsapp" || fallbackChannel !== "sms") {
+function shouldFallbackToAlternateChannel(error: unknown, primaryChannel: PhoneOtpChannel, fallbackChannel?: PhoneOtpChannel): boolean {
+  if (!fallbackChannel || primaryChannel === fallbackChannel) {
     return false;
   }
 
   const message = error instanceof Error ? error.message.toLowerCase() : "";
-  return (
-    message.includes("whatsapp") ||
+  const hasChannelOrProviderFailure =
     message.includes("twilio") ||
     message.includes("unsupported phone provider") ||
     message.includes("unsupported channel") ||
-    message.includes("invalid channel")
+    message.includes("invalid channel") ||
+    message.includes("provider") ||
+    message.includes("channel") ||
+    message.includes("delivery channel disabled");
+
+  if (!hasChannelOrProviderFailure) {
+    return false;
+  }
+
+  if (primaryChannel === "whatsapp" && fallbackChannel === "sms") {
+    return message.includes("whatsapp") || !message.includes("sms");
+  }
+
+  if (primaryChannel === "sms" && fallbackChannel === "whatsapp") {
+    return message.includes("sms") || !message.includes("whatsapp");
+  }
+
+  return (
+    message.includes("twilio") ||
+    message.includes("unsupported phone provider") ||
+    message.includes("unsupported channel") ||
+    message.includes("invalid channel") ||
+    message.includes("delivery channel disabled")
   );
 }
 
@@ -95,7 +116,7 @@ export function createSupabaseAuthService(client: SupabaseClient): AuthService {
         return;
       }
 
-      if (fallbackChannel && shouldFallbackToSms(error, primaryChannel, fallbackChannel)) {
+      if (fallbackChannel && shouldFallbackToAlternateChannel(error, primaryChannel, fallbackChannel)) {
         const fallbackResult = await requestOtp(fallbackChannel);
         if (!fallbackResult.error) {
           return;

@@ -15,6 +15,7 @@ type AccountProfileRow = {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  website?: string | null;
   city: string | null;
   phone: string | null;
   account_type: AccountProfile["accountType"] | null;
@@ -57,6 +58,7 @@ function mapAccountProfile(row: AccountProfileRow, privateRow: AccountPrivatePro
     username: row.username,
     avatarUrl: row.avatar_url,
     bio: row.bio,
+    website: row.website ?? null,
     city: row.city,
     phone: row.phone,
     birthDate: privateRow?.birth_date ?? null,
@@ -91,6 +93,16 @@ function mapVerification(row: VerificationRow): AccountVerificationRequest {
   };
 }
 
+function isMissingWebsiteColumnError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as { code?: string; message?: string; details?: string; hint?: string };
+  const searchable = `${candidate.message ?? ""} ${candidate.details ?? ""} ${candidate.hint ?? ""}`.toLowerCase();
+  return candidate.code === "42703" && searchable.includes("website");
+}
+
 export type AccountRepository = {
   getAccountProfile(userId: string): Promise<AccountProfile | null>;
   checkUsernameAvailability(username: string, excludeUserId?: string | null, displayName?: string): Promise<UsernameAvailability>;
@@ -102,10 +114,10 @@ export type AccountRepository = {
 
 export function createAccountRepository(client: SupabaseClient): AccountRepository {
   const getAccountProfile: AccountRepository["getAccountProfile"] = async (userId) => {
-      const [profileResult, privateResult] = await Promise.all([
+      const [profileResultRaw, privateResult] = await Promise.all([
         client
           .from("profiles")
-          .select("id,display_name,username,avatar_url,bio,city,phone,account_type,is_verified")
+          .select("id,display_name,username,avatar_url,bio,website,city,phone,account_type,is_verified")
           .eq("id", userId)
           .maybeSingle(),
         client
@@ -114,6 +126,15 @@ export function createAccountRepository(client: SupabaseClient): AccountReposito
           .eq("user_id", userId)
           .maybeSingle()
       ]);
+      let profileResult = profileResultRaw;
+      if (profileResult.error && isMissingWebsiteColumnError(profileResult.error)) {
+        profileResult = await client
+          .from("profiles")
+          .select("id,display_name,username,avatar_url,bio,city,phone,account_type,is_verified")
+          .eq("id", userId)
+          .maybeSingle();
+      }
+
       if (profileResult.error) {
         throw profileResult.error;
       }
@@ -177,6 +198,7 @@ export function createAccountRepository(client: SupabaseClient): AccountReposito
         ...(normalized.username !== undefined ? { username: normalized.username || null } : {}),
         ...(normalized.avatarUrl !== undefined ? { avatar_url: normalized.avatarUrl } : {}),
         ...(normalized.bio !== undefined ? { bio: normalized.bio } : {}),
+        ...(normalized.website !== undefined ? { website: normalized.website } : {}),
         ...(normalized.city !== undefined ? { city: normalized.city } : {}),
         ...(normalized.phone !== undefined ? { phone: normalized.phone || null } : {})
       };
@@ -188,9 +210,20 @@ export function createAccountRepository(client: SupabaseClient): AccountReposito
       };
 
       if (Object.keys(profilePayload).length > 0) {
-        const { error } = await client.from("profiles").update(profilePayload).eq("id", userId);
-        if (error) {
-          throw error;
+        let nextProfilePayload = { ...profilePayload };
+        const profileUpdateResult = await client.from("profiles").update(nextProfilePayload).eq("id", userId);
+        let profileUpdateError = profileUpdateResult.error;
+        if (profileUpdateError && isMissingWebsiteColumnError(profileUpdateError) && "website" in nextProfilePayload) {
+          const { website: _ignoredWebsite, ...payloadWithoutWebsite } = nextProfilePayload;
+          if (Object.keys(payloadWithoutWebsite).length > 0) {
+            const retryUpdateResult = await client.from("profiles").update(payloadWithoutWebsite).eq("id", userId);
+            profileUpdateError = retryUpdateResult.error;
+          } else {
+            profileUpdateError = null;
+          }
+        }
+        if (profileUpdateError) {
+          throw profileUpdateError;
         }
       }
 

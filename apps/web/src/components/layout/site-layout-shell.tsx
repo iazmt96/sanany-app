@@ -29,6 +29,16 @@ export function SiteLayoutShell({ language, children }: SiteLayoutShellProps) {
     { href: `/${resolvedLanguage}/favorites`, label: t("nav.favorites") }
   ];
 
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <main id="main-content" tabIndex={-1} className="min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <SiteHeader language={resolvedLanguage} />
@@ -36,8 +46,8 @@ export function SiteLayoutShell({ language, children }: SiteLayoutShellProps) {
       <ResponsiveContainer className="py-4 sm:py-5">
         <SiteBreadcrumbs language={resolvedLanguage} />
 
-        <div className={`mt-3 grid gap-4 ${showSidebar && !isAuthPage ? "xl:grid-cols-[260px_minmax(0,1fr)]" : ""}`}>
-          {showSidebar && !isAuthPage ? (
+        <div className={`mt-3 grid gap-4 ${showSidebar ? "xl:grid-cols-[260px_minmax(0,1fr)]" : ""}`}>
+          {showSidebar ? (
             <aside className="hidden h-fit rounded-xl border border-slate-200 bg-white p-3 xl:block" aria-label={t("siteLayout.sidebar.ariaLabel")}>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("siteLayout.sidebar.title")}</p>
               <nav className="space-y-1">
@@ -60,4 +70,3 @@ export function SiteLayoutShell({ language, children }: SiteLayoutShellProps) {
     </div>
   );
 }
-

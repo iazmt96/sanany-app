@@ -49,6 +49,12 @@ export function resolveAuthErrorKey(message: string): string {
     return "auth.errors.invalidCredentials";
   }
   if (
+    (loweredMessage.includes("phone number") || loweredMessage.includes("to number")) &&
+    (loweredMessage.includes("invalid") || loweredMessage.includes("not valid"))
+  ) {
+    return "auth.phoneOnboarding.errors.phoneInvalid";
+  }
+  if (
     (loweredMessage.includes("phone") || loweredMessage.includes("whatsapp")) &&
     (loweredMessage.includes("disabled") ||
       loweredMessage.includes("sms provider") ||
@@ -68,8 +74,7 @@ export function resolveAuthErrorKey(message: string): string {
     loweredMessage.includes("otp") ||
     loweredMessage.includes("token") ||
     loweredMessage.includes("verification code") ||
-    loweredMessage.includes("sms") ||
-    loweredMessage.includes("whatsapp")
+    loweredMessage.includes("check your code")
   ) {
     if (loweredMessage.includes("invalid") || loweredMessage.includes("should be")) {
       return "auth.phoneOnboarding.errors.otpInvalid";
@@ -80,9 +85,6 @@ export function resolveAuthErrorKey(message: string): string {
   }
   if (loweredMessage.includes("email address") && loweredMessage.includes("is invalid")) {
     return "auth.errors.invalidEmail";
-  }
-  if (loweredMessage.includes("phone number") && loweredMessage.includes("invalid")) {
-    return "auth.phoneOnboarding.errors.phoneInvalid";
   }
   if (loweredMessage.includes("already registered") || loweredMessage.includes("user already registered")) {
     return "auth.errors.userExists";

@@ -750,6 +750,26 @@
         agreementRequired: "You must accept the fees agreement."
       }
     },
+    edit: {
+      title: "Edit Advertisement",
+      titleLabel: "Advertisement Title",
+      descriptionLabel: "Description",
+      priceLabel: "Price",
+      locationLabel: "Location",
+      imagesTitle: "Advertisement Images",
+      imagesHint: "You can add up to 10 images.",
+      saveChanges: "Save Changes",
+      saving: "Saving...",
+      success: "Advertisement updated successfully",
+      errors: {
+        authRequired: "You must be signed in to edit a listing.",
+        titleRequired: "Advertisement title is required.",
+        priceInvalid: "Price must be a valid number greater than zero.",
+        imageRequired: "Please keep at least one image.",
+        imagesProcessing: "Please wait for image processing to complete.",
+        saveFailed: "Could not save changes. Please try again."
+      }
+    },
     sort: {
       label: "Sort",
       newest: "Newest",
@@ -836,7 +856,18 @@
         expired: "Expired"
       },
       similarAdsTitle: "Similar ads",
-      similarAdsSubtitle: "You may also be interested in these listings"
+      similarAdsSubtitle: "You may also be interested in these listings",
+      editAction: "Edit",
+      markAsSoldAction: "Mark as Sold",
+      markAsSoldConfirmTitle: "Confirm Sale",
+      markAsSoldConfirmMessage: "Do you want to mark this listing as sold?",
+      markAsSoldConfirmButton: "Confirm Sale",
+      markAsSoldSuccess: "Listing has been marked as sold",
+      markAsSoldFailed: "Could not update the listing status. Please try again.",
+      unsavedChangesTitle: "Unsaved Changes",
+      unsavedChangesMessage: "You have unsaved changes. Do you want to leave without saving?",
+      continueEditing: "Continue Editing",
+      leaveWithoutSaving: "Leave Without Saving"
     },
     signOutHint: "Signed in as {{email}}"
   },
@@ -1126,9 +1157,82 @@
       sold: "Sold",
       ratings: "Ratings"
     },
+    header: {
+      memberSince: "Member since {{value}}",
+      trustScore: "Trust score {{value}}%"
+    },
     accountInfo: {
       title: "Account details",
       subtitle: "Edit details"
+    },
+    edit: {
+      title: "Edit profile",
+      displayName: "Display name",
+      city: "City",
+      phone: "Phone number",
+      bio: "Bio",
+      save: "Save changes",
+      avatarAction: "Change photo",
+      avatarUploading: "Uploading photo...",
+      photoCropHint: "After selecting a photo, you can crop, zoom, and reposition before confirming.",
+      photoActions: {
+        gallery: "Gallery",
+        camera: "Camera",
+        remove: "Remove photo"
+      },
+      removePhotoConfirm: "Remove your current profile photo?",
+      removeAction: "Remove",
+      usernameChecking: "Checking username...",
+      usernameAvailable: "Username is available",
+      usernameSuggestions: "Suggestions",
+      displayNameLimit: "{{value}} characters left",
+      bioRemaining: "{{value}} characters left",
+      websiteHint: "If you type example.com we will save it as https://example.com",
+      phoneOtpHint: "Changing phone number requires OTP verification before saving.",
+      phoneVerified: "Phone number verified.",
+      phoneActions: {
+        sendOtp: "Send OTP",
+        verifyOtp: "Verify OTP"
+      },
+      saveAction: "Save changes",
+      cancelAction: "Cancel",
+      success: "Profile updated successfully.",
+      fields: {
+        displayName: "Name",
+        username: "Username",
+        bio: "Bio",
+        website: "Website",
+        location: "Location",
+        phone: "Phone number"
+      },
+      placeholders: {
+        displayName: "Enter your name",
+        username: "Enter a username",
+        bio: "Write a short bio",
+        website: "https://example.com",
+        location: "City or area",
+        phone: "05XXXXXXXX",
+        otp: "Enter OTP code"
+      },
+      errors: {
+        displayNameRequired: "Please enter your name.",
+        displayNameTooLong: "Display name must be 50 characters or less.",
+        usernameRequired: "Please enter a username.",
+        usernameInvalid: "Username is invalid.",
+        usernameTaken: "Username is already taken.",
+        usernameCheckFailed: "Could not verify username right now.",
+        bioTooLong: "Bio must be 160 characters or less.",
+        websiteInvalid: "Please enter a valid website URL.",
+        phoneInvalid: "Please enter a valid mobile number.",
+        phoneOtpSendFailed: "Could not send OTP right now.",
+        phoneOtpVerifyFailed: "OTP verification failed.",
+        phoneOtpRequired: "Please enter the full OTP code.",
+        phoneVerificationRequired: "Verify the new mobile number first.",
+        imagePermissionDenied: "Photo library access is required to change the profile photo.",
+        imagePickFailed: "Could not pick the image.",
+        imageUploadFailed: "Could not upload the image right now.",
+        saveFailed: "Could not save profile changes right now."
+      }
     },
     more: {
       myAdsSection: "My ads",
@@ -1262,14 +1366,6 @@
       sold: "Sold listings",
       expired: "Expired listings",
       favorites: "Favorites"
-    },
-    edit: {
-      title: "Edit profile data",
-      displayName: "Display name",
-      city: "City",
-      phone: "Phone number",
-      bio: "Bio",
-      save: "Save changes"
     },
     messages: {
       profileSaved: "Profile updated successfully.",
