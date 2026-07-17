@@ -8,11 +8,20 @@ function requiredEnv(name: string, value: string | undefined): string {
   return value;
 }
 
+function resolveSupabasePublicKey(): string {
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (publishableKey) {
+    return publishableKey;
+  }
+  if (anonKey) {
+    return anonKey;
+  }
+  throw new Error("Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY)");
+}
+
 const supabaseUrl = requiredEnv("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
-const supabaseKey = requiredEnv(
-  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-);
+const supabaseKey = resolveSupabasePublicKey();
 
 export async function createClient() {
   const cookieStore = await cookies();
