@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -323,12 +322,6 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
     return uniqueListings([...recentViewedListings, ...favoriteListings, ...nearbyListings, ...listings]).slice(0, 4);
   }, [favoriteListings, listings, nearbyListings, recentSearches, recentViewedListings, savedSearches]);
 
-  const primaryTitle =
-    previewState === "guest"
-      ? t("home.hero.welcomeGuest")
-      : isSellerFocused
-        ? t("home.hero.welcomeSeller")
-        : t("home.hero.welcomeBack");
   const primaryAssistantCopy = recentViewedListings.length > 0
     ? t("home.hero.assistantContinue")
     : savedSearches.length > 0
@@ -383,10 +376,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand/75">{t("home.hero.eyebrow")}</p>
-              <Image src="/brand/sanany-logo.png" alt={t("app.title")} width={500} height={220} className="h-10 w-auto" priority />
               <div className="space-y-2">
-                <p className="text-lg font-semibold text-slate-500">{primaryTitle}</p>
                 <h1 className="max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-[2.5rem]">{t("home.hero.title")}</h1>
               </div>
               <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">{primaryAssistantCopy}</p>
