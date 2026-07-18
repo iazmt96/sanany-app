@@ -2187,7 +2187,8 @@
         actions: "Actions"
       },
       actions: {
-        openListings: "Open listings"
+        openListings: "Open listings",
+        manageFields: "Manage fields"
       },
       forms: {
         createTitle: "Create subcategory",
@@ -2204,6 +2205,33 @@
         deleteButton: "Delete",
         active: "Active",
         inactive: "Inactive"
+      }
+    },
+    categoryFieldsPanel: {
+      title: "Category fields",
+      notFound: "Category not found.",
+      empty: "No fields defined for this category yet.",
+      messages: {
+        created: "Field created successfully.",
+        updated: "Field updated successfully.",
+        deleted: "Field deleted successfully.",
+        operationFailed: "Could not complete the field operation. Check data and try again."
+      },
+      columns: {
+        fieldKey: "Field key",
+        fieldType: "Field type"
+      },
+      forms: {
+        createTitle: "Add field",
+        isRequired: "Required",
+        filterable: "Filterable",
+        detailVisible: "Visible in details",
+        sortOrder: "Sort order",
+        placeholderAr: "Placeholder (Arabic)",
+        placeholderEn: "Placeholder (English)",
+        optionsJson: "Options JSON",
+        optionsJsonHint: "For select/multiselect fields. Format: [{\"value\":\"v1\",\"labelAr\":\"...\",\"labelEn\":\"...\"}]",
+        createButton: "Add field"
       }
     },
     settingsPanel: {

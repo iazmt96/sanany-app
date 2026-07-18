@@ -299,6 +299,9 @@ export default async function AdminCategoriesPage({ searchParams }: AdminCategor
                         <td className="px-3 py-2 text-slate-700">{row.fieldsCount.toLocaleString(language === "ar" ? "ar-SA" : "en-US")}</td>
                         <td className="px-3 py-2">
                           <div className="flex flex-col items-start gap-2">
+                            <Link href={`/admin/categories/${row.id}`} className="text-xs font-semibold text-indigo-600 hover:underline">
+                              {dictionary.admin.categoriesPanel.actions.manageFields}
+                            </Link>
                             <Link href={`/admin/listings?q=${encodeURIComponent(label)}`} className="text-xs font-semibold text-brand hover:underline">
                               {dictionary.admin.categoriesPanel.actions.openListings}
                             </Link>

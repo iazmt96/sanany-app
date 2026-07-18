@@ -2186,7 +2186,8 @@
         actions: "الإجراءات"
       },
       actions: {
-        openListings: "فتح الإعلانات"
+        openListings: "فتح الإعلانات",
+        manageFields: "إدارة الحقول"
       },
       forms: {
         createTitle: "إنشاء فئة فرعية",
@@ -2203,6 +2204,33 @@
         deleteButton: "حذف",
         active: "نشط",
         inactive: "غير نشط"
+      }
+    },
+    categoryFieldsPanel: {
+      title: "حقول الفئة",
+      notFound: "الفئة غير موجودة.",
+      empty: "لم يتم تعريف أي حقول لهذه الفئة بعد.",
+      messages: {
+        created: "تم إنشاء الحقل بنجاح.",
+        updated: "تم تحديث الحقل بنجاح.",
+        deleted: "تم حذف الحقل بنجاح.",
+        operationFailed: "تعذّر إتمام عملية الحقل. تحقق من البيانات وأعد المحاولة."
+      },
+      columns: {
+        fieldKey: "مفتاح الحقل",
+        fieldType: "نوع الحقل"
+      },
+      forms: {
+        createTitle: "إضافة حقل",
+        isRequired: "مطلوب",
+        filterable: "قابل للتصفية",
+        detailVisible: "يظهر في التفاصيل",
+        sortOrder: "ترتيب العرض",
+        placeholderAr: "نص توضيحي (عربي)",
+        placeholderEn: "نص توضيحي (إنجليزي)",
+        optionsJson: "خيارات JSON",
+        optionsJsonHint: "للحقول من نوع select/multiselect. التنسيق: [{\"value\":\"v1\",\"labelAr\":\"...\",\"labelEn\":\"...\"}]",
+        createButton: "إضافة حقل"
       }
     },
     settingsPanel: {

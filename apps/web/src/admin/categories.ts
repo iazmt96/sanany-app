@@ -327,3 +327,221 @@ export function parseOfferTypeFormValue(value: FormDataEntryValue | null): Listi
   }
   return normalizeOfferType(value);
 }
+
+// ---------------------------------------------------------------------------
+// Category fields management
+// ---------------------------------------------------------------------------
+
+export type AdminCategoryFieldRow = {
+  id: string;
+  categoryId: string;
+  fieldKey: string;
+  fieldType: string;
+  labelAr: string;
+  labelEn: string;
+  placeholderAr: string | null;
+  placeholderEn: string | null;
+  isRequired: boolean;
+  filterable: boolean;
+  detailVisible: boolean;
+  sortOrder: number;
+  optionsJson: string;
+};
+
+export type AdminCategoryDetailData = {
+  id: string;
+  slug: string;
+  labelAr: string;
+  labelEn: string;
+  fields: AdminCategoryFieldRow[];
+  errorCode: string | null;
+};
+
+type FieldRow = {
+  id: string;
+  category_id: string;
+  field_key: string;
+  field_type: string;
+  label_ar: string;
+  label_en: string;
+  placeholder_ar: string | null;
+  placeholder_en: string | null;
+  is_required: boolean | null;
+  filterable: boolean | null;
+  detail_visible: boolean | null;
+  sort_order: number | null;
+  options_json: unknown;
+};
+
+function mapFieldRow(row: FieldRow): AdminCategoryFieldRow {
+  return {
+    id: row.id,
+    categoryId: row.category_id,
+    fieldKey: row.field_key,
+    fieldType: row.field_type,
+    labelAr: row.label_ar,
+    labelEn: row.label_en,
+    placeholderAr: row.placeholder_ar,
+    placeholderEn: row.placeholder_en,
+    isRequired: row.is_required ?? false,
+    filterable: row.filterable ?? false,
+    detailVisible: row.detail_visible ?? true,
+    sortOrder: row.sort_order ?? 0,
+    optionsJson: Array.isArray(row.options_json) ? JSON.stringify(row.options_json, null, 2) : "[]"
+  };
+}
+
+function parseBoolean(value: FormDataEntryValue | null): boolean {
+  return value === "true";
+}
+
+function normalizeFieldKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function normalizeFieldType(value: string | null | undefined): string {
+  const VALID = ["text", "textarea", "number", "select", "multiselect", "boolean"] as const;
+  if (VALID.includes(value as (typeof VALID)[number])) {
+    return value as string;
+  }
+  return "text";
+}
+
+function parseOptionsJson(value: string): unknown[] {
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+export async function getAdminCategoryDetail(categoryId: string): Promise<AdminCategoryDetailData> {
+  const adminClient = requireServiceRoleClient();
+
+  const [categoryResult, fieldsResult] = await Promise.all([
+    adminClient.from("marketplace_categories").select("id,slug,name_ar,name_en").eq("id", categoryId).maybeSingle(),
+    adminClient
+      .from("marketplace_category_fields")
+      .select("id,category_id,field_key,field_type,label_ar,label_en,placeholder_ar,placeholder_en,is_required,filterable,detail_visible,sort_order,options_json")
+      .eq("category_id", categoryId)
+      .order("sort_order", { ascending: true })
+  ]);
+
+  if (categoryResult.error) {
+    return { id: categoryId, slug: "", labelAr: "", labelEn: "", fields: [], errorCode: categoryResult.error.code };
+  }
+  if (!categoryResult.data) {
+    return { id: categoryId, slug: "", labelAr: "", labelEn: "", fields: [], errorCode: "not_found" };
+  }
+
+  const category = categoryResult.data as { id: string; slug: string; name_ar: string; name_en: string };
+  const fields = ((fieldsResult.data as FieldRow[] | null) ?? []).map(mapFieldRow);
+
+  return {
+    id: category.id,
+    slug: category.slug,
+    labelAr: category.name_ar,
+    labelEn: category.name_en,
+    fields,
+    errorCode: fieldsResult.error?.code ?? null
+  };
+}
+
+export async function createAdminCategoryField(input: {
+  categoryId: string;
+  fieldKey: string;
+  fieldType: string;
+  labelAr: string;
+  labelEn: string;
+  placeholderAr: string | null;
+  placeholderEn: string | null;
+  isRequired: boolean;
+  filterable: boolean;
+  detailVisible: boolean;
+  sortOrder: number;
+  optionsJson: string;
+}): Promise<void> {
+  const adminClient = requireServiceRoleClient();
+  const fieldKey = normalizeFieldKey(requireText(input.fieldKey, "fieldKey"));
+  if (!fieldKey) {
+    throw new Error("Invalid field key.");
+  }
+  const labelAr = requireText(input.labelAr, "labelAr");
+  const labelEn = requireText(input.labelEn, "labelEn");
+
+  const { error } = await adminClient.from("marketplace_category_fields").insert({
+    category_id: input.categoryId,
+    field_key: fieldKey,
+    field_type: normalizeFieldType(input.fieldType),
+    label_ar: labelAr,
+    label_en: labelEn,
+    placeholder_ar: input.placeholderAr?.trim() || null,
+    placeholder_en: input.placeholderEn?.trim() || null,
+    is_required: input.isRequired,
+    filterable: input.filterable,
+    detail_visible: input.detailVisible,
+    sort_order: normalizeSortOrder(input.sortOrder),
+    options_json: parseOptionsJson(input.optionsJson)
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function updateAdminCategoryField(input: {
+  fieldId: string;
+  fieldKey: string;
+  fieldType: string;
+  labelAr: string;
+  labelEn: string;
+  placeholderAr: string | null;
+  placeholderEn: string | null;
+  isRequired: boolean;
+  filterable: boolean;
+  detailVisible: boolean;
+  sortOrder: number;
+  optionsJson: string;
+}): Promise<void> {
+  const adminClient = requireServiceRoleClient();
+  const fieldKey = normalizeFieldKey(requireText(input.fieldKey, "fieldKey"));
+  const labelAr = requireText(input.labelAr, "labelAr");
+  const labelEn = requireText(input.labelEn, "labelEn");
+
+  const { error } = await adminClient.from("marketplace_category_fields").update({
+    field_key: fieldKey,
+    field_type: normalizeFieldType(input.fieldType),
+    label_ar: labelAr,
+    label_en: labelEn,
+    placeholder_ar: input.placeholderAr?.trim() || null,
+    placeholder_en: input.placeholderEn?.trim() || null,
+    is_required: input.isRequired,
+    filterable: input.filterable,
+    detail_visible: input.detailVisible,
+    sort_order: normalizeSortOrder(input.sortOrder),
+    options_json: parseOptionsJson(input.optionsJson)
+  }).eq("id", input.fieldId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function deleteAdminCategoryField(fieldId: string): Promise<void> {
+  const adminClient = requireServiceRoleClient();
+  const { error } = await adminClient.from("marketplace_category_fields").delete().eq("id", fieldId);
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export { parseBoolean };
