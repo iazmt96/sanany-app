@@ -10,7 +10,14 @@ function resolvePhoneOtpChannel(value: string | undefined, variableName: string)
     return normalizedValue;
   }
 
-  throw new Error(`Invalid ${variableName}. Use "sms" or "whatsapp".`);
+  // Log the invalid value for debugging in production
+  console.warn(
+    `Warning: Invalid ${variableName}="${value}" (normalized: "${normalizedValue}"). ` +
+    `Valid values are "sms" or "whatsapp". Defaulting to "sms".`
+  );
+  
+  // Default to "sms" instead of throwing to prevent production 500 errors
+  return "sms";
 }
 
 export function getWebSupabaseEnv() {
