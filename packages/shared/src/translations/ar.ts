@@ -1041,6 +1041,8 @@
       tapVerificationInProgress: "جاري التحقق من حالة الدفع من Tap...",
       tapVerificationPending: "تمت العودة من Tap لكن الدفع ما زال قيد المعالجة. سنحدّث الحالة تلقائيًا بعد التحقق.",
       tapVerificationFailed: "تعذر التحقق من عملية الدفع عبر Tap حاليًا.",
+      tapWebOnlyHint: "إتمام دفع العمولة عبر Tap متاح حاليًا من نسخة الويب فقط. تم حفظ بيانات البيع ويمكنك الإكمال من لوحة الويب.",
+      completeOnWebButton: "إكمال الدفع عبر الويب",
       missingAmount: "أدخل مبلغ البيع الفعلي أولًا.",
       invalidAmount: "أدخل مبلغ بيع صحيحًا أكبر من صفر.",
       missingOtherSaleSource: "أضف ملاحظة لمصدر البيع المحدد.",

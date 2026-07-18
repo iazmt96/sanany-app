@@ -153,20 +153,21 @@ export function MyAdsSaleSheet({
     setErrorMessage(null);
 
     try {
-      await preparePayment();
-      const nextPayment = await repository.finalizeSalePayment({
-        listingId: listing.id,
-        sellerId,
-        outcome: saleSource === "cancelled" ? "cancelled" : "paid",
-        paymentMethod: DEFAULT_MARKETPLACE_PAYMENT_METHOD
-      });
-      onPaymentUpdated(nextPayment);
       if (saleSource === "cancelled") {
+        await preparePayment();
+        const nextPayment = await repository.finalizeSalePayment({
+          listingId: listing.id,
+          sellerId,
+          outcome: "cancelled",
+          paymentMethod: DEFAULT_MARKETPLACE_PAYMENT_METHOD
+        });
+        onPaymentUpdated(nextPayment);
         setUiState("cancelled");
       } else {
-        const nextInvoice = await repository.getSaleInvoice(listing.id, sellerId);
-        setInvoice(nextInvoice);
-        setUiState("success");
+        const nextPayment = await preparePayment();
+        onPaymentUpdated(nextPayment);
+        setUiState("idle");
+        setErrorMessage(t("myAds.saleFlow.tapWebOnlyHint"));
       }
     } catch (error) {
       setUiState("failed");
@@ -374,7 +375,13 @@ export function MyAdsSaleSheet({
               onPress={() => void completePayment()}
               disabled={Boolean(preview) || isWorking || uiState === "success"}
             >
-              <Text style={styles.primaryLabel}>{isWorking ? t("myAds.saleFlow.preparing") : saleSource === "cancelled" ? t("myAds.saleFlow.saveCancellation") : t("myAds.saleFlow.payButton")}</Text>
+              <Text style={styles.primaryLabel}>
+                {isWorking
+                  ? t("myAds.saleFlow.preparing")
+                  : saleSource === "cancelled"
+                    ? t("myAds.saleFlow.saveCancellation")
+                    : t("myAds.saleFlow.completeOnWebButton")}
+              </Text>
             </Pressable>
           </View>
         </View>

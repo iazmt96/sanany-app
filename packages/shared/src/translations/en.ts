@@ -1042,6 +1042,8 @@
       tapVerificationInProgress: "Verifying payment status with Tap...",
       tapVerificationPending: "You returned from Tap, but the payment is still processing. We will update the status automatically after verification.",
       tapVerificationFailed: "Could not verify Tap payment right now.",
+      tapWebOnlyHint: "Tap commission checkout is currently available on web only. Sale details were saved and you can complete payment from the web dashboard.",
+      completeOnWebButton: "Complete payment on web",
       missingAmount: "Enter the final sale amount first.",
       invalidAmount: "Enter a valid sale amount greater than zero.",
       missingOtherSaleSource: "Add a note for the selected sale source.",

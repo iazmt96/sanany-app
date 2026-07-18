@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     const { error: finalizeError } = await supabase.rpc("finalize_listing_sale_payment", {
       p_listing_id: listingId,
       p_payment_status: outcome,
-      p_payment_method: "tap",
+      p_payment_method: `tap:${tapId}`,
       p_failure_reason: outcome === "failed" ? failureReason ?? "tap_failed" : outcome === "cancelled" ? failureReason ?? "tap_cancelled" : null
     });
 
