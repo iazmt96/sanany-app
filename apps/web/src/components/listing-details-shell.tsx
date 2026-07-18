@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListing, SellerProfile } from "@sanany/types";
@@ -108,6 +109,7 @@ function statusTone(state: AvailabilityState): string {
 export function ListingDetailsShell({ language, listingId }: ListingDetailsShellProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
+  const router = useRouter();
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
   const listingsRepository = useMemo(() => getWebListingsRepository(), []);
   const sellersRepository = useMemo(() => getWebSellersRepository(), []);
@@ -122,6 +124,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const [isReported, setIsReported] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const listingImages = useMemo(() => getRenderableListingImageUrls(listing?.imageUrl ?? null), [listing?.imageUrl]);
   const primaryImage = listingImages[selectedImageIndex] ?? listingImages[0] ?? null;
@@ -362,6 +365,28 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
     }
   };
 
+  const onDeleteListing = async () => {
+    if (!listing || !snapshot.user?.id || listing.ownerId !== snapshot.user.id || isDeleting) {
+      return;
+    }
+
+    const confirmed = window.confirm(t("marketplace.detail.deleteConfirmMessage"));
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setActionMessage(null);
+    try {
+      await listingsRepository.deleteById(listing.id, snapshot.user.id);
+      router.push(`/${resolvedLanguage}/my-ads`);
+      router.refresh();
+    } catch (deleteError) {
+      setActionMessage(deleteError instanceof Error ? deleteError.message : t("marketplace.detail.deleteFailed"));
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <RequireAuth language={resolvedLanguage}>
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-8">
@@ -535,6 +560,24 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                 ) : null}
 
                 <div className="grid gap-2">
+                  {listing.ownerId === snapshot.user?.id ? (
+                    <>
+                      <Link
+                        href={`/${resolvedLanguage}/my-ads`}
+                        className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700"
+                      >
+                        {t("marketplace.detail.editAction")}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => void onDeleteListing()}
+                        disabled={isDeleting}
+                        className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 px-3 text-sm font-semibold text-rose-700 disabled:opacity-60"
+                      >
+                        {isDeleting ? t("common.loading") : t("marketplace.detail.deleteAction")}
+                      </button>
+                    </>
+                  ) : null}
                   {contactPermissions.canCall ? (
                     <a href={`tel:${advertiserPhone}`} className="inline-flex h-10 items-center justify-center rounded-lg bg-brand px-3 text-sm font-semibold text-white">
                       {t("marketplace.detail.call")}
