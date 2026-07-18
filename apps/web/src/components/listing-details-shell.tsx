@@ -125,6 +125,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarkingAsSold, setIsMarkingAsSold] = useState(false);
 
   const listingImages = useMemo(() => getRenderableListingImageUrls(listing?.imageUrl ?? null), [listing?.imageUrl]);
   const primaryImage = listingImages[selectedImageIndex] ?? listingImages[0] ?? null;
@@ -161,6 +162,10 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const specificationRows = useMemo(() => parseListingSpecifications(listing?.description ?? null), [listing?.description]);
   const descriptionBody = useMemo(() => getDescriptionBody(listing?.description ?? null), [listing?.description]);
   const advertiserPhone = listing?.ownerPhone?.trim() ?? "";
+  const isOwner = Boolean(listing?.ownerId && listing.ownerId === snapshot.user?.id);
+  const mapLatitude = listing?.latitude ?? 24.7136;
+  const mapLongitude = listing?.longitude ?? 46.6753;
+  const mapPreviewUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${mapLatitude},${mapLongitude}&zoom=13&size=900x420&markers=${mapLatitude},${mapLongitude},red-pushpin`;
   const contactPermissions = canContactListingOwner({
     viewerId: snapshot.user?.id,
     ownerId: listing?.ownerId,
@@ -387,6 +392,43 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
     }
   };
 
+  const onMarkAsSold = async () => {
+    if (!listing || !snapshot.user?.id || listing.ownerId !== snapshot.user.id || isMarkingAsSold || listing.status === "sold") {
+      return;
+    }
+
+    const confirmed = window.confirm(t("marketplace.detail.markAsSoldConfirmMessage"));
+    if (!confirmed) {
+      return;
+    }
+
+    setIsMarkingAsSold(true);
+    setActionMessage(null);
+    try {
+      await listingsRepository.publishDraft({
+        id: listing.id,
+        ownerId: snapshot.user.id,
+        offerType: listing.offerType ?? null,
+        categorySlug: listing.categorySlug ?? null,
+        title: listing.title,
+        description: listing.description ?? "-",
+        price: listing.price,
+        imageUrl: listing.imageUrl ?? undefined,
+        status: "sold",
+        locationName: listing.locationName ?? undefined,
+        latitude: listing.latitude ?? undefined,
+        longitude: listing.longitude ?? undefined,
+        ownerPhone: listing.ownerPhone ?? undefined
+      });
+      setListing((current) => (current ? { ...current, status: "sold" } : current));
+      setActionMessage(t("marketplace.detail.markAsSoldSuccess"));
+    } catch (markError) {
+      setActionMessage(markError instanceof Error ? markError.message : t("marketplace.detail.markAsSoldFailed"));
+    } finally {
+      setIsMarkingAsSold(false);
+    }
+  };
+
   return (
     <RequireAuth language={resolvedLanguage}>
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-8">
@@ -433,6 +475,12 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                   {primaryImage ? (
                     <div className="relative h-80 w-full">
                       <Image src={primaryImage} alt={listing.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 70vw" />
+                      <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center rounded-full bg-slate-900/60 px-2.5 py-1 text-xs font-semibold text-white">
+                          {t("marketplace.detail.imagesCount", { count: Math.max(listingImages.length, 1) })}
+                        </span>
+                        <Badge variant={listing.status}>{t(`marketplace.status.${listing.status}`)}</Badge>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex h-80 items-center justify-center text-sm text-slate-500">{t("marketplace.detail.noImage")}</div>
@@ -454,6 +502,94 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                       </button>
                     ))}
                   </div>
+                ) : null}
+              </Card>
+
+              <Card className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {isOwner ? (
+                    <>
+                      <Link
+                        href={`/${resolvedLanguage}/my-ads`}
+                        className="inline-flex h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white"
+                      >
+                        {t("marketplace.detail.editAction")}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => void onMarkAsSold()}
+                        disabled={isMarkingAsSold || listing.status === "sold"}
+                        className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 disabled:opacity-60"
+                      >
+                        {isMarkingAsSold ? t("common.loading") : t("marketplace.detail.markAsSoldAction")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void onShareListing()}
+                        className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700"
+                      >
+                        {t("marketplace.detail.share")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void onDeleteListing()}
+                        disabled={isDeleting}
+                        className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 px-4 text-sm font-semibold text-rose-700 disabled:opacity-60"
+                      >
+                        {isDeleting ? t("common.loading") : t("marketplace.detail.deleteAction")}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {contactPermissions.canCall ? (
+                        <a href={`tel:${advertiserPhone}`} className="inline-flex h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white">
+                          {t("marketplace.detail.call")}
+                        </a>
+                      ) : null}
+                      {contactPermissions.canChat ? (
+                        <a
+                          href={`https://wa.me/${advertiserPhone.replace(/[^\d]/g, "")}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex h-10 items-center justify-center rounded-lg border border-brand bg-brand/5 px-4 text-sm font-semibold text-brand"
+                        >
+                          {t("marketplace.detail.chat")}
+                        </a>
+                      ) : null}
+                      {listing.ownerId ? (
+                        <Link
+                          href={`/${resolvedLanguage}/chat?listingId=${listing.id}&sellerId=${listing.ownerId}`}
+                          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700"
+                        >
+                          {t("sellerProfile.message")}
+                        </Link>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={onToggleFavorite}
+                        className={`inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-semibold ${
+                          isFavorite ? "border-rose-200 bg-rose-50 text-rose-700" : "border-slate-300 bg-white text-slate-700"
+                        }`}
+                      >
+                        {t("marketplace.detail.favorite")}
+                      </button>
+                      <button type="button" onClick={() => void onShareListing()} className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">
+                        {t("marketplace.detail.share")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onReportListing}
+                        className={`inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-semibold ${
+                          isReported ? "border-amber-200 bg-amber-50 text-amber-700" : "border-slate-300 bg-white text-slate-700"
+                        }`}
+                      >
+                        {t("marketplace.detail.report")}
+                      </button>
+                    </>
+                  )}
+                </div>
+                {!contactPermissions.canCall && !contactPermissions.canChat && !isOwner ? (
+                  <p className="text-xs text-slate-500">{t("marketplace.detail.contactUnavailable")}</p>
                 ) : null}
               </Card>
 
@@ -504,6 +640,17 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                       {t("marketplace.detail.openInMaps")}
                     </a>
                   ) : null}
+                  <a
+                    href={`https://www.google.com/maps?q=${encodeURIComponent(listing.locationName ?? `${mapLatitude},${mapLongitude}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group relative block overflow-hidden rounded-xl border border-slate-200"
+                  >
+                    <img src={mapPreviewUrl} alt={t("marketplace.detail.locationTitle")} className="h-44 w-full object-cover" loading="lazy" />
+                    <span className="absolute inset-x-3 bottom-3 inline-flex items-center justify-center rounded-lg bg-slate-900/65 px-3 py-2 text-xs font-semibold text-white">
+                      {t("marketplace.detail.openInMaps")}
+                    </span>
+                  </a>
                 </section>
               </Card>
 
@@ -533,18 +680,41 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                 <section className="space-y-2">
                   <h3 className="text-sm font-semibold text-slate-900">{t("marketplace.detail.advertiserTitle")}</h3>
                   <div className="rounded-lg border border-slate-200 p-3">
-                    <p className="text-sm font-semibold text-slate-900">{seller?.displayName ?? t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() })}</p>
-                    <p className="text-xs text-slate-500">{t("marketplace.detail.advertiserRole")}</p>
-                    {seller ? (
-                      <p className="mt-2 text-xs text-amber-600">
-                        {seller.ratingAverage.toFixed(1)} ★ ({t("sellerProfile.ratingCount", { count: seller.ratingCount })})
-                      </p>
-                    ) : null}
-                    {listing.ownerId ? (
-                      <Link href={`/${resolvedLanguage}/seller/${listing.ownerId}`} className="mt-2 inline-flex text-xs font-semibold text-brand hover:underline">
-                        {t("sellerProfile.pageTitle")}
-                      </Link>
-                    ) : null}
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{seller?.displayName ?? t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() })}</p>
+                        <p className="text-xs text-slate-500">{t("marketplace.detail.advertiserRole")}</p>
+                        {seller ? (
+                          <p className="mt-2 text-xs text-amber-600">
+                            {seller.ratingAverage.toFixed(1)} ★ ({t("sellerProfile.ratingCount", { count: seller.ratingCount })})
+                          </p>
+                        ) : null}
+                        {listing.ownerId ? (
+                          <Link href={`/${resolvedLanguage}/seller/${listing.ownerId}`} className="mt-2 inline-flex text-xs font-semibold text-brand hover:underline">
+                            {t("sellerProfile.pageTitle")}
+                          </Link>
+                        ) : null}
+                      </div>
+                      {!isOwner ? (
+                        <div className="flex items-center gap-2">
+                          {contactPermissions.canCall ? (
+                            <a href={`tel:${advertiserPhone}`} className="inline-flex h-9 items-center justify-center rounded-lg border border-brand/30 bg-brand/5 px-3 text-xs font-semibold text-brand">
+                              {t("marketplace.detail.call")}
+                            </a>
+                          ) : null}
+                          {contactPermissions.canChat ? (
+                            <a
+                              href={`https://wa.me/${advertiserPhone.replace(/[^\d]/g, "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex h-9 items-center justify-center rounded-lg border border-brand/30 bg-brand/5 px-3 text-xs font-semibold text-brand"
+                            >
+                              {t("marketplace.detail.chat")}
+                            </a>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </section>
 
@@ -560,74 +730,12 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                 ) : null}
 
                 <div className="grid gap-2">
-                  {listing.ownerId === snapshot.user?.id ? (
-                    <>
-                      <Link
-                        href={`/${resolvedLanguage}/my-ads`}
-                        className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700"
-                      >
-                        {t("marketplace.detail.editAction")}
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => void onDeleteListing()}
-                        disabled={isDeleting}
-                        className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 px-3 text-sm font-semibold text-rose-700 disabled:opacity-60"
-                      >
-                        {isDeleting ? t("common.loading") : t("marketplace.detail.deleteAction")}
-                      </button>
-                    </>
+                  {actionMessage ? (
+                    <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">{actionMessage}</p>
                   ) : null}
-                  {contactPermissions.canCall ? (
-                    <a href={`tel:${advertiserPhone}`} className="inline-flex h-10 items-center justify-center rounded-lg bg-brand px-3 text-sm font-semibold text-white">
-                      {t("marketplace.detail.call")}
-                    </a>
-                  ) : null}
-                  {contactPermissions.canChat ? (
-                    <a
-                      href={`https://wa.me/${advertiserPhone.replace(/[^\d]/g, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-10 items-center justify-center rounded-lg border border-brand bg-brand/5 px-3 text-sm font-semibold text-brand"
-                    >
-                      {t("marketplace.detail.chat")}
-                    </a>
-                  ) : null}
-                  {listing.ownerId && snapshot.user?.id !== listing.ownerId ? (
-                    <Link
-                      href={`/${resolvedLanguage}/chat?listingId=${listing.id}&sellerId=${listing.ownerId}`}
-                      className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700"
-                    >
-                      {t("sellerProfile.message")}
-                    </Link>
-                  ) : null}
-                  {!contactPermissions.canCall && !contactPermissions.canChat ? (
+                  {!isOwner && !contactPermissions.canCall && !contactPermissions.canChat ? (
                     <p className="text-xs text-slate-500">{t("marketplace.detail.contactUnavailable")}</p>
                   ) : null}
-                </div>
-
-                <div className="grid gap-2">
-                  <button
-                    type="button"
-                    onClick={onToggleFavorite}
-                    className={`h-10 rounded-lg border px-3 text-sm font-semibold ${
-                      isFavorite ? "border-rose-200 bg-rose-50 text-rose-700" : "border-slate-300 bg-white text-slate-700"
-                    }`}
-                  >
-                    {t("marketplace.detail.favorite")}
-                  </button>
-                  <button type="button" onClick={() => void onShareListing()} className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700">
-                    {t("marketplace.detail.share")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onReportListing}
-                    className={`h-10 rounded-lg border px-3 text-sm font-semibold ${
-                      isReported ? "border-amber-200 bg-amber-50 text-amber-700" : "border-slate-300 bg-white text-slate-700"
-                    }`}
-                  >
-                    {t("marketplace.detail.report")}
-                  </button>
                 </div>
 
                 <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
@@ -640,8 +748,6 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                   </p>
                 </div>
               </Card>
-
-              {actionMessage ? <p className="text-sm text-slate-600">{actionMessage}</p> : null}
             </aside>
           </div>
         ) : null}
