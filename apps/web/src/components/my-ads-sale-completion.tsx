@@ -26,12 +26,6 @@ type MyAdsSaleCompletionProps = {
     listingId: string;
   } | null;
   onTapPaymentHandled?: () => void;
-  preview?: {
-    amount: string;
-    isConfirmed: boolean;
-    uiState: SaleUiState;
-    invoice: ListingSaleInvoice | null;
-  } | null;
 };
 
 type SaleUiState = "idle" | "pending" | "failed" | "cancelled" | "success";
@@ -88,8 +82,7 @@ export function MyAdsSaleCompletion({
   onClose,
   onPaymentUpdated,
   tapPaymentReturn = null,
-  onTapPaymentHandled,
-  preview = null
+  onTapPaymentHandled
 }: MyAdsSaleCompletionProps) {
   const { t } = useTranslation();
   const repository = useMemo(() => getWebListingsRepository(), []);
@@ -111,20 +104,20 @@ export function MyAdsSaleCompletion({
       return;
     }
 
-    setAmount(preview?.amount ?? String(Math.max(1, payment?.finalSaleAmount ?? listing.price ?? 0)));
+    setAmount(String(Math.max(1, payment?.finalSaleAmount ?? listing.price ?? 0)));
     setSaleSource(payment?.saleSource ?? "outside_sanany");
     setSaleSourceOther(payment?.saleSourceOther ?? "");
     setBuyerName(payment?.buyerName ?? "");
     setBuyerPhone(payment?.buyerPhone ?? "");
-    setIsConfirmed(preview?.isConfirmed ?? false);
+    setIsConfirmed(false);
     setIsWorking(false);
-    setUiState(preview?.uiState ?? (payment?.paymentStatus === "paid" ? "success" : "idle"));
+    setUiState(payment?.paymentStatus === "paid" ? "success" : "idle");
     setErrorMessage(null);
-    setInvoice(preview?.invoice ?? null);
-  }, [isOpen, listing, payment, preview]);
+    setInvoice(null);
+  }, [isOpen, listing, payment]);
 
   useEffect(() => {
-    if (!isOpen || !listing || !sellerId || preview || !tapPaymentReturn) {
+    if (!isOpen || !listing || !sellerId || !tapPaymentReturn) {
       return;
     }
     if (tapPaymentReturn.listingId !== listing.id) {
@@ -225,10 +218,10 @@ export function MyAdsSaleCompletion({
     return () => {
       active = false;
     };
-  }, [isOpen, listing, onPaymentUpdated, onTapPaymentHandled, preview, repository, sellerId, t, tapPaymentReturn]);
+  }, [isOpen, listing, onPaymentUpdated, onTapPaymentHandled, repository, sellerId, t, tapPaymentReturn]);
 
   useEffect(() => {
-    if (preview || !isOpen || !listing || !sellerId || payment?.paymentStatus !== "paid") {
+    if (!isOpen || !listing || !sellerId || payment?.paymentStatus !== "paid") {
       return;
     }
 
@@ -242,7 +235,7 @@ export function MyAdsSaleCompletion({
     return () => {
       active = false;
     };
-  }, [isOpen, listing, payment?.paymentStatus, preview, repository, sellerId]);
+  }, [isOpen, listing, payment?.paymentStatus, repository, sellerId]);
 
   const parsedAmount = Number(amount);
   const calculation = calculateCommissionFromSaleAmount({
@@ -268,9 +261,6 @@ export function MyAdsSaleCompletion({
   };
 
   const onPay = async () => {
-    if (preview) {
-      return;
-    }
     if (!listing || !sellerId || !settings) {
       return;
     }
@@ -333,9 +323,6 @@ export function MyAdsSaleCompletion({
   };
 
   const onCancelPayment = async () => {
-    if (preview) {
-      return;
-    }
     if (!listing || !sellerId) {
       return;
     }
@@ -601,10 +588,10 @@ export function MyAdsSaleCompletion({
         </div>
 
         <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4">
-          <button type="button" onClick={() => void onCancelPayment()} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700" disabled={Boolean(preview) || isWorking || uiState === "success"}>
+          <button type="button" onClick={() => void onCancelPayment()} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700" disabled={isWorking || uiState === "success"}>
             {t("common.cancel")}
           </button>
-          <button type="button" onClick={() => void onPay()} disabled={Boolean(preview) || isWorking || uiState === "success"} className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+          <button type="button" onClick={() => void onPay()} disabled={isWorking || uiState === "success"} className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
             {isWorking ? t("myAds.saleFlow.preparing") : saleSource === "cancelled" ? t("myAds.saleFlow.saveCancellation") : t("myAds.saleFlow.payButton")}
           </button>
         </div>

@@ -1011,6 +1011,7 @@
       buyerPhonePlaceholder: "Enter buyer mobile",
       confirmLabel: "I confirm that the entered amount is the actual final sale amount.",
       payButton: "Pay Commission & Complete Sale",
+      resumePaymentAction: "Resume commission payment",
       saveCancellation: "Save sale cancellation",
       preparing: "Preparing payment",
       pendingTitle: "Payment in progress",
@@ -1042,6 +1043,7 @@
       tapVerificationInProgress: "Verifying payment status with Tap...",
       tapVerificationPending: "You returned from Tap, but the payment is still processing. We will update the status automatically after verification.",
       tapVerificationFailed: "Could not verify Tap payment right now.",
+      processingLockHint: "Payment is still being verified. Editing or deleting this listing is disabled until verification completes.",
       tapWebOnlyHint: "Tap commission checkout is currently available on web only. Sale details were saved and you can complete payment from the web dashboard.",
       completeOnWebButton: "Complete payment on web",
       missingAmount: "Enter the final sale amount first.",
@@ -1067,7 +1069,8 @@
         cancelled: "Cancelled",
         refunded: "Refunded"
       },
-      receiptTitle: "Payment receipt"
+      receiptTitle: "Payment receipt",
+      failureReasonLabel: "Failure reason"
     }
   },
   sellerProfile: {

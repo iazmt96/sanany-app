@@ -1010,6 +1010,7 @@
       buyerPhonePlaceholder: "أدخل رقم الجوال",
       confirmLabel: "أقر بأن مبلغ البيع المدخل هو المبلغ الفعلي للصفقة.",
       payButton: "دفع العمولة وإتمام البيع",
+      resumePaymentAction: "استكمال دفع العمولة",
       saveCancellation: "حفظ إلغاء البيع",
       preparing: "جاري تجهيز الدفع",
       pendingTitle: "الدفع قيد التنفيذ",
@@ -1041,6 +1042,7 @@
       tapVerificationInProgress: "جاري التحقق من حالة الدفع من Tap...",
       tapVerificationPending: "تمت العودة من Tap لكن الدفع ما زال قيد المعالجة. سنحدّث الحالة تلقائيًا بعد التحقق.",
       tapVerificationFailed: "تعذر التحقق من عملية الدفع عبر Tap حاليًا.",
+      processingLockHint: "الدفع قيد المراجعة. لا يمكن تعديل أو حذف الإعلان حتى تنتهي عملية التحقق.",
       tapWebOnlyHint: "إتمام دفع العمولة عبر Tap متاح حاليًا من نسخة الويب فقط. تم حفظ بيانات البيع ويمكنك الإكمال من لوحة الويب.",
       completeOnWebButton: "إكمال الدفع عبر الويب",
       missingAmount: "أدخل مبلغ البيع الفعلي أولًا.",
@@ -1066,7 +1068,8 @@
         cancelled: "ملغاة",
         refunded: "مستردة"
       },
-      receiptTitle: "إيصال الدفع"
+      receiptTitle: "إيصال الدفع",
+      failureReasonLabel: "سبب التعثر"
     }
   },
   sellerProfile: {

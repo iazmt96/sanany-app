@@ -30,7 +30,7 @@ import {
   buildListingImageStoragePath,
   CAR_MAKE_IDS,
   clearDraftSyncOperations,
-  buildCommissionReviewPreview,
+  formatCurrencySar,
   computeListingQualityScore,
   createDraftSyncOperation,
   createListingImageUploadItem,
@@ -51,7 +51,6 @@ import {
   shouldShowSaleCompletionAction,
   shouldCreateDraftConflict,
   toCreateListingImageInputs,
-  type CommissionReviewPreviewState,
   type DraftRemoteConflict,
   type DraftSyncOperation,
   type ListingImageUploadItem,
@@ -68,7 +67,6 @@ import { MyAdsSaleCompletion } from "./my-ads-sale-completion";
 
 type MyAdsShellProps = {
   language: string;
-  previewState?: string | null;
   tapPaymentReturn?: {
     tapId: string;
     listingId: string;
@@ -255,19 +253,11 @@ async function compressImageDataUrl(input: { dataUrl: string; mimeType?: string 
   };
 }
 
-function isCommissionPreviewState(value: string | null | undefined): value is CommissionReviewPreviewState {
-  return value === "active" || value === "calculator" || value === "confirmation" || value === "loading" || value === "failed" || value === "success" || value === "invoice" || value === "sold";
-}
-
-export function MyAdsShell({ language, previewState = null, tapPaymentReturn: initialTapPaymentReturn = null }: MyAdsShellProps) {
+export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn = null }: MyAdsShellProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const repository = useMemo(() => getWebListingsRepository(), []);
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
-  const previewData = useMemo(
-    () => (isCommissionPreviewState(previewState) ? buildCommissionReviewPreview(resolvedLanguage, previewState) : null),
-    [previewState, resolvedLanguage]
-  );
   const [section, setSection] = useState<ListingManagementSection>("active");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -447,9 +437,6 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
   }, [carAdType, carCondition, carFuelType, carLocation, carMileage, carPriceMode, category, description, extraDetails, isCarSaleCategory, offerType, t]);
 
   const loadManagementData = useCallback(async () => {
-    if (previewData) {
-      return;
-    }
     if (!snapshot.user?.id) {
       return;
     }
@@ -478,25 +465,9 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
     } finally {
       setIsLoading(false);
     }
-  }, [previewData, repository, snapshot.user?.id, t]);
+  }, [repository, snapshot.user?.id, t]);
 
   useEffect(() => {
-    if (previewData) {
-      setSection(previewData.section);
-      setData({
-        items: previewData.listings,
-        totalItems: previewData.listings.length,
-        page: 1,
-        pageSize: LISTING_PAGE_SIZE,
-        totalPages: Math.max(1, Math.ceil(previewData.listings.length / LISTING_PAGE_SIZE))
-      });
-      setSalePayments(previewData.payments);
-      setCommissionSettings(previewData.settings);
-      setSelectedSaleListingId(previewData.selectedListingId);
-      setIsLoading(false);
-      setErrorMessage(null);
-      return;
-    }
     if (!snapshot.user?.id) {
       return;
     }
@@ -509,7 +480,7 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
     }
 
     void loadManagementData();
-  }, [loadManagementData, previewData, section, snapshot.user?.id]);
+  }, [loadManagementData, section, snapshot.user?.id]);
 
   useEffect(() => {
     setTapPaymentReturn(initialTapPaymentReturn);
@@ -1542,13 +1513,22 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
             {visibleData.items.map((listing) => {
               const salePayment = salePayments.find((item) => item.listingId === listing.id) ?? null;
               const canCompleteSale = shouldShowSaleCompletionAction(listing, salePayments);
+              const isPaymentProcessing = salePayment?.paymentStatus === "pending";
+              const saleActionLabel =
+                salePayment && salePayment.paymentStatus !== "paid" ? t("myAds.saleFlow.resumePaymentAction") : t("myAds.saleFlow.action");
+              const paymentStatusTone =
+                salePayment?.paymentStatus === "paid"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : salePayment?.paymentStatus === "failed" || salePayment?.paymentStatus === "cancelled"
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : "border-amber-200 bg-amber-50 text-amber-800";
               return (
               <div key={listing.id} className="space-y-2 rounded-xl border border-slate-200 bg-white p-2">
                 <ListingCard listing={listing} language={resolvedLanguage} />
                 {salePayment ? (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                     <div className="flex items-center justify-between gap-2">
-                      <span>{t(`myAds.saleFlow.paymentStates.${salePayment.paymentStatus}`)}</span>
+                      <span className={`rounded-full border px-2 py-0.5 font-semibold ${paymentStatusTone}`}>{t(`myAds.saleFlow.paymentStates.${salePayment.paymentStatus}`)}</span>
                       <span className="font-semibold text-slate-900">
                         {salePayment.paymentStatus === "paid"
                           ? t("marketplace.status.sold")
@@ -1560,11 +1540,11 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       <div>
                         <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.amountLabel")}</p>
-                        <p className="font-semibold text-slate-900">{salePayment.finalSaleAmount.toLocaleString()}</p>
+                        <p className="font-semibold text-slate-900">{formatCurrencySar(salePayment.finalSaleAmount, resolvedLanguage)}</p>
                       </div>
                       <div>
                         <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.commissionAmount")}</p>
-                        <p className="font-semibold text-slate-900">{salePayment.commissionAmount.toLocaleString()}</p>
+                        <p className="font-semibold text-slate-900">{formatCurrencySar(salePayment.commissionAmount, resolvedLanguage)}</p>
                       </div>
                       <div>
                         <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.soldDate")}</p>
@@ -1574,7 +1554,16 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
                         <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.invoiceNumber")}</p>
                         <p className="font-semibold text-slate-900">{salePayment.invoiceNumber ?? "—"}</p>
                       </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-[11px] text-slate-500">{t("myAds.saleFlow.paymentMethod")}</p>
+                        <p className="font-semibold text-slate-900">{salePayment.paymentMethod ?? "—"}</p>
+                      </div>
                     </div>
+                    {(salePayment.paymentStatus === "failed" || salePayment.paymentStatus === "cancelled") && salePayment.failureReason ? (
+                      <p className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] text-rose-700">
+                        {t("myAds.saleFlow.failureReasonLabel")}: {salePayment.failureReason}
+                      </p>
+                    ) : null}
                     {salePayment.paymentStatus === "paid" ? (
                       <button
                         type="button"
@@ -1587,10 +1576,10 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
                   </div>
                 ) : null}
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => onEditListing(listing)} className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700">
+                  <button type="button" onClick={() => onEditListing(listing)} className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 disabled:opacity-50" disabled={isPaymentProcessing}>
                     {t("myAds.management.actions.edit")}
                   </button>
-                  <button type="button" onClick={() => void deleteListing(listing)} className="rounded-lg border border-rose-300 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-700">
+                  <button type="button" onClick={() => void deleteListing(listing)} className="rounded-lg border border-rose-300 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-700 disabled:opacity-50" disabled={isPaymentProcessing}>
                     {t("myAds.management.actions.delete")}
                   </button>
                   <Link href={`/${resolvedLanguage}/listing/${listing.id}`} className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center text-xs font-medium text-slate-700">
@@ -1601,14 +1590,20 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
                       {t("myAds.management.actions.republish")}
                     </button>
                   ) : (
-                    <button type="button" onClick={() => setSelectedSaleListingId(listing.id)} className="rounded-lg bg-brand px-2 py-1.5 text-xs font-semibold text-white disabled:opacity-50" disabled={!canCompleteSale || !commissionSettings}>
-                      {t("myAds.saleFlow.action")}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSaleListingId(listing.id)}
+                      className="rounded-lg bg-brand px-2 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                      disabled={!canCompleteSale || !commissionSettings || isPaymentProcessing}
+                    >
+                      {saleActionLabel}
                     </button>
                   )}
                   <button type="button" onClick={() => void shareListing(listing)} className="col-span-2 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700">
                     {t("myAds.management.actions.share")}
                   </button>
                 </div>
+                {isPaymentProcessing ? <p className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-700">{t("myAds.saleFlow.processingLockHint")}</p> : null}
               </div>
               );
             })}
@@ -1641,26 +1636,16 @@ export function MyAdsShell({ language, previewState = null, tapPaymentReturn: in
           isOpen={selectedSaleListing !== null}
           language={resolvedLanguage}
           listing={selectedSaleListing}
-          sellerId={previewData?.sellerId ?? snapshot.user?.id ?? null}
+          sellerId={snapshot.user?.id ?? null}
           settings={commissionSettings}
           payment={selectedSaleListing ? salePayments.find((item) => item.listingId === selectedSaleListing.id) ?? null : null}
           onClose={() => setSelectedSaleListingId(null)}
           onPaymentUpdated={handleSalePaymentUpdated}
           tapPaymentReturn={tapPaymentReturn}
           onTapPaymentHandled={() => setTapPaymentReturn(null)}
-          preview={
-            previewData && selectedSaleListing
-              ? {
-                  amount: previewData.amount,
-                  isConfirmed: previewData.isConfirmed,
-                  uiState: previewData.uiState,
-                  invoice: previewData.invoice
-                }
-              : null
-          }
         />
       </main>
   );
 
-  return previewData ? content : <RequireAuth language={resolvedLanguage}>{content}</RequireAuth>;
+  return <RequireAuth language={resolvedLanguage}>{content}</RequireAuth>;
 }
