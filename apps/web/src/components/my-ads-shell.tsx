@@ -69,6 +69,10 @@ import { MyAdsSaleCompletion } from "./my-ads-sale-completion";
 type MyAdsShellProps = {
   language: string;
   previewState?: string | null;
+  tapPaymentReturn?: {
+    tapId: string;
+    listingId: string;
+  } | null;
 };
 
 type AddStep = "category" | "details" | "preview" | "agreement";
@@ -255,7 +259,7 @@ function isCommissionPreviewState(value: string | null | undefined): value is Co
   return value === "active" || value === "calculator" || value === "confirmation" || value === "loading" || value === "failed" || value === "success" || value === "invoice" || value === "sold";
 }
 
-export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
+export function MyAdsShell({ language, previewState = null, tapPaymentReturn: initialTapPaymentReturn = null }: MyAdsShellProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const repository = useMemo(() => getWebListingsRepository(), []);
@@ -279,6 +283,10 @@ export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
   const [salePayments, setSalePayments] = useState<ListingSalePayment[]>([]);
   const [commissionSettings, setCommissionSettings] = useState<MarketplaceCommissionSettings | null>(null);
   const [selectedSaleListingId, setSelectedSaleListingId] = useState<string | null>(null);
+  const [tapPaymentReturn, setTapPaymentReturn] = useState<{
+    tapId: string;
+    listingId: string;
+  } | null>(initialTapPaymentReturn);
   const [editingListingId, setEditingListingId] = useState<string | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [offerType, setOfferType] = useState<ListingOfferType | null>(null);
@@ -502,6 +510,17 @@ export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
 
     void loadManagementData();
   }, [loadManagementData, previewData, section, snapshot.user?.id]);
+
+  useEffect(() => {
+    setTapPaymentReturn(initialTapPaymentReturn);
+  }, [initialTapPaymentReturn]);
+
+  useEffect(() => {
+    if (!tapPaymentReturn?.listingId) {
+      return;
+    }
+    setSelectedSaleListingId(tapPaymentReturn.listingId);
+  }, [tapPaymentReturn]);
 
   useEffect(() => {
     setPage(1);
@@ -1627,6 +1646,8 @@ export function MyAdsShell({ language, previewState = null }: MyAdsShellProps) {
           payment={selectedSaleListing ? salePayments.find((item) => item.listingId === selectedSaleListing.id) ?? null : null}
           onClose={() => setSelectedSaleListingId(null)}
           onPaymentUpdated={handleSalePaymentUpdated}
+          tapPaymentReturn={tapPaymentReturn}
+          onTapPaymentHandled={() => setTapPaymentReturn(null)}
           preview={
             previewData && selectedSaleListing
               ? {

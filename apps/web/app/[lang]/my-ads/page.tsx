@@ -4,13 +4,21 @@ import { buildPrivateMetadata, getDictionary, resolveLanguage } from "../../../s
 
 type MyAdsPageProps = {
   params: Promise<{ lang: string }>;
-  searchParams?: Promise<{ previewState?: string }>;
+  searchParams?: Promise<{ previewState?: string; tap_id?: string; tapId?: string; listingId?: string }>;
 };
 
 export default async function MyAdsPage({ params, searchParams }: MyAdsPageProps) {
   const { lang } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  return <MyAdsShell language={lang} previewState={resolvedSearchParams?.previewState ?? null} />;
+  const tapId = resolvedSearchParams?.tap_id ?? resolvedSearchParams?.tapId ?? null;
+  const tapListingId = resolvedSearchParams?.listingId ?? null;
+  return (
+    <MyAdsShell
+      language={lang}
+      previewState={resolvedSearchParams?.previewState ?? null}
+      tapPaymentReturn={tapId && tapListingId ? { tapId, listingId: tapListingId } : null}
+    />
+  );
 }
 
 export async function generateMetadata({ params }: MyAdsPageProps): Promise<Metadata> {
