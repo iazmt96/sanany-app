@@ -25,7 +25,7 @@ export function SiteLayoutShell({ language, children }: SiteLayoutShellProps) {
     { href: `/${resolvedLanguage}`, label: t("nav.marketplace") },
     { href: `/${resolvedLanguage}/search`, label: t("nav.search") },
     { href: `/${resolvedLanguage}/categories`, label: t("nav.categories") },
-    { href: `/${resolvedLanguage}/my-ads`, label: t("nav.myAds") },
+    { href: `/${resolvedLanguage}/profile?tab=ads`, label: t("nav.myAds") },
     { href: `/${resolvedLanguage}/favorites`, label: t("nav.favorites") }
   ];
 

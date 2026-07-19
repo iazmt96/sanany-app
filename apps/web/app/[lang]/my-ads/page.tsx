@@ -1,33 +1,17 @@
-import { MyAdsShell } from "../../../src/components/my-ads-shell";
-import type { Metadata } from "next";
-import { buildPrivateMetadata, getDictionary, resolveLanguage } from "../../../src/lib/metadata";
+import { redirect } from "next/navigation";
 
 type MyAdsPageProps = {
   params: Promise<{ lang: string }>;
-  searchParams?: Promise<{ tap_id?: string; tapId?: string; listingId?: string }>;
+  searchParams?: Promise<{ tap_id?: string; tapId?: string; listingId?: string; section?: string }>;
 };
 
 export default async function MyAdsPage({ params, searchParams }: MyAdsPageProps) {
   const { lang } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const tapId = resolvedSearchParams?.tap_id ?? resolvedSearchParams?.tapId ?? null;
-  const tapListingId = resolvedSearchParams?.listingId ?? null;
-  return (
-    <MyAdsShell
-      language={lang}
-      tapPaymentReturn={tapId && tapListingId ? { tapId, listingId: tapListingId } : null}
-    />
-  );
-}
-
-export async function generateMetadata({ params }: MyAdsPageProps): Promise<Metadata> {
-  const { lang } = await params;
-  const resolvedLanguage = resolveLanguage(lang);
-  const dictionary = getDictionary(resolvedLanguage);
-  return buildPrivateMetadata(
-    resolvedLanguage,
-    "/my-ads",
-    dictionary.myAds.pageTitle,
-    dictionary.myAds.pageSubtitle
-  );
+  const sp = searchParams ? await searchParams : {};
+  const query = new URLSearchParams({ tab: "ads" });
+  if (sp.tap_id) query.set("tap_id", sp.tap_id);
+  if (sp.tapId) query.set("tapId", sp.tapId);
+  if (sp.listingId) query.set("listingId", sp.listingId);
+  if (sp.section) query.set("section", sp.section);
+  redirect(`/${lang}/profile?${query.toString()}`);
 }

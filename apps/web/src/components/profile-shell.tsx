@@ -1,5 +1,6 @@
 "use client";
 
+import { MyAdsShell } from "./my-ads-shell";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +17,8 @@ import { getWebSellersRepository } from "../lib/sellers-repository";
 
 type ProfileShellProps = {
   language: string;
+  tab?: string | null;
+  tapPaymentReturn?: { tapId: string; listingId: string } | null;
 };
 
 type ProfileStatsState = {
@@ -61,7 +64,7 @@ function VerifiedBadge({ label }: { label: string }) {
   );
 }
 
-export function ProfileShell({ language }: ProfileShellProps) {
+export function ProfileShell({ language, tab = null, tapPaymentReturn = null }: ProfileShellProps) {
   const { t } = useTranslation();
   const { accountProfile, snapshot } = useAuth();
   const searchParams = useSearchParams();
@@ -180,11 +183,15 @@ export function ProfileShell({ language }: ProfileShellProps) {
   const trustScore = profile?.ratingCount ? Math.min(100, Math.max(0, Math.round(profile.ratingAverage * 20))) : null;
   const accountWebsite = accountProfile?.website ?? null;
   const editLink = `/${resolvedLanguage}/profile/edit`;
+  const isAdsTab = tab === "ads";
+  const profileTabHref = `/${resolvedLanguage}/profile`;
+  const adsTabHref = `/${resolvedLanguage}/profile?tab=ads`;
+
   const quickActions = [
-    { id: "myAds", href: `/${resolvedLanguage}/my-ads`, label: t("profile.dashboard.quickActions.items.myAds") },
-    { id: "soldAds", href: `/${resolvedLanguage}/my-ads?section=sold`, label: t("profile.dashboard.quickActions.items.soldAds") },
-    { id: "drafts", href: `/${resolvedLanguage}/my-ads?section=drafts`, label: t("profile.dashboard.quickActions.items.drafts") },
-    { id: "commission", href: `/${resolvedLanguage}/my-ads?section=sold`, label: t("profile.dashboard.quickActions.items.commission") },
+    { id: "myAds", href: adsTabHref, label: t("profile.dashboard.quickActions.items.myAds") },
+    { id: "soldAds", href: `${adsTabHref}&section=sold`, label: t("profile.dashboard.quickActions.items.soldAds") },
+    { id: "drafts", href: `${adsTabHref}&section=drafts`, label: t("profile.dashboard.quickActions.items.drafts") },
+    { id: "commission", href: `${adsTabHref}&section=sold`, label: t("profile.dashboard.quickActions.items.commission") },
     { id: "savedSearches", href: `/${resolvedLanguage}/search`, label: t("profile.dashboard.quickActions.items.savedSearches") },
     { id: "verification", href: editLink, label: t("profile.dashboard.quickActions.items.verification") },
     { id: "settings", href: editLink, label: t("profile.dashboard.quickActions.items.settings") }
@@ -193,14 +200,38 @@ export function ProfileShell({ language }: ProfileShellProps) {
   return (
     <RequireAuth language={resolvedLanguage}>
       <div dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="space-y-5 overflow-x-hidden sm:space-y-6">
-        {searchParams.get("saved") === "1" ? (
-          <Card>
-            <p className="text-sm font-semibold text-emerald-700">{t("profile.edit.success")}</p>
-          </Card>
-        ) : null}
+        {/* Tab switcher */}
+        <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <Link
+            href={profileTabHref}
+            className={`flex-1 py-3 text-center text-sm font-semibold transition ${
+              !isAdsTab ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            }`}
+          >
+            {t("profile.pageTitle")}
+          </Link>
+          <Link
+            href={adsTabHref}
+            className={`flex-1 py-3 text-center text-sm font-semibold transition ${
+              isAdsTab ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            }`}
+          >
+            {t("nav.myAds")}
+          </Link>
+        </div>
 
-        {isLoadingProfile ? <Card><p className="text-sm text-slate-600">{t("common.loading")}</p></Card> : null}
-        {errorMessage ? <Card><p className="text-sm text-rose-600">{errorMessage}</p></Card> : null}
+        {isAdsTab ? (
+          <MyAdsShell language={resolvedLanguage} tapPaymentReturn={tapPaymentReturn ?? null} />
+        ) : (
+          <>
+            {searchParams.get("saved") === "1" ? (
+              <Card>
+                <p className="text-sm font-semibold text-emerald-700">{t("profile.edit.success")}</p>
+              </Card>
+            ) : null}
+
+            {isLoadingProfile ? <Card><p className="text-sm text-slate-600">{t("common.loading")}</p></Card> : null}
+            {errorMessage ? <Card><p className="text-sm text-rose-600">{errorMessage}</p></Card> : null}
 
         {!isLoadingProfile && profile ? (
           <>
@@ -330,7 +361,7 @@ export function ProfileShell({ language }: ProfileShellProps) {
                     <path d="M24 66 44 50l12 10 16-14" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <p className="text-base font-semibold text-slate-700">{t("profile.dashboard.ads.emptyTitle")}</p>
-                  <Link href={`/${resolvedLanguage}/my-ads`} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
+                  <Link href={adsTabHref} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
                     {t("profile.dashboard.ads.addAction")}
                   </Link>
                 </div>
@@ -413,6 +444,8 @@ export function ProfileShell({ language }: ProfileShellProps) {
             </Card>
           </>
         ) : null}
+          </>
+        )}
       </div>
     </RequireAuth>
   );

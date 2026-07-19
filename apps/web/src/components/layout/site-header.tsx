@@ -40,7 +40,7 @@ export function SiteHeader({ language }: SiteHeaderProps) {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuId = "sanany-mobile-menu";
   const isLoggedIn = isAuthenticated(snapshot);
-  const addListingHref = isLoggedIn ? `/${resolvedLanguage}/my-ads` : `/${resolvedLanguage}/auth`;
+  const addListingHref = isLoggedIn ? `/${resolvedLanguage}/profile?tab=ads` : `/${resolvedLanguage}/auth`;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -217,7 +217,7 @@ export function SiteHeader({ language }: SiteHeaderProps) {
                         {t("nav.profile")}
                       </Link>
                       <Link
-                        href={`/${resolvedLanguage}/my-ads`}
+                        href={`/${resolvedLanguage}/profile?tab=ads`}
                         onClick={() => setUserMenuOpen(false)}
                         role="menuitem"
                         className="flex w-full items-center px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
