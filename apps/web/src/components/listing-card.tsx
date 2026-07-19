@@ -126,7 +126,14 @@ export function ListingCard({ listing, language, sellerProfile = null, insightLa
       <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-lg font-extrabold tracking-tight text-slate-900">{t("marketplace.pricePerDay", { value: listing.price })}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-lg font-extrabold tracking-tight text-slate-900">{t("marketplace.pricePerDay", { value: listing.price })}</p>
+              {listing.status === "sold" ? (
+                <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  {t("marketplace.status.sold")}
+                </span>
+              ) : null}
+            </div>
             <h2 className="line-clamp-2 text-base font-semibold text-slate-900">
               <Link href={listingHref} className="hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60">
                 {listing.title}

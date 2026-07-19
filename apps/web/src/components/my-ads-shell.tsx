@@ -1514,6 +1514,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
               const salePayment = salePayments.find((item) => item.listingId === listing.id) ?? null;
               const canCompleteSale = shouldShowSaleCompletionAction(listing, salePayments);
               const isPaymentProcessing = salePayment?.paymentStatus === "pending";
+              const isCommissionPaid = salePayment?.paymentStatus === "paid";
               const saleActionLabel =
                 salePayment && salePayment.paymentStatus !== "paid" ? t("myAds.saleFlow.resumePaymentAction") : t("myAds.saleFlow.action");
               const paymentStatusTone =
@@ -1590,19 +1591,35 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
                       {t("myAds.management.actions.republish")}
                     </button>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSaleListingId(listing.id)}
-                      className="rounded-lg bg-brand px-2 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                      disabled={!canCompleteSale || !commissionSettings || isPaymentProcessing}
-                    >
-                      {saleActionLabel}
-                    </button>
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-[11px] text-slate-500">
+                      {t("myAds.saleFlow.activeTabTitle")}
+                    </div>
                   )}
                   <button type="button" onClick={() => void shareListing(listing)} className="col-span-2 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-medium text-slate-700">
                     {t("myAds.management.actions.share")}
                   </button>
                 </div>
+                {isCommissionPaid ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="sticky bottom-2 flex min-h-14 w-full items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-3 text-center text-emerald-800 disabled:opacity-100"
+                  >
+                    <span className="flex flex-col leading-5">
+                      <span className="text-sm font-semibold">{t("myAds.saleFlow.paidButtonTitle")}</span>
+                      <span className="text-xs font-medium">{t("myAds.saleFlow.paidButtonSubtitle")}</span>
+                    </span>
+                  </button>
+                ) : listing.status !== "sold" && listing.status !== "inactive" ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSaleListingId(listing.id)}
+                    className="sticky bottom-2 flex min-h-14 w-full items-center justify-center rounded-xl bg-brand px-3 py-3 text-center text-sm font-semibold text-white disabled:opacity-50"
+                    disabled={!canCompleteSale || !commissionSettings || isPaymentProcessing}
+                  >
+                    {saleActionLabel}
+                  </button>
+                ) : null}
                 {isPaymentProcessing ? <p className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-700">{t("myAds.saleFlow.processingLockHint")}</p> : null}
               </div>
               );

@@ -673,8 +673,15 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
 
             <aside className="space-y-4">
               <Card className="sticky top-24 space-y-4">
-                <div className="rounded-lg bg-slate-50 p-3 text-lg font-bold text-slate-900">
-                  {t("marketplace.pricePerDay", { value: listing.price })}
+                <div className="rounded-lg bg-slate-50 p-3">
+                  <div className="flex flex-wrap items-center gap-2 text-lg font-bold text-slate-900">
+                    <span>{t("marketplace.pricePerDay", { value: listing.price })}</span>
+                    {listing.status === "sold" ? (
+                      <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        {t("marketplace.status.sold")}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
 
                 <section className="space-y-2">

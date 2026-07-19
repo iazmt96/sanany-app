@@ -984,7 +984,7 @@
       }
     },
     saleFlow: {
-      action: "تحويل العمولة وإتمام البيع",
+      action: "إتمام البيع وتحويل العمولة",
       heading: "إتمام البيع",
       subtitle: "أدخل مبلغ البيع الفعلي، راجع عمولة 1%، ثم أصدر فاتورة سنعني الرسمية بعد نجاح الدفع.",
       saleSourceLabel: "كيف تم بيع العنصر؟",
@@ -1010,6 +1010,8 @@
       buyerPhonePlaceholder: "أدخل رقم الجوال",
       confirmLabel: "أقر بأن مبلغ البيع المدخل هو المبلغ الفعلي للصفقة.",
       payButton: "دفع العمولة وإتمام البيع",
+      paidButtonTitle: "✅ تم البيع",
+      paidButtonSubtitle: "العمولة مدفوعة",
       resumePaymentAction: "استكمال دفع العمولة",
       saveCancellation: "حفظ إلغاء البيع",
       preparing: "جاري تجهيز الدفع",

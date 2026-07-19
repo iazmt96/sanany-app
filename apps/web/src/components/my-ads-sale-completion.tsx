@@ -87,10 +87,6 @@ export function MyAdsSaleCompletion({
   const { t } = useTranslation();
   const repository = useMemo(() => getWebListingsRepository(), []);
   const [amount, setAmount] = useState("");
-  const [saleSource, setSaleSource] = useState<"sanany_chat" | "outside_sanany" | "cancelled" | "other">("outside_sanany");
-  const [saleSourceOther, setSaleSourceOther] = useState("");
-  const [buyerName, setBuyerName] = useState("");
-  const [buyerPhone, setBuyerPhone] = useState("");
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [uiState, setUiState] = useState<SaleUiState>("idle");
@@ -105,10 +101,6 @@ export function MyAdsSaleCompletion({
     }
 
     setAmount(String(Math.max(1, payment?.finalSaleAmount ?? listing.price ?? 0)));
-    setSaleSource(payment?.saleSource ?? "outside_sanany");
-    setSaleSourceOther(payment?.saleSourceOther ?? "");
-    setBuyerName(payment?.buyerName ?? "");
-    setBuyerPhone(payment?.buyerPhone ?? "");
     setIsConfirmed(false);
     setIsWorking(false);
     setUiState(payment?.paymentStatus === "paid" ? "success" : "idle");
@@ -251,10 +243,10 @@ export function MyAdsSaleCompletion({
       listingId: listing.id,
       sellerId,
       finalSaleAmount: calculation.finalSaleAmount,
-      saleSource,
-      saleSourceOther: saleSourceOther.trim() || null,
-      buyerName: buyerName.trim() || null,
-      buyerPhone: buyerPhone.trim() || null
+      saleSource: payment?.saleSource ?? "outside_sanany",
+      saleSourceOther: payment?.saleSourceOther ?? null,
+      buyerName: payment?.buyerName ?? null,
+      buyerPhone: payment?.buyerPhone ?? null
     });
     onPaymentUpdated(nextPayment);
     return nextPayment;
@@ -276,69 +268,28 @@ export function MyAdsSaleCompletion({
       setErrorMessage(t("myAds.saleFlow.confirmationRequired"));
       return;
     }
-    if (saleSource === "other" && !saleSourceOther.trim()) {
-      setErrorMessage(t("myAds.saleFlow.missingOtherSaleSource"));
-      return;
-    }
 
     setIsWorking(true);
     setErrorMessage(null);
     setUiState("pending");
 
     try {
-      if (saleSource === "cancelled") {
-        const nextPayment = await preparePayment();
-        const result = await repository.finalizeSalePayment({
+      const nextPayment = await preparePayment();
+      setErrorMessage(t("myAds.saleFlow.redirectingToTap"));
+      const checkoutResponse = await fetch("/api/payments/tap/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           listingId: listing.id,
-          sellerId,
-          outcome: "cancelled",
-          paymentMethod: nextPayment.paymentMethod ?? DEFAULT_MARKETPLACE_PAYMENT_METHOD
-        });
-        onPaymentUpdated(result);
-        setUiState("cancelled");
-      } else {
-        const nextPayment = await preparePayment();
-        setErrorMessage(t("myAds.saleFlow.redirectingToTap"));
-        const checkoutResponse = await fetch("/api/payments/tap/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            listingId: listing.id,
-            amount: nextPayment.commissionAmount,
-            language
-          })
-        });
-        const checkoutPayload = (await checkoutResponse.json().catch(() => ({}))) as { error?: string; checkoutUrl?: string };
-        if (!checkoutResponse.ok || !checkoutPayload.checkoutUrl) {
-          throw new Error(checkoutPayload.error ?? t("myAds.saleFlow.tapVerificationFailed"));
-        }
-        window.location.assign(checkoutPayload.checkoutUrl);
-      }
-    } catch (error) {
-      setUiState("failed");
-      setErrorMessage(error instanceof Error ? error.message : t("marketplace.loadError"));
-    } finally {
-      setIsWorking(false);
-    }
-  };
-
-  const onCancelPayment = async () => {
-    if (!listing || !sellerId) {
-      return;
-    }
-
-    setIsWorking(true);
-    setErrorMessage(null);
-    try {
-      const nextPayment = payment ?? (await preparePayment());
-      const result = await repository.finalizeSalePayment({
-        listingId: listing.id,
-        sellerId,
-        outcome: "cancelled",
-        paymentMethod: nextPayment.paymentMethod ?? DEFAULT_MARKETPLACE_PAYMENT_METHOD
+          amount: nextPayment.commissionAmount,
+          language
+        })
       });
-      onPaymentUpdated(result);
-      setUiState("cancelled");
+      const checkoutPayload = (await checkoutResponse.json().catch(() => ({}))) as { error?: string; checkoutUrl?: string };
+      if (!checkoutResponse.ok || !checkoutPayload.checkoutUrl) {
+        throw new Error(checkoutPayload.error ?? t("myAds.saleFlow.tapVerificationFailed"));
+      }
+      window.location.assign(checkoutPayload.checkoutUrl);
     } catch (error) {
       setUiState("failed");
       setErrorMessage(error instanceof Error ? error.message : t("marketplace.loadError"));
@@ -393,6 +344,9 @@ export function MyAdsSaleCompletion({
     return null;
   }
 
+  const isPaid = payment?.paymentStatus === "paid" || uiState === "success";
+  const isStickyCtaDisabled = isWorking || isPaid;
+
   return (
     <div data-testid="sale-completion-modal" className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-auto rounded-[28px] bg-white shadow-2xl">
@@ -423,32 +377,6 @@ export function MyAdsSaleCompletion({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 p-4">
-            <p className="text-sm font-semibold text-slate-900">{t("myAds.saleFlow.saleSourceLabel")}</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {(["sanany_chat", "outside_sanany", "cancelled", "other"] as const).map((source) => (
-                <button
-                  key={source}
-                  type="button"
-                  onClick={() => setSaleSource(source)}
-                  className={`rounded-xl border px-3 py-2 text-sm ${
-                    saleSource === source ? "border-brand bg-brand/10 text-brand" : "border-slate-300 bg-white text-slate-700"
-                  }`}
-                >
-                  {t(`myAds.saleFlow.saleSources.${source}`)}
-                </button>
-              ))}
-            </div>
-            {saleSource === "other" ? (
-              <input
-                value={saleSourceOther}
-                onChange={(event) => setSaleSourceOther(event.target.value)}
-                placeholder={t("myAds.saleFlow.otherSaleSourcePlaceholder")}
-                className="mt-3 h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-brand/20 focus:border-brand focus:ring"
-              />
-            ) : null}
-          </div>
-
           <label className="space-y-2">
             <span className="text-sm font-semibold text-slate-800">{t("myAds.saleFlow.amountLabel")}</span>
             <input
@@ -460,28 +388,6 @@ export function MyAdsSaleCompletion({
             />
             <p className="text-xs text-slate-500">{t("myAds.saleFlow.amountHelper")}</p>
           </label>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-800">{t("myAds.saleFlow.buyerNameLabel")}</span>
-              <input
-                value={buyerName}
-                onChange={(event) => setBuyerName(event.target.value)}
-                placeholder={t("myAds.saleFlow.buyerNamePlaceholder")}
-                className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-brand/20 focus:border-brand focus:ring"
-              />
-            </label>
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-800">{t("myAds.saleFlow.buyerPhoneLabel")}</span>
-              <input
-                value={buyerPhone}
-                onChange={(event) => setBuyerPhone(event.target.value)}
-                inputMode="tel"
-                placeholder={t("myAds.saleFlow.buyerPhonePlaceholder")}
-                className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none ring-brand/20 focus:border-brand focus:ring"
-              />
-            </label>
-          </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-900">{t("myAds.saleFlow.calculationTitle")}</p>
@@ -521,33 +427,7 @@ export function MyAdsSaleCompletion({
           ) : null}
           {uiState === "failed" ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage ?? t("myAds.saleFlow.failedHint")}</div> : null}
           {uiState === "cancelled" ? <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{t("myAds.saleFlow.cancelledHint")}</div> : null}
-          {uiState === "success" ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{t("myAds.saleFlow.successBanner")}</div> : null}
           {errorMessage && uiState === "idle" ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage}</div> : null}
-
-          {uiState === "success" && invoice ? (
-            <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-              <p className="text-base font-bold text-emerald-900">{t("myAds.saleFlow.saleCompletedTitle")}</p>
-              <ul className="list-inside list-disc space-y-1 text-sm text-emerald-900">
-                <li>{t("myAds.saleFlow.saleCompletedPoints.markedSold")}</li>
-                <li>{t("myAds.saleFlow.saleCompletedPoints.commissionPaid")}</li>
-                <li>{t("myAds.saleFlow.saleCompletedPoints.invoiceGenerated")}</li>
-              </ul>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => void shareInvoice()} className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800">
-                  {t("myAds.saleFlow.invoiceView")}
-                </button>
-                <button type="button" onClick={() => void downloadInvoice()} className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800">
-                  {t("myAds.saleFlow.invoiceDownload")}
-                </button>
-                <button type="button" onClick={() => void shareInvoice()} className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800">
-                  {t("myAds.saleFlow.invoiceSharePdf")}
-                </button>
-                <button type="button" onClick={onClose} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
-                  {t("myAds.saleFlow.returnToSalesHistory")}
-                </button>
-              </div>
-            </div>
-          ) : null}
 
           {invoice ? (
             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -587,12 +467,25 @@ export function MyAdsSaleCompletion({
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4">
-          <button type="button" onClick={() => void onCancelPayment()} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700" disabled={isWorking || uiState === "success"}>
-            {t("common.cancel")}
-          </button>
-          <button type="button" onClick={() => void onPay()} disabled={isWorking || uiState === "success"} className="rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
-            {isWorking ? t("myAds.saleFlow.preparing") : saleSource === "cancelled" ? t("myAds.saleFlow.saveCancellation") : t("myAds.saleFlow.payButton")}
+        <div className="sticky bottom-0 border-t border-slate-200 bg-white px-5 py-4">
+          <button
+            type="button"
+            onClick={() => void onPay()}
+            disabled={isStickyCtaDisabled}
+            className={`flex min-h-14 w-full items-center justify-center rounded-2xl px-5 py-3 text-center text-sm font-semibold transition disabled:cursor-default ${
+              isPaid
+                ? "border border-emerald-300 bg-emerald-50 text-emerald-800 disabled:opacity-100"
+                : "bg-brand text-white disabled:opacity-60"
+            }`}
+          >
+            {isPaid ? (
+              <span className="flex flex-col leading-5">
+                <span>{t("myAds.saleFlow.paidButtonTitle")}</span>
+                <span className="text-xs font-medium">{t("myAds.saleFlow.paidButtonSubtitle")}</span>
+              </span>
+            ) : (
+              <span>{isWorking ? t("myAds.saleFlow.preparing") : t("myAds.saleFlow.action")}</span>
+            )}
           </button>
         </div>
       </div>

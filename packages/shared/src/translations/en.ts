@@ -985,7 +985,7 @@
       }
     },
     saleFlow: {
-      action: "Pay Commission & Complete Sale",
+      action: "Complete Sale & Transfer Commission",
       heading: "Complete sale",
       subtitle: "Confirm the final sale amount, review the 1% commission, and issue the paid invoice only after successful payment.",
       saleSourceLabel: "How was the item sold?",
@@ -1011,6 +1011,8 @@
       buyerPhonePlaceholder: "Enter buyer mobile",
       confirmLabel: "I confirm that the entered amount is the actual final sale amount.",
       payButton: "Pay Commission & Complete Sale",
+      paidButtonTitle: "✅ Sold",
+      paidButtonSubtitle: "Commission paid",
       resumePaymentAction: "Resume commission payment",
       saveCancellation: "Save sale cancellation",
       preparing: "Preparing payment",
