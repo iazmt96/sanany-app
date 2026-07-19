@@ -432,16 +432,6 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   return (
     <RequireAuth language={resolvedLanguage}>
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-8">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Image src="/brand/sanany-logo.png" alt={t("app.title")} width={500} height={220} className="h-9 w-auto" priority />
-            <h1 className="text-xl font-bold text-slate-900">{t("marketplace.detail.pageTitle")}</h1>
-          </div>
-          <Link href={`/${resolvedLanguage}/search`} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
-            {t("marketplace.detail.back")}
-          </Link>
-        </header>
-
         {isLoading ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
