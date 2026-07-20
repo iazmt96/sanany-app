@@ -1495,6 +1495,61 @@
         additional_info_required: "مطلوب معلومات إضافية",
         verified: "موثّق",
         rejected: "تم رفض التوثيق"
+      },
+      typeSelector: {
+        title: "نوع التوثيق",
+        subtitle: "اختر النوع الذي ينطبق على حسابك",
+        individualTitle: "توثيق كفرد",
+        individualDesc: "للأفراد والمستقلين والبائعين الشخصيين",
+        companyTitle: "توثيق كشركة",
+        companyDesc: "للشركات والمؤسسات والأنشطة التجارية",
+        chooseType: "اختر نوع التوثيق",
+        changeType: "تغيير نوع التوثيق"
+      },
+      sections: {
+        personalInfo: "المعلومات الشخصية",
+        identityDocs: "وثائق الهوية",
+        companyInfo: "بيانات الشركة",
+        companyDocs: "وثائق الشركة",
+        reviewSubmit: "مراجعة وإرسال"
+      },
+      companyFields: {
+        representativeName: "اسم المفوَّض",
+        businessType: "نوع النشاط",
+        businessTypeOptions: {
+          retail: "تجارة تجزئة",
+          wholesale: "تجارة جملة",
+          services: "خدمات",
+          technology: "تقنية",
+          realEstate: "عقارات",
+          automotive: "سيارات",
+          food: "أغذية ومطاعم",
+          other: "أخرى"
+        },
+        taxNumber: "الرقم الضريبي (اختياري)",
+        website: "الموقع الإلكتروني (اختياري)",
+        description: "نبذة عن الشركة (اختياري)"
+      },
+      submitSuccess: "تم إرسال طلب التوثيق بنجاح. سنراجعه خلال 1-3 أيام عمل.",
+      saveDraftSuccess: "تم حفظ البيانات. يمكنك إكمال الطلب لاحقاً.",
+      statusBanner: {
+        pending: "طلب التوثيق قيد المراجعة. سنُخطرك بالنتيجة.",
+        additional_info_required: "مطلوب معلومات إضافية لإكمال توثيق حسابك.",
+        verified: "حسابك موثّق بنجاح! ✓",
+        rejected: "تم رفض طلب التوثيق."
+      },
+      rejectionReason: "سبب الرفض",
+      resubmit: "إعادة التقديم",
+      documentUploadHint: "JPG، PNG أو PDF — بحد أقصى 5 ميغابايت",
+      requiredField: "حقل مطلوب",
+      errors: {
+        legalNameRequired: "الاسم القانوني مطلوب",
+        nationalIdRequired: "رقم الهوية مطلوب",
+        birthDateRequired: "تاريخ الميلاد مطلوب",
+        businessNameRequired: "اسم المنشأة مطلوب",
+        businessRegistrationRequired: "رقم السجل التجاري مطلوب",
+        representativeRequired: "اسم المفوَّض مطلوب",
+        documentRequired: "الوثيقة مطلوبة"
       }
     },
     accountDetails: {

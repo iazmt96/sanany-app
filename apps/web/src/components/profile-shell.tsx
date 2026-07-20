@@ -193,7 +193,7 @@ export function ProfileShell({ language, tab = null, tapPaymentReturn = null }: 
     { id: "drafts", href: `${adsTabHref}&section=drafts`, label: t("profile.dashboard.quickActions.items.drafts") },
     { id: "commission", href: `${adsTabHref}&section=sold`, label: t("profile.dashboard.quickActions.items.commission") },
     { id: "savedSearches", href: `/${resolvedLanguage}/search`, label: t("profile.dashboard.quickActions.items.savedSearches") },
-    { id: "verification", href: editLink, label: t("profile.dashboard.quickActions.items.verification") },
+    { id: "verification", href: `/${resolvedLanguage}/profile/verify`, label: t("profile.dashboard.quickActions.items.verification") },
     { id: "settings", href: editLink, label: t("profile.dashboard.quickActions.items.settings") }
   ] as const;
 

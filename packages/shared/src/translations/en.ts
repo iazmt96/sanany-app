@@ -1496,6 +1496,61 @@
         additional_info_required: "Additional Information Required",
         verified: "Verified",
         rejected: "Verification Rejected"
+      },
+      typeSelector: {
+        title: "Verification Type",
+        subtitle: "Choose the type that applies to your account",
+        individualTitle: "Verify as Individual",
+        individualDesc: "For individuals, freelancers, and personal sellers",
+        companyTitle: "Verify as Company",
+        companyDesc: "For companies, establishments, and commercial activities",
+        chooseType: "Choose verification type",
+        changeType: "Change verification type"
+      },
+      sections: {
+        personalInfo: "Personal Information",
+        identityDocs: "Identity Documents",
+        companyInfo: "Company Information",
+        companyDocs: "Company Documents",
+        reviewSubmit: "Review and Submit"
+      },
+      companyFields: {
+        representativeName: "Authorized Representative",
+        businessType: "Business Type",
+        businessTypeOptions: {
+          retail: "Retail",
+          wholesale: "Wholesale",
+          services: "Services",
+          technology: "Technology",
+          realEstate: "Real Estate",
+          automotive: "Automotive",
+          food: "Food & Restaurants",
+          other: "Other"
+        },
+        taxNumber: "Tax Number (optional)",
+        website: "Website (optional)",
+        description: "Company description (optional)"
+      },
+      submitSuccess: "Verification request submitted successfully. We will review it within 1-3 business days.",
+      saveDraftSuccess: "Data saved. You can complete the request later.",
+      statusBanner: {
+        pending: "Verification request is under review. We will notify you of the outcome.",
+        additional_info_required: "Additional information is required to complete your account verification.",
+        verified: "Your account is verified! ✓",
+        rejected: "Your verification request was rejected."
+      },
+      rejectionReason: "Rejection reason",
+      resubmit: "Resubmit",
+      documentUploadHint: "JPG, PNG or PDF — max 5 MB",
+      requiredField: "Required field",
+      errors: {
+        legalNameRequired: "Legal full name is required",
+        nationalIdRequired: "ID number is required",
+        birthDateRequired: "Date of birth is required",
+        businessNameRequired: "Business name is required",
+        businessRegistrationRequired: "Commercial registration number is required",
+        representativeRequired: "Representative name is required",
+        documentRequired: "Document is required"
       }
     },
     accountDetails: {
