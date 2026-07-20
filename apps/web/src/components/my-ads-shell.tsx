@@ -10,9 +10,12 @@ import type {
   CarFuelType,
   CarPriceMode,
   ListingCategory,
+  ListingAttributes,
   ListingOfferType,
   ListingSalePayment,
   ListingStatus,
+  MarketplaceCategoryField,
+  MarketplaceCategoryNode,
   MarketplaceCommissionSettings,
   MarketplaceListing,
   PaginatedResult
@@ -28,9 +31,14 @@ import {
   buildCarModelOptions,
   buildCarYearsRange,
   buildListingImageStoragePath,
+  collectLeafCategories,
   CAR_MAKE_IDS,
   clearDraftSyncOperations,
   formatCurrencySar,
+  formatListingAttributeValue,
+  getCategoryFieldHelperText,
+  getCategoryFieldLabel,
+  getCategoryFieldPlaceholder,
   computeListingQualityScore,
   createDraftSyncOperation,
   createListingImageUploadItem,
@@ -45,12 +53,14 @@ import {
   markListingImageForRetry,
   matchesListingManagementSection,
   normalizeListingImageOrder,
+  normalizeListingAttributes,
   OTHER_CAR_MODEL_ID,
   parseListingImageUrls,
   serializeListingImageUrls,
   shouldShowSaleCompletionAction,
   shouldCreateDraftConflict,
   toCreateListingImageInputs,
+  validateListingAttributes,
   type DraftRemoteConflict,
   type DraftSyncOperation,
   type ListingImageUploadItem,
@@ -60,6 +70,7 @@ import { Card } from "@sanany/ui";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { RequireAuth } from "../auth/guards";
+import { getWebCategoriesRepository } from "../lib/categories-repository";
 import { getWebListingsRepository } from "../lib/listings-repository";
 import { getWebSupabaseClient } from "../lib/supabase-client";
 import { ListingCard } from "./listing-card";
@@ -84,6 +95,7 @@ type ListingDraftSnapshot = {
   description: string;
   extraDetails: string;
   price: string;
+  categoryFieldValues: Record<string, unknown>;
   carBrand: string | null;
   carModelOption: string | null;
   carModelOther: string;
@@ -145,6 +157,43 @@ const CATEGORIES_BY_TYPE: Record<ListingOfferType, ListingCategory[]> = {
   ],
   request: ["requestGoods", "requestPurchase", "requestRent", "requestHomeService", "requestTechService", "requestUrgentMaintenance", "requestOther"]
 };
+
+const CAR_CONFIGURED_FIELD_KEYS = new Set(["make", "model", "year", "mileage", "condition", "fuelType"]);
+
+function isCarConfiguredField(fieldKey: string): boolean {
+  return CAR_CONFIGURED_FIELD_KEYS.has(fieldKey);
+}
+
+function getLocalizedCategoryName(categoryNode: MarketplaceCategoryNode, language: "ar" | "en"): string {
+  return language === "ar" ? categoryNode.nameAr : categoryNode.nameEn;
+}
+
+function findLeafCategoryBySlug(tree: MarketplaceCategoryNode[], slug: string | null): MarketplaceCategoryNode | null {
+  if (!slug) {
+    return null;
+  }
+
+  for (const root of tree) {
+    const leaf = collectLeafCategories(root).find((node) => node.slug === slug);
+    if (leaf) {
+      return leaf;
+    }
+  }
+
+  return null;
+}
+
+function coerceFieldStringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function coerceFieldBooleanValue(value: unknown): boolean {
+  return value === true;
+}
+
+function coerceFieldStringArrayValue(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
 
 function buildDraftStorageKey(userId: string): string {
   return `${DRAFT_STORAGE_KEY_PREFIX}:${userId}`;
@@ -257,7 +306,9 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const repository = useMemo(() => getWebListingsRepository(), []);
+  const categoriesRepository = useMemo(() => getWebCategoriesRepository(), []);
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
+  const fieldLanguage = resolvedLanguage === "ar" ? "ar" : "en";
   const [section, setSection] = useState<ListingManagementSection>("active");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -285,6 +336,9 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
   const [description, setDescription] = useState("");
   const [extraDetails, setExtraDetails] = useState("");
   const [price, setPrice] = useState("");
+  const [categoryTree, setCategoryTree] = useState<MarketplaceCategoryNode[]>([]);
+  const [selectedCategoryDetail, setSelectedCategoryDetail] = useState<MarketplaceCategoryNode | null>(null);
+  const [categoryFieldValues, setCategoryFieldValues] = useState<Record<string, unknown>>({});
   const [carBrand, setCarBrand] = useState<string | null>(null);
   const [carModelOption, setCarModelOption] = useState<string | null>(null);
   const [carModelOther, setCarModelOther] = useState("");
@@ -307,11 +361,38 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
   const [dragImageId, setDragImageId] = useState<string | null>(null);
 
   const currentStep = ADD_STEPS[currentStepIndex];
-  const selectedTypeCategories = offerType ? CATEGORIES_BY_TYPE[offerType] : [];
+  const categoryLeaves = useMemo(() => categoryTree.flatMap((root) => collectLeafCategories(root)), [categoryTree]);
+  const selectedTypeCategories = useMemo(() => {
+    if (!offerType) {
+      return [];
+    }
+
+    const repositoryCategories = categoryLeaves.filter((item) => item.offerType === offerType);
+    if (repositoryCategories.length > 0) {
+      return repositoryCategories.map((item) => ({
+        slug: item.slug,
+        label: getLocalizedCategoryName(item, fieldLanguage)
+      }));
+    }
+
+    return CATEGORIES_BY_TYPE[offerType].map((slug) => ({
+      slug,
+      label: t(`marketplace.create.categories.${slug}`)
+    }));
+  }, [categoryLeaves, fieldLanguage, offerType, t]);
   const parsedPrice = Number(price);
   const validPrice = Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : 0;
   const isCarSaleCategory = category === "carSale";
   const shouldShowPriceInput = !isCarSaleCategory || carPriceMode === "fixed";
+  const selectedCategoryNode = selectedCategoryDetail ?? findLeafCategoryBySlug(categoryTree, category);
+  const selectedCategoryFields = useMemo(() => selectedCategoryNode?.fields ?? [], [selectedCategoryNode]);
+  const visibleCategoryFields = selectedCategoryFields.filter((field) => !isCarSaleCategory || !isCarConfiguredField(field.fieldKey));
+  const carMakeField = selectedCategoryFields.find((field) => field.fieldKey === "make") ?? null;
+  const carModelField = selectedCategoryFields.find((field) => field.fieldKey === "model") ?? null;
+  const carYearField = selectedCategoryFields.find((field) => field.fieldKey === "year") ?? null;
+  const carMileageField = selectedCategoryFields.find((field) => field.fieldKey === "mileage") ?? null;
+  const carConditionField = selectedCategoryFields.find((field) => field.fieldKey === "condition") ?? null;
+  const carFuelTypeField = selectedCategoryFields.find((field) => field.fieldKey === "fuelType") ?? null;
   const draftStorageKey = snapshot.user?.id ? buildDraftStorageKey(snapshot.user.id) : null;
   const qualityScore = computeListingQualityScore({
     title,
@@ -348,6 +429,95 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     }
   }, [carBrand]);
   const carYears = useMemo(() => buildCarYearsRange(), []);
+  const selectedCategoryLabel = selectedCategoryNode
+    ? getLocalizedCategoryName(selectedCategoryNode, fieldLanguage)
+    : category
+      ? t(`marketplace.create.categories.${category}`)
+      : "-";
+  const rawCategoryFieldInputs = useMemo<Record<string, unknown>>(() => {
+    const values: Record<string, unknown> = { ...categoryFieldValues };
+    if (isCarSaleCategory) {
+      values.make = carBrand ?? null;
+      values.model = carModelOption === OTHER_CAR_MODEL_ID ? carModelOther.trim() || null : carModelOption ?? null;
+      values.year = carYear ?? null;
+      values.mileage = carMileage.trim() || null;
+      values.condition = carCondition;
+      values.fuelType = carFuelType;
+    }
+    return values;
+  }, [carBrand, carCondition, carFuelType, carMileage, carModelOption, carModelOther, carYear, categoryFieldValues, isCarSaleCategory]);
+  const normalizedCategoryAttributes = useMemo<ListingAttributes>(
+    () => normalizeListingAttributes(selectedCategoryFields, rawCategoryFieldInputs),
+    [rawCategoryFieldInputs, selectedCategoryFields]
+  );
+  const invalidCategoryFieldKeys = useMemo(() => validateListingAttributes(selectedCategoryFields, rawCategoryFieldInputs), [rawCategoryFieldInputs, selectedCategoryFields]);
+  const invalidCategoryFields = useMemo(
+    () => invalidCategoryFieldKeys.map((fieldKey) => selectedCategoryFields.find((field) => field.fieldKey === fieldKey)).filter((field): field is MarketplaceCategoryField => Boolean(field)),
+    [invalidCategoryFieldKeys, selectedCategoryFields]
+  );
+  const categoryPreviewRows = useMemo(() => {
+    return selectedCategoryFields.reduce<Array<{ key: string; label: string; value: string }>>((rows, field) => {
+      const label = getCategoryFieldLabel(field, fieldLanguage);
+      if (isCarSaleCategory && isCarConfiguredField(field.fieldKey)) {
+        if (field.fieldKey === "make" && carBrand) {
+          rows.push({ key: field.fieldKey, label, value: t(`marketplace.create.carDetails.brands.${carBrand}`) });
+        } else if (field.fieldKey === "model") {
+          const selectedModelLabel =
+            carModelOption === OTHER_CAR_MODEL_ID
+              ? carModelOther.trim()
+              : carModelOptions.find((option) => option.id === carModelOption)?.label ?? "";
+          if (selectedModelLabel) {
+            rows.push({ key: field.fieldKey, label, value: selectedModelLabel });
+          }
+        } else if (field.fieldKey === "year" && carYear) {
+          rows.push({ key: field.fieldKey, label, value: carYear });
+        } else if (field.fieldKey === "mileage" && carMileage.trim()) {
+          rows.push({ key: field.fieldKey, label, value: carMileage.trim() });
+        } else if (field.fieldKey === "condition") {
+          const configuredOption = field.options.find((option) => option.value === carCondition);
+          rows.push({
+            key: field.fieldKey,
+            label,
+            value: configuredOption ? (fieldLanguage === "ar" ? configuredOption.labelAr : configuredOption.labelEn) : t(`marketplace.create.carDetails.conditionOptions.${carCondition}`)
+          });
+        } else if (field.fieldKey === "fuelType") {
+          const configuredOption = field.options.find((option) => option.value === carFuelType);
+          rows.push({
+            key: field.fieldKey,
+            label,
+            value: configuredOption ? (fieldLanguage === "ar" ? configuredOption.labelAr : configuredOption.labelEn) : t(`marketplace.create.carDetails.fuelOptions.${carFuelType}`)
+          });
+        }
+        return rows;
+      }
+
+      const value = normalizedCategoryAttributes[field.fieldKey];
+      if (value === null || value === undefined || (Array.isArray(value) && value.length === 0)) {
+        return rows;
+      }
+
+      rows.push({
+        key: field.fieldKey,
+        label,
+        value: formatListingAttributeValue(field, value, fieldLanguage)
+      });
+      return rows;
+    }, []);
+  }, [
+    carBrand,
+    carCondition,
+    carFuelType,
+    carMileage,
+    carModelOption,
+    carModelOptions,
+    carModelOther,
+    carYear,
+    fieldLanguage,
+    isCarSaleCategory,
+    normalizedCategoryAttributes,
+    selectedCategoryFields,
+    t
+  ]);
   const selectedSaleListing = useMemo(
     () => data.items.find((item) => item.id === selectedSaleListingId) ?? null,
     [data.items, selectedSaleListingId]
@@ -389,6 +559,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     description,
     extraDetails,
     price,
+    categoryFieldValues,
     carBrand,
     carModelOption,
     carModelOther,
@@ -414,18 +585,18 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
       meta.push(`${t("marketplace.create.typeLabel")}: ${t(`marketplace.create.offerTypes.${offerType}`)}`);
     }
     if (category) {
-      meta.push(`${t("marketplace.create.flow.previewCategoryLabel")}: ${t(`marketplace.create.categories.${category}`)}`);
+      meta.push(`${t("marketplace.create.flow.previewCategoryLabel")}: ${selectedCategoryLabel}`);
     }
-    if (isCarSaleCategory) {
-      meta.push(t("marketplace.create.carDetails.structuredTitle"));
-      meta.push(`- ${t("marketplace.create.carDetails.locationLabel")}: ${carLocation.trim() || "-"}`);
-      meta.push(`- ${t("marketplace.create.carDetails.mileageLabel")}: ${carMileage.trim() || "-"}`);
-      meta.push(`- ${t("marketplace.create.carDetails.adTypeLabel")}: ${t(`marketplace.create.carDetails.adTypeOptions.${carAdType}`)}`);
-      meta.push(`- ${t("marketplace.create.carDetails.conditionLabel")}: ${t(`marketplace.create.carDetails.conditionOptions.${carCondition}`)}`);
-      meta.push(`- ${t("marketplace.create.carDetails.fuelLabel")}: ${t(`marketplace.create.carDetails.fuelOptions.${carFuelType}`)}`);
-      meta.push(`- ${t("marketplace.create.carDetails.priceModeLabel")}: ${t(`marketplace.create.carDetails.priceModeOptions.${carPriceMode}`)}`);
+    if (categoryPreviewRows.length > 0) {
+      meta.push(isCarSaleCategory ? t("marketplace.create.carDetails.structuredTitle") : t("marketplace.create.dynamicFields.default.label"));
+      meta.push(...categoryPreviewRows.map((item) => `- ${item.label}: ${item.value}`));
     } else if (extraDetails.trim()) {
       meta.push(extraDetails.trim());
+    }
+    if (isCarSaleCategory) {
+      meta.push(`- ${t("marketplace.create.carDetails.locationLabel")}: ${carLocation.trim() || "-"}`);
+      meta.push(`- ${t("marketplace.create.carDetails.adTypeLabel")}: ${t(`marketplace.create.carDetails.adTypeOptions.${carAdType}`)}`);
+      meta.push(`- ${t("marketplace.create.carDetails.priceModeLabel")}: ${t(`marketplace.create.carDetails.priceModeOptions.${carPriceMode}`)}`);
     }
     if (meta.length === 0) {
       return base;
@@ -434,7 +605,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
       return meta.join("\n");
     }
     return `${base}\n\n${meta.join("\n")}`;
-  }, [carAdType, carCondition, carFuelType, carLocation, carMileage, carPriceMode, category, description, extraDetails, isCarSaleCategory, offerType, t]);
+  }, [carAdType, carLocation, carPriceMode, category, categoryPreviewRows, description, extraDetails, isCarSaleCategory, offerType, selectedCategoryLabel, t]);
 
   const loadManagementData = useCallback(async () => {
     if (!snapshot.user?.id) {
@@ -466,6 +637,75 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
       setIsLoading(false);
     }
   }, [repository, snapshot.user?.id, t]);
+
+  useEffect(() => {
+    let active = true;
+
+    const run = async () => {
+      try {
+        const nextTree = await categoriesRepository.listCategoryTree();
+        if (!active) {
+          return;
+        }
+        setCategoryTree(nextTree);
+      } catch {
+        if (active) {
+          setCategoryTree([]);
+        }
+      }
+    };
+
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [categoriesRepository]);
+
+  useEffect(() => {
+    if (!category) {
+      setSelectedCategoryDetail(null);
+      return;
+    }
+
+    let active = true;
+    const fallback = findLeafCategoryBySlug(categoryTree, category);
+    if (fallback) {
+      setSelectedCategoryDetail(fallback);
+    }
+
+    const run = async () => {
+      try {
+        const detail = await categoriesRepository.getCategoryBySlug(category);
+        if (active) {
+          setSelectedCategoryDetail(detail);
+        }
+      } catch {
+        if (active) {
+          setSelectedCategoryDetail(fallback ?? null);
+        }
+      }
+    };
+
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [categoriesRepository, category, categoryTree]);
+
+  useEffect(() => {
+    if (!selectedCategoryFields.length) {
+      if (!category) {
+        setCategoryFieldValues({});
+      }
+      return;
+    }
+
+    const allowedKeys = new Set(selectedCategoryFields.map((field) => field.fieldKey));
+    setCategoryFieldValues((current) => {
+      const filteredEntries = Object.entries(current).filter(([fieldKey]) => allowedKeys.has(fieldKey) && (!isCarSaleCategory || !isCarConfiguredField(fieldKey)));
+      return Object.fromEntries(filteredEntries);
+    });
+  }, [category, isCarSaleCategory, selectedCategoryFields]);
 
   useEffect(() => {
     if (!snapshot.user?.id) {
@@ -515,6 +755,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
       setDescription(draft.description);
       setExtraDetails(draft.extraDetails);
       setPrice(draft.price);
+      setCategoryFieldValues(draft.categoryFieldValues ?? {});
       setCarBrand(draft.carBrand);
       setCarModelOption(draft.carModelOption);
       setCarModelOther(draft.carModelOther);
@@ -547,10 +788,12 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     setCurrentStepIndex(0);
     setOfferType(null);
     setCategory(null);
+    setSelectedCategoryDetail(null);
     setTitle("");
     setDescription("");
     setExtraDetails("");
     setPrice("");
+    setCategoryFieldValues({});
     setCarBrand(null);
     setCarModelOption(null);
     setCarModelOther("");
@@ -697,6 +940,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
       title: title.trim() || t("marketplace.create.flow.previewFallbackTitle"),
       description: listingDescriptionForSubmit || "-",
       price: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : 1,
+      attributes: normalizedCategoryAttributes,
       imageUrl: serializeListingImageUrls(imageUrls) ?? undefined,
       images: toCreateListingImageInputs(uploadedImages),
       status: "draft",
@@ -743,51 +987,64 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
   const validateCurrentStep = (): string | null => {
     if (currentStep === "category") {
       if (!offerType) {
-        return "marketplace.create.errors.offerTypeRequired";
+        return t("marketplace.create.errors.offerTypeRequired");
       }
       if (!category) {
-        return "marketplace.create.errors.categoryRequired";
+        return t("marketplace.create.errors.categoryRequired");
       }
     }
 
     if (currentStep === "details") {
       if (!title.trim()) {
-        return "marketplace.create.errors.titleRequired";
+        return t("marketplace.create.errors.titleRequired");
       }
       if (shouldShowPriceInput && (!Number.isFinite(parsedPrice) || parsedPrice <= 0)) {
-        return "marketplace.create.errors.priceInvalid";
+        return t("marketplace.create.errors.priceInvalid");
       }
       if (selectedImages.length < MIN_IMAGE_COUNT) {
-        return "marketplace.create.errors.imagesMinimumRequired";
+        return t("marketplace.create.errors.imagesMinimumRequired");
       }
       if (isCarSaleCategory && !carLocation.trim()) {
-        return "marketplace.create.errors.carLocationRequired";
+        return t("marketplace.create.errors.carLocationRequired");
       }
-      if (isCarSaleCategory && !carBrand) {
-        return "marketplace.create.errors.carBrandRequired";
+      if (invalidCategoryFields[0]) {
+        return t("marketplace.create.errors.categoryFieldRequired", {
+          field: getCategoryFieldLabel(invalidCategoryFields[0], fieldLanguage)
+        });
       }
-      if (isCarSaleCategory && !carModelOption) {
-        return "marketplace.create.errors.carModelOptionRequired";
+      if (
+        isCarSaleCategory &&
+        selectedCategoryFields.some((field) => field.fieldKey === "model") &&
+        carModelOption === OTHER_CAR_MODEL_ID &&
+        !carModelOther.trim()
+      ) {
+        return t("marketplace.create.errors.carModelOtherRequired");
       }
-      if (isCarSaleCategory && carModelOption === OTHER_CAR_MODEL_ID && !carModelOther.trim()) {
-        return "marketplace.create.errors.carModelOtherRequired";
+      if (isCarSaleCategory && selectedCategoryFields.some((field) => field.fieldKey === "year") && carYear && !carYears.includes(carYear)) {
+        return t("marketplace.create.errors.carYearInvalidRange");
       }
-      if (isCarSaleCategory && !carYear) {
-        return "marketplace.create.errors.carYearRequired";
+      if (isCarSaleCategory && selectedCategoryFields.some((field) => field.fieldKey === "mileage") && carMileage.trim()) {
+        const parsedMileage = Number(carMileage);
+        if (!Number.isFinite(parsedMileage) || parsedMileage < 0) {
+          return t("marketplace.create.errors.carMileageInvalid");
+        }
+        if (parsedMileage > 2_000_000) {
+          return t("marketplace.create.errors.carMileageTooHigh");
+        }
       }
     }
 
     if (currentStep === "agreement" && !isAgreementAccepted) {
-      return "marketplace.create.errors.agreementRequired";
+      return t("marketplace.create.errors.agreementRequired");
     }
 
     return null;
   };
 
   const goNext = () => {
-    const errorKey = validateCurrentStep();
-    if (errorKey) {
-      setErrorMessage(t(errorKey));
+    const validationError = validateCurrentStep();
+    if (validationError) {
+      setErrorMessage(validationError);
       return;
     }
     setErrorMessage(null);
@@ -919,13 +1176,13 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     if (!snapshot.user?.id) {
       return;
     }
-    const errorKey = validateCurrentStep();
+    const validationError = validateCurrentStep();
     if (currentStep !== "agreement") {
       setErrorMessage(t("myAds.form.reviewBeforePublish"));
       return;
     }
-    if (errorKey) {
-      setErrorMessage(t(errorKey));
+    if (validationError) {
+      setErrorMessage(validationError);
       return;
     }
 
@@ -944,6 +1201,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
         title: title.trim(),
         description: listingDescriptionForSubmit || "-",
         price: shouldShowPriceInput ? parsedPrice : 1,
+        attributes: normalizedCategoryAttributes,
         imageUrl: serializeListingImageUrls(imageUrls) ?? undefined,
         images: toCreateListingImageInputs(uploadedImages),
         status,
@@ -973,6 +1231,18 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
   };
 
   const onEditListing = (listing: MarketplaceListing) => {
+    const attributes = listing.attributes ?? {};
+    const nextCarBrand =
+      typeof attributes.make === "string" && attributes.make.length > 0 && CAR_MAKE_IDS.includes(attributes.make as (typeof CAR_MAKE_IDS)[number])
+        ? attributes.make
+        : null;
+    const nextModelValue = typeof attributes.model === "string" ? attributes.model : "";
+    const matchingModel = nextCarBrand
+      ? buildCarModelOptions(nextCarBrand as Parameters<typeof buildCarModelOptions>[0]).find(
+          (option) => option.id === nextModelValue || option.label.toLowerCase() === nextModelValue.toLowerCase()
+        ) ?? null
+      : null;
+
     setEditingListingId(listing.id);
     setCurrentStepIndex(1);
     setTitle(listing.title);
@@ -981,6 +1251,14 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     setOfferType(listing.offerType ?? null);
     setCategory(listing.categorySlug ?? null);
     setExtraDetails("");
+    setCategoryFieldValues(attributes);
+    setCarBrand(nextCarBrand);
+    setCarModelOption(nextModelValue ? matchingModel?.id ?? OTHER_CAR_MODEL_ID : null);
+    setCarModelOther(nextModelValue && !matchingModel ? nextModelValue : "");
+    setCarYear(attributes.year != null ? String(attributes.year) : null);
+    setCarMileage(attributes.mileage != null ? String(attributes.mileage) : "");
+    setCarCondition(typeof attributes.condition === "string" ? (attributes.condition as CarCondition) : "new");
+    setCarFuelType(typeof attributes.fuelType === "string" ? (attributes.fuelType as CarFuelType) : "hybrid");
     const existingImages = parseListingImageUrls(listing.imageUrl).map((uri) => ({
       ...createListingImageUploadItem({
         localId: createImageId(),
@@ -1012,6 +1290,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
         title: listing.title,
         description: listing.description ?? "-",
         price: listing.price,
+        attributes: listing.attributes ?? undefined,
         imageUrl: listing.imageUrl ?? undefined,
         status,
         locationName: listing.locationName ?? undefined,
@@ -1080,7 +1359,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     }
   };
 
-  const previewDescription = description.trim() || extraDetails.trim() || t("marketplace.detail.noDescription");
+  const previewDescription = listingDescriptionForSubmit || t("marketplace.detail.noDescription");
 
   const content = (
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-8">
@@ -1124,6 +1403,8 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
                       onClick={() => {
                         setOfferType(item);
                         setCategory(null);
+                        setSelectedCategoryDetail(null);
+                        setCategoryFieldValues({});
                       }}
                       className={`rounded-lg border px-3 py-2 text-sm ${
                         offerType === item ? "border-brand bg-brand/10 text-brand" : "border-slate-200 bg-white text-slate-700"
@@ -1137,14 +1418,14 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {selectedTypeCategories.map((item) => (
                       <button
-                        key={item}
+                        key={item.slug}
                         type="button"
-                        onClick={() => setCategory(item)}
+                        onClick={() => setCategory(item.slug)}
                         className={`rounded-lg border px-3 py-2 text-sm ${
-                          category === item ? "border-brand bg-brand/10 text-brand" : "border-slate-200 bg-white text-slate-700"
+                          category === item.slug ? "border-brand bg-brand/10 text-brand" : "border-slate-200 bg-white text-slate-700"
                         }`}
                       >
-                        {t(`marketplace.create.categories.${item}`)}
+                        {item.label}
                       </button>
                     ))}
                   </div>
@@ -1241,10 +1522,137 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
                   <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-brand/40 focus:ring" />
                 </label>
 
-                {!isCarSaleCategory ? (
+                {visibleCategoryFields.length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {visibleCategoryFields.map((field) => {
+                      const label = getCategoryFieldLabel(field, fieldLanguage);
+                      const placeholder = getCategoryFieldPlaceholder(field, fieldLanguage);
+                      const helperText = getCategoryFieldHelperText(field, fieldLanguage);
+
+                      if (field.fieldType === "textarea") {
+                        return (
+                          <label key={field.id} className="space-y-1 md:col-span-2">
+                            <span className="text-sm font-medium text-slate-700">
+                              {label}
+                              {field.isRequired ? " *" : ""}
+                            </span>
+                            <textarea
+                              value={coerceFieldStringValue(categoryFieldValues[field.fieldKey])}
+                              onChange={(event) => setCategoryFieldValues((current) => ({ ...current, [field.fieldKey]: event.target.value }))}
+                              rows={4}
+                              placeholder={placeholder ?? undefined}
+                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-brand/40 focus:ring"
+                            />
+                            {helperText ? <span className="text-xs text-slate-500">{helperText}</span> : null}
+                          </label>
+                        );
+                      }
+
+                      if (field.fieldType === "select") {
+                        return (
+                          <label key={field.id} className="space-y-1">
+                            <span className="text-sm font-medium text-slate-700">
+                              {label}
+                              {field.isRequired ? " *" : ""}
+                            </span>
+                            <select
+                              value={coerceFieldStringValue(categoryFieldValues[field.fieldKey])}
+                              onChange={(event) => setCategoryFieldValues((current) => ({ ...current, [field.fieldKey]: event.target.value }))}
+                              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                            >
+                              <option value="">{placeholder ?? label}</option>
+                              {field.options.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {fieldLanguage === "ar" ? option.labelAr : option.labelEn}
+                                </option>
+                              ))}
+                            </select>
+                            {helperText ? <span className="text-xs text-slate-500">{helperText}</span> : null}
+                          </label>
+                        );
+                      }
+
+                      if (field.fieldType === "multiselect") {
+                        const selectedValues = coerceFieldStringArrayValue(categoryFieldValues[field.fieldKey]);
+                        return (
+                          <div key={field.id} className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 md:col-span-2">
+                            <span className="text-sm font-medium text-slate-700">
+                              {label}
+                              {field.isRequired ? " *" : ""}
+                            </span>
+                            <div className="flex flex-wrap gap-3">
+                              {field.options.map((option) => {
+                                const isSelected = selectedValues.includes(option.value);
+                                return (
+                                  <label key={option.value} className="flex items-center gap-2 text-sm text-slate-700">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={(event) =>
+                                        setCategoryFieldValues((current) => {
+                                          const currentValues = coerceFieldStringArrayValue(current[field.fieldKey]);
+                                          const nextValues = event.target.checked
+                                            ? [...currentValues, option.value]
+                                            : currentValues.filter((value) => value !== option.value);
+                                          return { ...current, [field.fieldKey]: nextValues };
+                                        })
+                                      }
+                                    />
+                                    {fieldLanguage === "ar" ? option.labelAr : option.labelEn}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                            {helperText ? <span className="text-xs text-slate-500">{helperText}</span> : null}
+                          </div>
+                        );
+                      }
+
+                      if (field.fieldType === "boolean") {
+                        return (
+                          <div key={field.id} className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={coerceFieldBooleanValue(categoryFieldValues[field.fieldKey])}
+                                onChange={(event) => setCategoryFieldValues((current) => ({ ...current, [field.fieldKey]: event.target.checked }))}
+                              />
+                              {label}
+                              {field.isRequired ? " *" : ""}
+                            </label>
+                            {helperText ? <span className="text-xs text-slate-500">{helperText}</span> : null}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <label key={field.id} className="space-y-1">
+                          <span className="text-sm font-medium text-slate-700">
+                            {label}
+                            {field.isRequired ? " *" : ""}
+                          </span>
+                          <input
+                            value={coerceFieldStringValue(categoryFieldValues[field.fieldKey])}
+                            onChange={(event) => setCategoryFieldValues((current) => ({ ...current, [field.fieldKey]: event.target.value }))}
+                            type={field.fieldType === "number" ? "number" : "text"}
+                            inputMode={field.fieldType === "number" ? "numeric" : undefined}
+                            placeholder={placeholder ?? undefined}
+                            className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none ring-brand/40 focus:ring"
+                          />
+                          {helperText ? <span className="text-xs text-slate-500">{helperText}</span> : null}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : !isCarSaleCategory ? (
                   <label className="block space-y-1">
                     <span className="text-sm font-medium text-slate-700">{t(`marketplace.create.dynamicFields.${offerType ?? "default"}.label`)}</span>
-                    <input value={extraDetails} onChange={(event) => setExtraDetails(event.target.value)} className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none ring-brand/40 focus:ring" />
+                    <input
+                      value={extraDetails}
+                      onChange={(event) => setExtraDetails(event.target.value)}
+                      placeholder={t(`marketplace.create.dynamicFields.${offerType ?? "default"}.placeholder`)}
+                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none ring-brand/40 focus:ring"
+                    />
                   </label>
                 ) : null}
 
@@ -1252,63 +1660,108 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
                   <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <h3 className="text-sm font-semibold text-slate-900">{t("marketplace.create.carDetails.title")}</h3>
                     <div className="grid gap-3 md:grid-cols-2">
-                      <label className="space-y-1">
-                        <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.brandLabel")}</span>
-                        <select
-                          value={carBrand ?? ""}
-                          onChange={(event) => {
-                            setCarBrand(event.target.value || null);
-                            setCarModelOption(null);
-                            setCarModelOther("");
-                            setCarYear(null);
-                          }}
-                          className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
-                        >
-                          <option value="">{t("marketplace.create.carDetails.selectBrandFirst")}</option>
-                          {CAR_MAKE_IDS.map((brand) => (
-                            <option key={brand} value={brand}>
-                              {t(`marketplace.create.carDetails.brands.${brand}`)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.modelOptionLabel")}</span>
-                        <select value={carModelOption ?? ""} onChange={(event) => setCarModelOption(event.target.value || null)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
-                          <option value="">{t("marketplace.create.carDetails.modelSearchPlaceholder")}</option>
-                          {carModelOptions.map((model) => (
-                            <option key={model.id} value={model.id}>
-                              {model.label}
-                            </option>
-                          ))}
-                          <option value={OTHER_CAR_MODEL_ID}>{t("marketplace.create.carDetails.modelOtherOption")}</option>
-                        </select>
-                      </label>
-                      {carModelOption === OTHER_CAR_MODEL_ID ? (
+                      {carMakeField ? (
                         <label className="space-y-1">
-                          <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.modelOtherLabel")}</span>
-                          <input value={carModelOther} onChange={(event) => setCarModelOther(event.target.value)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
+                          <span className="text-sm text-slate-700">
+                            {getCategoryFieldLabel(carMakeField, fieldLanguage)}
+                            {carMakeField.isRequired ? " *" : ""}
+                          </span>
+                          <select
+                            value={carBrand ?? ""}
+                            onChange={(event) => {
+                              setCarBrand(event.target.value || null);
+                              setCarModelOption(null);
+                              setCarModelOther("");
+                              setCarYear(null);
+                            }}
+                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                          >
+                            <option value="">{getCategoryFieldPlaceholder(carMakeField, fieldLanguage) ?? t("marketplace.create.carDetails.selectBrandFirst")}</option>
+                            {CAR_MAKE_IDS.map((brand) => (
+                              <option key={brand} value={brand}>
+                                {t(`marketplace.create.carDetails.brands.${brand}`)}
+                              </option>
+                            ))}
+                          </select>
+                          {getCategoryFieldHelperText(carMakeField, fieldLanguage) ? <span className="text-xs text-slate-500">{getCategoryFieldHelperText(carMakeField, fieldLanguage)}</span> : null}
                         </label>
                       ) : null}
-                      <label className="space-y-1">
-                        <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.yearLabel")}</span>
-                        <select value={carYear ?? ""} onChange={(event) => setCarYear(event.target.value || null)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
-                          <option value="">{t("marketplace.create.carDetails.yearSearchPlaceholder")}</option>
-                          {carYears.map((year) => (
-                            <option key={year} value={year}>
-                              {year}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      {carModelField ? (
+                        !carMakeField ? (
+                          <label className="space-y-1">
+                            <span className="text-sm text-slate-700">
+                              {getCategoryFieldLabel(carModelField, fieldLanguage)}
+                              {carModelField.isRequired ? " *" : ""}
+                            </span>
+                            <input
+                              value={carModelOther}
+                              onChange={(event) => {
+                                setCarModelOption(OTHER_CAR_MODEL_ID);
+                                setCarModelOther(event.target.value);
+                              }}
+                              placeholder={getCategoryFieldPlaceholder(carModelField, fieldLanguage) ?? t("marketplace.create.carDetails.modelOtherPlaceholder")}
+                              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                            />
+                          </label>
+                        ) : (
+                          <label className="space-y-1">
+                            <span className="text-sm text-slate-700">
+                              {getCategoryFieldLabel(carModelField, fieldLanguage)}
+                              {carModelField.isRequired ? " *" : ""}
+                            </span>
+                            <select value={carModelOption ?? ""} onChange={(event) => setCarModelOption(event.target.value || null)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                              <option value="">{getCategoryFieldPlaceholder(carModelField, fieldLanguage) ?? (carBrand ? t("marketplace.create.carDetails.modelSearchPlaceholder") : t("marketplace.create.carDetails.selectBrandFirst"))}</option>
+                              {carModelOptions.map((model) => (
+                                <option key={model.id} value={model.id}>
+                                  {model.label}
+                                </option>
+                              ))}
+                              <option value={OTHER_CAR_MODEL_ID}>{t("marketplace.create.carDetails.modelOtherOption")}</option>
+                            </select>
+                            {getCategoryFieldHelperText(carModelField, fieldLanguage) ? <span className="text-xs text-slate-500">{getCategoryFieldHelperText(carModelField, fieldLanguage)}</span> : null}
+                          </label>
+                        )
+                      ) : null}
+                      {carModelField && carModelOption === OTHER_CAR_MODEL_ID ? (
+                        <label className="space-y-1">
+                          <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.modelOtherLabel")}</span>
+                          <input value={carModelOther} onChange={(event) => setCarModelOther(event.target.value)} placeholder={t("marketplace.create.carDetails.modelOtherPlaceholder")} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
+                        </label>
+                      ) : null}
+                      {carYearField ? (
+                        <label className="space-y-1">
+                          <span className="text-sm text-slate-700">
+                            {getCategoryFieldLabel(carYearField, fieldLanguage)}
+                            {carYearField.isRequired ? " *" : ""}
+                          </span>
+                          <select value={carYear ?? ""} onChange={(event) => setCarYear(event.target.value || null)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                            <option value="">{getCategoryFieldPlaceholder(carYearField, fieldLanguage) ?? t("marketplace.create.carDetails.yearSearchPlaceholder")}</option>
+                            {carYears.map((year) => (
+                              <option key={year} value={year}>
+                                {year}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
                       <label className="space-y-1">
                         <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.locationLabel")}</span>
                         <input value={carLocation} onChange={(event) => setCarLocation(event.target.value)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
                       </label>
-                      <label className="space-y-1">
-                        <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.mileageLabel")}</span>
-                        <input value={carMileage} onChange={(event) => setCarMileage(event.target.value.replace(/[^\d]/g, ""))} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm" />
-                      </label>
+                      {carMileageField ? (
+                        <label className="space-y-1">
+                          <span className="text-sm text-slate-700">
+                            {getCategoryFieldLabel(carMileageField, fieldLanguage)}
+                            {carMileageField.isRequired ? " *" : ""}
+                          </span>
+                          <input
+                            value={carMileage}
+                            onChange={(event) => setCarMileage(event.target.value.replace(/[^\d]/g, ""))}
+                            placeholder={getCategoryFieldPlaceholder(carMileageField, fieldLanguage) ?? t("marketplace.create.carDetails.mileagePlaceholder")}
+                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                          />
+                        </label>
+                      ) : null}
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                       <label className="space-y-1">
@@ -1321,26 +1774,42 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
                           ))}
                         </select>
                       </label>
-                      <label className="space-y-1">
-                        <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.conditionLabel")}</span>
-                        <select value={carCondition} onChange={(event) => setCarCondition(event.target.value as CarCondition)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
-                          {CAR_CONDITIONS.map((item) => (
-                            <option key={item} value={item}>
-                              {t(`marketplace.create.carDetails.conditionOptions.${item}`)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.fuelLabel")}</span>
-                        <select value={carFuelType} onChange={(event) => setCarFuelType(event.target.value as CarFuelType)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
-                          {CAR_FUEL_TYPES.map((item) => (
-                            <option key={item} value={item}>
-                              {t(`marketplace.create.carDetails.fuelOptions.${item}`)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      {carConditionField ? (
+                        <label className="space-y-1">
+                          <span className="text-sm text-slate-700">
+                            {getCategoryFieldLabel(carConditionField, fieldLanguage)}
+                            {carConditionField.isRequired ? " *" : ""}
+                          </span>
+                          <select value={carCondition} onChange={(event) => setCarCondition(event.target.value as CarCondition)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                            {(carConditionField.options.length > 0 ? carConditionField.options.map((option) => option.value as CarCondition) : CAR_CONDITIONS).map((item) => {
+                              const configuredOption = carConditionField.options.find((option) => option.value === item);
+                              return (
+                                <option key={item} value={item}>
+                                  {configuredOption ? (fieldLanguage === "ar" ? configuredOption.labelAr : configuredOption.labelEn) : t(`marketplace.create.carDetails.conditionOptions.${item}`)}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </label>
+                      ) : null}
+                      {carFuelTypeField ? (
+                        <label className="space-y-1">
+                          <span className="text-sm text-slate-700">
+                            {getCategoryFieldLabel(carFuelTypeField, fieldLanguage)}
+                            {carFuelTypeField.isRequired ? " *" : ""}
+                          </span>
+                          <select value={carFuelType} onChange={(event) => setCarFuelType(event.target.value as CarFuelType)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
+                            {(carFuelTypeField.options.length > 0 ? carFuelTypeField.options.map((option) => option.value as CarFuelType) : CAR_FUEL_TYPES).map((item) => {
+                              const configuredOption = carFuelTypeField.options.find((option) => option.value === item);
+                              return (
+                                <option key={item} value={item}>
+                                  {configuredOption ? (fieldLanguage === "ar" ? configuredOption.labelAr : configuredOption.labelEn) : t(`marketplace.create.carDetails.fuelOptions.${item}`)}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </label>
+                      ) : null}
                       <label className="space-y-1">
                         <span className="text-sm text-slate-700">{t("marketplace.create.carDetails.priceModeLabel")}</span>
                         <select value={carPriceMode} onChange={(event) => setCarPriceMode(event.target.value as CarPriceMode)} className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm">
@@ -1364,13 +1833,22 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                   <p className="text-base font-semibold text-slate-900">{title.trim() || t("marketplace.create.flow.previewFallbackTitle")}</p>
                   <p className="text-sm text-slate-600">{t("marketplace.create.flow.previewType", { value: offerType ? t(`marketplace.create.offerTypes.${offerType}`) : "-" })}</p>
-                  <p className="text-sm text-slate-600">{t("marketplace.create.flow.previewCategory", { value: category ? t(`marketplace.create.categories.${category}`) : "-" })}</p>
+                  <p className="text-sm text-slate-600">{t("marketplace.create.flow.previewCategory", { value: selectedCategoryLabel })}</p>
                   <p className="text-sm text-slate-600">
                     {shouldShowPriceInput
                       ? t("marketplace.create.flow.previewPrice", { value: validPrice })
                       : t("marketplace.create.flow.previewPriceMode", { value: t(`marketplace.create.carDetails.priceModeOptions.${carPriceMode}`) })}
                   </p>
                   <p className="mt-2 text-sm text-slate-700">{previewDescription}</p>
+                  {categoryPreviewRows.length > 0 ? (
+                    <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                      {categoryPreviewRows.map((row) => (
+                        <li key={row.key}>
+                          <span className="font-medium text-slate-700">{row.label}:</span> {row.value}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               </div>
             ) : null}
@@ -1456,7 +1934,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
             </div>
             <ul className="space-y-2 text-sm text-slate-700">
               <li>{t("myAds.form.summaryType", { value: offerType ? t(`marketplace.create.offerTypes.${offerType}`) : "-" })}</li>
-              <li>{t("myAds.form.summaryCategory", { value: category ? t(`marketplace.create.categories.${category}`) : "-" })}</li>
+              <li>{t("myAds.form.summaryCategory", { value: selectedCategoryLabel })}</li>
               <li>{t("myAds.form.summaryImages", { count: selectedImages.length })}</li>
               <li>{t("myAds.form.summaryPrice", { value: shouldShowPriceInput ? validPrice : 0 })}</li>
             </ul>

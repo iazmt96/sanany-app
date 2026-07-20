@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   CreateListingInput,
   CreateListingImageInput,
+  ListingAttributes,
   ListingSaleInvoice,
   ListingSalePayment,
   ListingSalePaymentStatus,
@@ -56,6 +57,7 @@ type ListingRow = {
   location_name?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  attributes?: ListingAttributes | null;
   created_at: string;
   updated_at?: string;
 };
@@ -126,7 +128,7 @@ type SaleInvoiceRow = {
     | null;
 };
 
-const LISTING_SELECT_WITH_OWNER_PHONE = "id,owner_id,owner_phone,offer_type,category_slug,title,description,price,status,image_url,location_name,latitude,longitude,created_at,updated_at";
+const LISTING_SELECT_WITH_OWNER_PHONE = "id,owner_id,owner_phone,offer_type,category_slug,title,description,price,status,image_url,location_name,latitude,longitude,attributes,created_at,updated_at";
 const LISTING_SELECT_LEGACY = "id,owner_id,title,description,price,status,image_url,created_at,updated_at";
 const SALE_PAYMENT_SELECT =
   "id,listing_id,seller_id,sale_source,sale_source_other,final_sale_amount,commission_rate_percent,commission_amount,buyer_name,buyer_phone,payment_status,payment_method,payment_date,invoice_number,transaction_reference,failure_reason,refund_reason,refunded_at,created_at,updated_at";
@@ -159,6 +161,7 @@ function mapRow(row: ListingRow): MarketplaceListing {
     locationName: row.location_name ?? null,
     latitude: row.latitude ?? null,
     longitude: row.longitude ?? null,
+    attributes: row.attributes ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -232,6 +235,7 @@ function buildListingCreatePayload(input: CreateListingInput, status: Marketplac
     location_name: input.locationName ?? null,
     latitude: input.latitude ?? null,
     longitude: input.longitude ?? null,
+    attributes: input.attributes ?? {},
     owner_phone: input.ownerPhone ?? null,
     owner_id: input.ownerId
   };

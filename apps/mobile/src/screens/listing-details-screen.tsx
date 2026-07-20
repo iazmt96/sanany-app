@@ -34,7 +34,7 @@ type ListingDetailsScreenProps = {
   onOpenListing(listing: MarketplaceListing): void;
   onOpenSellerProfile(sellerId: string): void;
   onEditListing?(): void;
-  onMarkAsSold?(): void;
+  onOpenCommission?(listing: MarketplaceListing): void;
 };
 
 function getPrimaryImage(imageUrl: string | null): string | null {
@@ -97,7 +97,7 @@ function resolveSpecIcon(label: string): "cars" | "location" | "time" | "filter"
   return "filter";
 }
 
-export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, onOpenListing, onOpenSellerProfile, onEditListing, onMarkAsSold }: ListingDetailsScreenProps) {
+export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, onOpenListing, onOpenSellerProfile, onEditListing, onOpenCommission }: ListingDetailsScreenProps) {
   const { t, i18n } = useTranslation();
   const { snapshot } = useAuth();
   const isRtl = direction === "rtl";
@@ -118,7 +118,6 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const [isFavorite, setIsFavorite] = useState(false);
   const [isReported, setIsReported] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isMarkingAsSold, setIsMarkingAsSold] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [similarListings, setSimilarListings] = useState<MarketplaceListing[]>([]);
   const priceModeSpec = parsedCarSpecs.specs.find((item) => {
@@ -306,52 +305,6 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
     ]);
   };
 
-  const markAsSold = () => {
-    const ownerId = snapshot.user?.id;
-    if (!ownerId || !isListingOwner || isMarkingAsSold) {
-      return;
-    }
-
-    Alert.alert(t("marketplace.detail.markAsSoldConfirmTitle"), t("marketplace.detail.markAsSoldConfirmMessage"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("marketplace.detail.markAsSoldConfirmButton"),
-        style: "default",
-        onPress: () => {
-          setIsMarkingAsSold(true);
-          void listingsRepository
-            .publishDraft({
-              id: listing.id,
-              ownerId,
-              title: listing.title,
-              description: listing.description ?? "",
-              price: listing.price,
-              status: "sold",
-              imageUrl: listing.imageUrl ?? undefined,
-              locationName: listing.locationName ?? undefined,
-              latitude: listing.latitude ?? undefined,
-              longitude: listing.longitude ?? undefined,
-              ownerPhone: listing.ownerPhone ?? undefined,
-              offerType: listing.offerType ?? undefined,
-              categorySlug: listing.categorySlug ?? undefined
-            })
-            .then(() => {
-              setActionMessage(t("marketplace.detail.markAsSoldSuccess"));
-              if (onMarkAsSold) {
-                onMarkAsSold();
-              }
-            })
-            .catch(() => {
-              setActionMessage(t("marketplace.detail.markAsSoldFailed"));
-            })
-            .finally(() => {
-              setIsMarkingAsSold(false);
-            });
-        }
-      }
-    ]);
-  };
-
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={[styles.topBar, isRtl ? styles.topBarRtl : undefined]}>
@@ -394,14 +347,6 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
             <Pressable style={styles.actionButton} onPress={() => void shareListing()}>
               <MobileIcon name="share" size={15} color="#334155" />
               <Text style={styles.actionButtonLabel}>{t("marketplace.detail.share")}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.actionButton, isMarkingAsSold ? styles.actionButtonDisabled : undefined]}
-              disabled={isMarkingAsSold || listing.status === "sold"}
-              onPress={markAsSold}
-            >
-              <MobileIcon name="verified" size={15} color={listing.status === "sold" ? "#64748b" : "#0f766e"} focused={listing.status === "sold"} />
-              <Text style={[styles.actionButtonLabel, listing.status === "sold" ? styles.actionButtonMutedLabel : undefined]}>{t("marketplace.detail.markAsSoldAction")}</Text>
             </Pressable>
             <Pressable
               style={[styles.actionButton, styles.actionButtonDanger, isDeleting ? styles.actionButtonDisabled : undefined]}
@@ -534,6 +479,33 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
             </View>
           </Pressable>
         </View>
+
+        {isListingOwner ? (
+          <View style={styles.section}>
+            <View style={styles.commissionCard}>
+              <View style={styles.commissionHeader}>
+                <Text style={[styles.sectionTitle, { textAlign: isRtl ? "right" : "left" }]}>{t("marketplace.detail.commissionTitle")}</Text>
+                <Text style={[styles.commissionCaption, { textAlign: isRtl ? "right" : "left" }]}>
+                  {listing.status === "sold" ? t("marketplace.detail.commissionTransferredHint") : t("marketplace.detail.transferCommissionHint")}
+                </Text>
+              </View>
+              <Pressable
+                style={[styles.commissionButton, listing.status === "sold" ? styles.commissionButtonDisabled : undefined]}
+                disabled={listing.status === "sold"}
+                onPress={() => onOpenCommission?.(listing)}
+              >
+                <Text style={styles.commissionButtonLabel}>
+                  {listing.status === "sold" ? t("marketplace.detail.commissionTransferredAction") : t("marketplace.detail.transferCommissionAction")}
+                </Text>
+              </Pressable>
+              <View style={styles.commissionNote}>
+                <Text style={[styles.commissionHint, { textAlign: isRtl ? "right" : "left" }]}>
+                  {listing.status === "sold" ? t("marketplace.detail.commissionTransferredHint") : t("marketplace.detail.transferCommissionHint")}
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
 
         {similarListings.length > 0 ? (
           <View style={styles.section}>
@@ -891,6 +863,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#ffffff"
+  },
+  commissionCard: {
+    gap: 12,
+    borderRadius: 22,
+    backgroundColor: "#f8fbfd",
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    padding: 16
+  },
+  commissionHeader: {
+    gap: 4
+  },
+  commissionCaption: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#475569"
+  },
+  commissionButton: {
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    backgroundColor: "#0f766e",
+    paddingHorizontal: 18
+  },
+  commissionButtonDisabled: {
+    backgroundColor: "#cbd5e1"
+  },
+  commissionButtonLabel: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#ffffff"
+  },
+  commissionNote: {
+    borderRadius: 14,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  commissionHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#64748b"
   },
   similarRow: {
     flexDirection: "row",

@@ -136,9 +136,8 @@ export function ProfileScreen({ direction, onOpenListing, onOpenVerification, on
   const profileAvatarUri = accountProfile?.avatarUrl ?? profile?.avatarUrl;
   const websiteValue = accountProfile?.website?.trim() ?? "";
   const websiteLink = normalizeWebsiteForOpen(websiteValue);
-
-  return (
-    <View style={styles.container}>
+  const headerContent = (
+    <View style={styles.headerContent}>
       {profile ? (
         <View style={styles.headerCard}>
           <View style={[styles.headerTopRow, isRtl ? styles.rowRtl : undefined]}>
@@ -256,12 +255,19 @@ export function ProfileScreen({ direction, onOpenListing, onOpenVerification, on
           </Pressable>
         ))}
       </View>
+    </View>
+  );
 
+  return (
+    <View style={styles.container}>
       {tab === "ratings" ? (
         <FlatList
+          key="profile-ratings"
           data={ratingsData.items}
           keyExtractor={(item) => item.id}
+          ListHeaderComponent={headerContent}
           contentContainerStyle={styles.ratingsContent}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <View style={styles.ratingCard}>
               <Text style={[styles.ratingCardTitle, { textAlign }]}>{item.raterName ?? t("sellerProfile.anonymousRater")}</Text>
@@ -272,11 +278,14 @@ export function ProfileScreen({ direction, onOpenListing, onOpenVerification, on
         />
       ) : (
         <FlatList
+          key={`profile-listings-${tab}`}
           data={listingsData.items}
           keyExtractor={(item) => item.id}
           numColumns={2}
+          ListHeaderComponent={headerContent}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.gridContent}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <MobileListingTile
               direction={direction}
@@ -295,8 +304,11 @@ export function ProfileScreen({ direction, onOpenListing, onOpenVerification, on
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    gap: 10
+    flex: 1
+  },
+  headerContent: {
+    gap: 10,
+    paddingBottom: 10
   },
   rowRtl: {
     flexDirection: "row-reverse"

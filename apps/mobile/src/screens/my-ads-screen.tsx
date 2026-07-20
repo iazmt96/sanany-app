@@ -17,13 +17,22 @@ type MyAdsScreenProps = {
   onExploreMarketplace(): void;
   onOpenListing(listing: MarketplaceListing): void;
   previewState?: CommissionReviewPreviewState | null;
+  commissionListingId?: string | null;
+  onCommissionListingHandled?(): void;
 };
 
 const PAGE_SIZE = 6;
 const MANAGEMENT_TABS = ["active", "sold", "drafts", "expired"] as const;
 type ManagementTab = (typeof MANAGEMENT_TABS)[number];
 
-export function MyAdsScreen({ direction, onExploreMarketplace, onOpenListing, previewState = null }: MyAdsScreenProps) {
+export function MyAdsScreen({
+  direction,
+  onExploreMarketplace,
+  onOpenListing,
+  previewState = null,
+  commissionListingId = null,
+  onCommissionListingHandled
+}: MyAdsScreenProps) {
   const { t, i18n } = useTranslation();
   const { snapshot } = useAuth();
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
@@ -110,6 +119,28 @@ export function MyAdsScreen({ direction, onExploreMarketplace, onOpenListing, pr
   useEffect(() => {
     setPage(1);
   }, [search, tab]);
+
+  useEffect(() => {
+    if (!commissionListingId || isLoading) {
+      return;
+    }
+
+    const targetListing = data.items.find((item) => item.id === commissionListingId);
+    if (!targetListing) {
+      return;
+    }
+
+    setSelectedListingId(targetListing.id);
+    if (targetListing.status === "sold") {
+      setTab("sold");
+    } else if (targetListing.status === "draft") {
+      setTab("drafts");
+    } else {
+      setTab("active");
+    }
+    setPage(1);
+    onCommissionListingHandled?.();
+  }, [commissionListingId, data.items, isLoading, onCommissionListingHandled]);
 
   const selectedListing = useMemo(() => data.items.find((item) => item.id === selectedListingId) ?? null, [data.items, selectedListingId]);
   const selectedPayment = useMemo(

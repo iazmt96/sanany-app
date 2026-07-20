@@ -5,9 +5,18 @@ import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { ListingCategory as SananyListingCategory, ListingOfferType as SananyListingOfferType, MarketplaceListing } from "@sanany/types";
+import type {
+  ListingAttributeValue,
+  ListingAttributes,
+  ListingCategory as SananyListingCategory,
+  ListingOfferType as SananyListingOfferType,
+  MarketplaceCategoryField,
+  MarketplaceCategoryNode,
+  MarketplaceListing
+} from "@sanany/types";
 import { createListingsRepository } from "@sanany/api";
 import {
+  buildListingAttributesSummary,
   buildListingImageStoragePath,
   buildCarModelOptions,
   buildCarYearsRange,
@@ -24,11 +33,13 @@ import {
   hasPendingListingImageUploads,
   LISTING_IMAGES_BUCKET,
   markListingImageForRetry,
+  normalizeListingAttributes,
   normalizeListingImageOrder,
   OTHER_CAR_MODEL_ID,
   readMetadataPhone,
   serializeListingImageUrls,
   shouldCreateDraftConflict,
+  validateListingAttributes,
   toCreateListingImageInputs,
   searchCarMakes,
   searchCarModels,
@@ -41,6 +52,7 @@ import {
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { getMobileSupabaseEnv } from "../config/env";
+import { getMobileCategoriesRepository } from "../lib/categories-repository";
 import { getMobileListingsRepository } from "../lib/listings-repository";
 import { getMobileSupabaseClient } from "../lib/supabase-client";
 import { MobileIcon } from "../components/mobile-icons";
@@ -156,6 +168,8 @@ const CATEGORIES_BY_TYPE: Record<ListingOfferType, ListingCategory[]> = {
   request: ["requestGoods", "requestPurchase", "requestRent", "requestHomeService", "requestTechService", "requestUrgentMaintenance", "requestOther"]
 };
 
+const CAR_SPECIALIZED_FIELD_KEYS = new Set(["make", "model", "year", "mileage", "condition", "fuelType"]);
+
 const OFFER_TYPE_KEYWORDS: Record<ListingOfferType, string[]> = {
   request: ["مطلوب", "طلب", "ابحث", "أبحث", "احتاج", "أحتاج", "looking for", "wanted", "need"],
   sell: ["للبيع", "بيع", "تنازل", "for sale", "sell"],
@@ -209,8 +223,58 @@ const CATEGORY_KEYWORDS: Record<ListingCategory, string[]> = {
   requestOther: ["طلب اخرى", "طلب أخرى", "other request"]
 };
 
+const BRAND_LOGO_CODES: Record<CarMakeId, string> = {
+  toyota: "TY",
+  nissan: "NS",
+  hyundai: "HY",
+  kia: "KA",
+  ford: "FD",
+  chevrolet: "CV",
+  gmc: "GC",
+  lexus: "LX",
+  mazda: "MZ",
+  honda: "HN",
+  mercedes: "MB",
+  bmw: "BMW",
+  audi: "AU",
+  porsche: "PS",
+  tesla: "TS",
+  landRover: "LR",
+  jeep: "JP",
+  dodge: "DG",
+  mitsubishi: "MS",
+  volkswagen: "VW",
+  volvo: "VO",
+  cadillac: "CD",
+  renault: "RN",
+  peugeot: "PG",
+  suzuki: "SZ",
+  isuzu: "IZ",
+  infiniti: "IN",
+  lincoln: "LN",
+  mini: "MN",
+  subaru: "SB",
+  geely: "GL",
+  haval: "HV",
+  mg: "MG",
+  chery: "CY",
+  byd: "BYD",
+  gac: "GAC",
+  skoda: "SK",
+  seat: "ST",
+  fiat: "FT",
+  alfaRomeo: "AR"
+};
+
+const BRAND_LOGO_PALETTE = ["#e0f2fe", "#dcfce7", "#fef3c7", "#fee2e2", "#ede9fe", "#cffafe", "#fce7f3", "#e2e8f0"];
+
 function normalizeForAi(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function getBrandLogoAccent(makeId: CarMakeId): string {
+  const hash = Array.from(makeId).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return BRAND_LOGO_PALETTE[hash % BRAND_LOGO_PALETTE.length] ?? BRAND_LOGO_PALETTE[0];
 }
 
 function inferOfferTypeFromText(text: string): ListingOfferType | null {
@@ -299,9 +363,10 @@ async function createListingViaRest(params: {
   locationName: string | null;
   latitude: number | null;
   longitude: number | null;
+  attributes: ListingAttributes;
 }): Promise<MarketplaceListing> {
   const env = getMobileSupabaseEnv();
-  const response = await fetch(`${env.supabaseUrl}/rest/v1/listings?select=id,owner_id,owner_phone,offer_type,category_slug,title,description,price,status,image_url,location_name,latitude,longitude,created_at`, {
+  const response = await fetch(`${env.supabaseUrl}/rest/v1/listings?select=id,owner_id,owner_phone,offer_type,category_slug,title,description,price,status,image_url,location_name,latitude,longitude,attributes,created_at`, {
     method: "POST",
     headers: {
       apikey: env.supabaseAnonKey,
@@ -321,6 +386,7 @@ async function createListingViaRest(params: {
       location_name: params.locationName,
       latitude: params.latitude,
       longitude: params.longitude,
+      attributes: params.attributes,
       status: "available"
     })
   });
@@ -340,6 +406,7 @@ async function createListingViaRest(params: {
         location_name: string | null;
         latitude: number | null;
         longitude: number | null;
+        attributes?: ListingAttributes | null;
         created_at: string;
       }>
     | { message?: string };
@@ -364,6 +431,7 @@ async function createListingViaRest(params: {
     locationName: row.location_name,
     latitude: row.latitude,
     longitude: row.longitude,
+    attributes: row.attributes ?? null,
     createdAt: row.created_at
   };
 }
@@ -378,6 +446,7 @@ function createLocalListing(input: {
   price: number;
   locationName: string;
   imageUrl: string | null;
+  attributes: ListingAttributes;
 }): MarketplaceListing {
   return {
     id: `local-${Date.now()}`,
@@ -393,6 +462,7 @@ function createLocalListing(input: {
     locationName: input.locationName,
     latitude: 24.7136,
     longitude: 46.6753,
+    attributes: input.attributes,
     createdAt: new Date().toISOString()
   };
 }
@@ -526,6 +596,7 @@ type SelectedVideo = {
 };
 
 type SelectedImage = ListingImageUploadItem;
+type ListingFieldDraftValues = Record<string, ListingAttributeValue>;
 
 type ListingDraftSnapshot = {
   draftId: string | null;
@@ -549,6 +620,7 @@ type ListingDraftSnapshot = {
   carCondition: CarCondition;
   carFuelType: CarFuelType;
   carPriceMode: CarPriceMode;
+  categoryFieldValues: ListingFieldDraftValues;
   selectedImages: SelectedImage[];
   selectedVideo: SelectedVideo | null;
   isCommissionAccepted: boolean;
@@ -564,6 +636,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
   const { t, i18n } = useTranslation();
   const { snapshot } = useAuth();
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
+  const categoriesRepository = useMemo(() => getMobileCategoriesRepository(), []);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [offerType, setOfferType] = useState<ListingOfferType | null>(null);
   const [category, setCategory] = useState<ListingCategory | null>(null);
@@ -587,6 +660,10 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
   const [carCondition, setCarCondition] = useState<CarCondition>("new");
   const [carFuelType, setCarFuelType] = useState<CarFuelType>("hybrid");
   const [carPriceMode, setCarPriceMode] = useState<CarPriceMode>("fixed");
+  const [categoryFieldValues, setCategoryFieldValues] = useState<ListingFieldDraftValues>({});
+  const [selectedCategoryConfig, setSelectedCategoryConfig] = useState<MarketplaceCategoryNode | null>(null);
+  const [isCategoryConfigLoading, setIsCategoryConfigLoading] = useState(false);
+  const [categoryConfigError, setCategoryConfigError] = useState<string | null>(null);
   const [isLocatingCar, setIsLocatingCar] = useState(false);
   const [isMapEditorOpen, setIsMapEditorOpen] = useState(false);
   const [mapDraftLocation, setMapDraftLocation] = useState("");
@@ -617,7 +694,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
   const validPrice = Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : 0;
   const commissionFee = calculateCommissionFee(validPrice);
   const selectedOfferTypeLabel = offerType ? t(`marketplace.create.offerTypes.${offerType}`) : "";
-  const selectedCategoryLabel = category ? t(`marketplace.create.categories.${category}`) : "";
+  const selectedCategoryLabel = selectedCategoryConfig ? (direction === "rtl" ? selectedCategoryConfig.nameAr : selectedCategoryConfig.nameEn) : category ? t(`marketplace.create.categories.${category}`) : "";
   const extraLabel = offerType ? t(`marketplace.create.dynamicFields.${offerType}.label`) : t("marketplace.create.dynamicFields.default.label");
   const extraPlaceholder = offerType
     ? t(`marketplace.create.dynamicFields.${offerType}.placeholder`)
@@ -634,6 +711,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
   const mapImageLatitude = Number.isFinite(mapPreviewLatitude) ? mapPreviewLatitude : defaultLatitude;
   const mapImageLongitude = Number.isFinite(mapPreviewLongitude) ? mapPreviewLongitude : defaultLongitude;
   const mapPreviewUrl = `https://static-maps.yandex.ru/1.x/?ll=${mapImageLongitude},${mapImageLatitude}&z=13&l=map&size=900,420&pt=${mapImageLongitude},${mapImageLatitude},pm2rdm`;
+  const fieldLanguage = direction === "rtl" ? "ar" : "en";
   const selectedImagesCount = selectedImages.length;
   const canAddMoreImages = selectedImagesCount < MAX_IMAGE_COUNT;
   const carMakeLabelById = useMemo(
@@ -651,6 +729,10 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
         resolveMakeLabel: (makeId) => carMakeLabelById[makeId]
       }),
     [carBrandSearch, carMakeLabelById, recentCarBrands]
+  );
+  const filteredRecentCarBrands = useMemo(
+    () => recentCarBrands.filter((item) => filteredCarMakes.includes(item)),
+    [filteredCarMakes, recentCarBrands]
   );
   const selectedCarModelOptions = useMemo(() => {
     if (!carBrand) {
@@ -682,6 +764,22 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
     }
     return `${carMakeLabelById[carBrand]} ${selectedCarModelLabel} ${carYear}`;
   }, [carBrand, carMakeLabelById, carYear, selectedCarModelLabel]);
+  const selectedCategoryFields = selectedCategoryConfig?.fields ?? [];
+  const categoryFieldByKey = useMemo(
+    () => new Map(selectedCategoryFields.map((field) => [field.fieldKey, field])),
+    [selectedCategoryFields]
+  );
+  const hasCategoryFieldConfig = selectedCategoryFields.length > 0;
+  const shouldShowCarField = useCallback(
+    (fieldKey: string) => !hasCategoryFieldConfig || categoryFieldByKey.has(fieldKey),
+    [categoryFieldByKey, hasCategoryFieldConfig]
+  );
+  const genericCategoryFields = useMemo(
+    () => selectedCategoryFields.filter((field) => !isCarSaleCategory || !CAR_SPECIALIZED_FIELD_KEYS.has(field.fieldKey)),
+    [isCarSaleCategory, selectedCategoryFields]
+  );
+  const conditionField = categoryFieldByKey.get("condition") ?? null;
+  const fuelTypeField = categoryFieldByKey.get("fuelType") ?? null;
 
   const selectedVideoSummary = selectedVideo
     ? t("marketplace.create.images.videoSelectedInfo", {
@@ -689,6 +787,49 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
         size: selectedVideo.sizeBytes !== null ? formatFileSizeMb(selectedVideo.sizeBytes) : "-"
       })
     : null;
+  const buildCategoryAttributeInputs = useCallback((): Record<string, unknown> => {
+    const inputs: Record<string, unknown> = { ...categoryFieldValues };
+    if (isCarSaleCategory) {
+      if (shouldShowCarField("make")) {
+        inputs.make = carBrand ? carMakeLabelById[carBrand] : null;
+      }
+      if (shouldShowCarField("model")) {
+        inputs.model = selectedCarModelLabel || null;
+      }
+      if (shouldShowCarField("year")) {
+        inputs.year = carYear ?? null;
+      }
+      if (shouldShowCarField("mileage")) {
+        inputs.mileage = carMileage.trim() || null;
+      }
+      if (shouldShowCarField("condition")) {
+        inputs.condition = carCondition;
+      }
+      if (shouldShowCarField("fuelType")) {
+        inputs.fuelType = carFuelType;
+      }
+    }
+    return inputs;
+  }, [
+    carBrand,
+    carCondition,
+    carFuelType,
+    carMakeLabelById,
+    carMileage,
+    carYear,
+    categoryFieldValues,
+    isCarSaleCategory,
+    selectedCarModelLabel,
+    shouldShowCarField
+  ]);
+  const listingAttributes = useMemo<ListingAttributes>(
+    () => normalizeListingAttributes(selectedCategoryFields, buildCategoryAttributeInputs()),
+    [buildCategoryAttributeInputs, selectedCategoryFields]
+  );
+  const listingAttributeSummaryRows = useMemo(
+    () => buildListingAttributesSummary(selectedCategoryFields, buildCategoryAttributeInputs(), fieldLanguage),
+    [buildCategoryAttributeInputs, fieldLanguage, selectedCategoryFields]
+  );
   const draftStorageKey = snapshot.user?.id ? `${DRAFT_STORAGE_KEY_PREFIX}:${snapshot.user.id}` : null;
   const draftSavedAtLabel = lastDraftSavedAt ? formatHourMinute(lastDraftSavedAt, i18n.language || "ar") : null;
   const buildDraftSnapshot = (operations = pendingSyncOperations, conflict = draftConflict): ListingDraftSnapshot => ({
@@ -713,6 +854,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
     carCondition,
     carFuelType,
     carPriceMode,
+    categoryFieldValues,
     selectedImages,
     selectedVideo,
     isCommissionAccepted,
@@ -860,7 +1002,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
           status: "draft",
           locationName: submitLocationName,
           latitude: submitLatitude,
-          longitude: submitLongitude
+          longitude: submitLongitude,
+          attributes: listingAttributes
         });
         const syncedPayload: ListingDraftSnapshot = {
           ...payload,
@@ -894,6 +1037,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
       carModelSearch,
       carPriceMode,
       carYear,
+      categoryFieldValues,
       category,
       currentStepIndex,
       defaultLocationName,
@@ -908,6 +1052,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
       isCarSaleCategory,
       isCommissionAccepted,
       lastSyncedRemoteAt,
+      listingAttributes,
       listingsRepository,
       offerType,
       pendingSyncOperations,
@@ -932,24 +1077,27 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
       metadataParts.push(`${t("marketplace.create.flow.previewCategoryLabel")}: ${selectedCategoryLabel}`);
     }
 
-    if (!dynamicValue && metadataParts.length === 0) {
+    if (!dynamicValue && metadataParts.length === 0 && listingAttributeSummaryRows.length === 0) {
       return baseDescription;
     }
 
-    if (dynamicValue && !isCarSaleCategory) {
+    if (dynamicValue && !isCarSaleCategory && listingAttributeSummaryRows.length === 0) {
       metadataParts.push(`${extraLabel}: ${dynamicValue}`);
     }
     if (isCarSaleCategory) {
       metadataParts.push(t("marketplace.create.carDetails.structuredTitle"));
-      metadataParts.push(`- ${t("marketplace.create.carDetails.modelLabel")}: ${carModel.trim() || "-"}`);
-      metadataParts.push(`- ${t("marketplace.create.carDetails.locationLabel")}: ${carLocation.trim() || "-"}`);
-      if (carMileage.trim()) {
-        metadataParts.push(`- ${t("marketplace.create.carDetails.mileageLabel")}: ${carMileage.trim()}`);
+      metadataParts.push(...listingAttributeSummaryRows);
+      if (listingAttributeSummaryRows.length === 0) {
+        metadataParts.push(`- ${t("marketplace.create.carDetails.modelLabel")}: ${carModel.trim() || "-"}`);
+        if (carMileage.trim()) {
+          metadataParts.push(`- ${t("marketplace.create.carDetails.mileageLabel")}: ${carMileage.trim()}`);
+        }
       }
+      metadataParts.push(`- ${t("marketplace.create.carDetails.locationLabel")}: ${carLocation.trim() || "-"}`);
       metadataParts.push(`- ${t("marketplace.create.carDetails.adTypeLabel")}: ${t(`marketplace.create.carDetails.adTypeOptions.${carAdType}`)}`);
-      metadataParts.push(`- ${t("marketplace.create.carDetails.conditionLabel")}: ${t(`marketplace.create.carDetails.conditionOptions.${carCondition}`)}`);
-      metadataParts.push(`- ${t("marketplace.create.carDetails.fuelLabel")}: ${t(`marketplace.create.carDetails.fuelOptions.${carFuelType}`)}`);
       metadataParts.push(`- ${t("marketplace.create.carDetails.priceModeLabel")}: ${t(`marketplace.create.carDetails.priceModeOptions.${carPriceMode}`)}`);
+    } else if (listingAttributeSummaryRows.length > 0) {
+      metadataParts.push(...listingAttributeSummaryRows);
     }
 
     const metadata = metadataParts.join("\n");
@@ -963,7 +1111,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
     }
 
     const dynamicValue = extraDetails.trim();
-    if (dynamicValue && !isCarSaleCategory) {
+    if (dynamicValue && !isCarSaleCategory && listingAttributeSummaryRows.length === 0) {
       return `${extraLabel}: ${dynamicValue}`;
     }
 
@@ -1075,6 +1223,9 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
         if (parsed.carCondition) setCarCondition(parsed.carCondition);
         if (parsed.carFuelType) setCarFuelType(parsed.carFuelType);
         if (parsed.carPriceMode) setCarPriceMode(parsed.carPriceMode);
+        if (parsed.categoryFieldValues && typeof parsed.categoryFieldValues === "object") {
+          setCategoryFieldValues(parsed.categoryFieldValues as ListingFieldDraftValues);
+        }
         if (Array.isArray(parsed.selectedImages)) setSelectedImages(normalizeSelectedImages(parsed.selectedImages as SelectedImage[]));
         if (parsed.selectedVideo && typeof parsed.selectedVideo === "object") setSelectedVideo(parsed.selectedVideo as SelectedVideo);
         if (typeof parsed.isCommissionAccepted === "boolean") setIsCommissionAccepted(parsed.isCommissionAccepted);
@@ -1134,6 +1285,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
     carModelSearch,
     carPriceMode,
     carYear,
+    categoryFieldValues,
     category,
     currentStepIndex,
     description,
@@ -1149,6 +1301,53 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
     snapshot.user?.id,
     title
   ]);
+
+  useEffect(() => {
+    if (!category) {
+      setSelectedCategoryConfig(null);
+      setCategoryConfigError(null);
+      setIsCategoryConfigLoading(false);
+      setCategoryFieldValues({});
+      return;
+    }
+
+    let active = true;
+    setIsCategoryConfigLoading(true);
+    setCategoryConfigError(null);
+
+    void categoriesRepository
+      .getCategoryBySlug(category)
+      .then((config) => {
+        if (!active) {
+          return;
+        }
+        setSelectedCategoryConfig(config);
+        const allowedKeys = new Set(
+          (config?.fields ?? [])
+            .map((field) => field.fieldKey)
+            .filter((fieldKey) => !CAR_SPECIALIZED_FIELD_KEYS.has(fieldKey))
+        );
+        setCategoryFieldValues((previous) =>
+          Object.fromEntries(Object.entries(previous).filter(([fieldKey]) => allowedKeys.has(fieldKey)))
+        );
+      })
+      .catch((requestError) => {
+        if (!active) {
+          return;
+        }
+        setSelectedCategoryConfig(null);
+        setCategoryConfigError(requestError instanceof Error ? requestError.message : t("marketplace.loadError"));
+      })
+      .finally(() => {
+        if (active) {
+          setIsCategoryConfigLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [categoriesRepository, category, t]);
 
   useEffect(() => {
     if (!isCarSaleCategory || carLocation.trim().length > 0) {
@@ -1224,6 +1423,138 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
         }
       }
     ]);
+  };
+
+  const setCategoryFieldValue = useCallback((fieldKey: string, value: ListingAttributeValue) => {
+    setCategoryFieldValues((previous) => ({
+      ...previous,
+      [fieldKey]: value
+    }));
+    setErrorKey(null);
+    setErrorMessage(null);
+  }, []);
+
+  const resolveDynamicFieldIssue = useCallback(() => {
+    if (selectedCategoryFields.length === 0) {
+      return null;
+    }
+
+    const invalidKeys = validateListingAttributes(selectedCategoryFields, buildCategoryAttributeInputs());
+    if (invalidKeys.length === 0) {
+      return null;
+    }
+
+    const field = categoryFieldByKey.get(invalidKeys[0] ?? "");
+    if (!field) {
+      return {
+        mode: "message" as const,
+        value: t("marketplace.create.errors.categoryFieldRequired", {
+          field: t("marketplace.create.flow.previewCategoryLabel")
+        })
+      };
+    }
+
+    return {
+      mode: "message" as const,
+      value: t("marketplace.create.errors.categoryFieldRequired", {
+        field: fieldLanguage === "ar" ? field.labelAr : field.labelEn
+      })
+    };
+  }, [buildCategoryAttributeInputs, categoryFieldByKey, fieldLanguage, selectedCategoryFields, t]);
+
+  const renderDynamicField = (field: MarketplaceCategoryField) => {
+    const label = fieldLanguage === "ar" ? field.labelAr : field.labelEn;
+    const placeholder = fieldLanguage === "ar" ? field.placeholderAr : field.placeholderEn;
+    const helperText = fieldLanguage === "ar" ? field.helperTextAr : field.helperTextEn;
+    const rawValue = categoryFieldValues[field.fieldKey];
+    const stringValue = typeof rawValue === "string" || typeof rawValue === "number" ? String(rawValue) : "";
+    const selectedValues = Array.isArray(rawValue) ? rawValue : [];
+    const booleanValue = rawValue === true;
+
+    return (
+      <View key={field.id} style={styles.dynamicFieldBlock}>
+        <Text style={[styles.label, { textAlign }]}>
+          {label}
+          {field.isRequired ? " *" : ""}
+        </Text>
+        {helperText ? <Text style={[styles.selectionHint, { textAlign }]}>{helperText}</Text> : null}
+        {field.fieldType === "textarea" ? (
+          <TextInput
+            style={[styles.input, styles.multilineInput, { textAlign }]}
+            multiline
+            value={stringValue}
+            onChangeText={(value) => setCategoryFieldValue(field.fieldKey, value)}
+            placeholder={placeholder ?? undefined}
+          />
+        ) : null}
+        {field.fieldType === "text" || field.fieldType === "number" ? (
+          <TextInput
+            style={[styles.input, { textAlign }]}
+            value={stringValue}
+            onChangeText={(value) =>
+              setCategoryFieldValue(field.fieldKey, field.fieldType === "number" ? value.replace(/[^\d.]/g, "") : value)
+            }
+            keyboardType={field.fieldType === "number" ? "numeric" : "default"}
+            placeholder={placeholder ?? undefined}
+          />
+        ) : null}
+        {field.fieldType === "select" ? (
+          <View style={styles.optionsRow}>
+            {field.options.map((option) => {
+              const optionLabel = fieldLanguage === "ar" ? option.labelAr : option.labelEn;
+              const isSelected = stringValue === option.value;
+              return (
+                <Pressable
+                  key={`${field.id}:${option.value}`}
+                  style={[styles.optionChip, isSelected ? styles.optionChipSelected : undefined]}
+                  onPress={() => setCategoryFieldValue(field.fieldKey, option.value)}
+                >
+                  <Text style={[styles.optionChipLabel, isSelected ? styles.optionChipLabelSelected : undefined]}>{optionLabel}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+        {field.fieldType === "multiselect" ? (
+          <View style={styles.optionsRow}>
+            {field.options.map((option) => {
+              const optionLabel = fieldLanguage === "ar" ? option.labelAr : option.labelEn;
+              const isSelected = selectedValues.includes(option.value);
+              return (
+                <Pressable
+                  key={`${field.id}:${option.value}`}
+                  style={[styles.optionChip, isSelected ? styles.optionChipSelected : undefined]}
+                  onPress={() =>
+                    setCategoryFieldValue(
+                      field.fieldKey,
+                      isSelected ? selectedValues.filter((item) => item !== option.value) : [...selectedValues, option.value]
+                    )
+                  }
+                >
+                  <Text style={[styles.optionChipLabel, isSelected ? styles.optionChipLabelSelected : undefined]}>{optionLabel}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+        {field.fieldType === "boolean" ? (
+          <View style={styles.optionsRow}>
+            <Pressable
+              style={[styles.optionChip, booleanValue ? styles.optionChipSelected : undefined]}
+              onPress={() => setCategoryFieldValue(field.fieldKey, true)}
+            >
+              <Text style={[styles.optionChipLabel, booleanValue ? styles.optionChipLabelSelected : undefined]}>{t("common.yes")}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.optionChip, rawValue === false ? styles.optionChipSelected : undefined]}
+              onPress={() => setCategoryFieldValue(field.fieldKey, false)}
+            >
+              <Text style={[styles.optionChipLabel, rawValue === false ? styles.optionChipLabelSelected : undefined]}>{t("common.no")}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
+    );
   };
 
   const openMapEditor = () => {
@@ -1472,6 +1803,14 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
       setErrorKey("marketplace.create.errors.authRequired");
       return;
     }
+    if (isCategoryConfigLoading) {
+      setErrorMessage(t("marketplace.create.errors.categoryFieldsLoading"));
+      return;
+    }
+    if (categoryConfigError) {
+      setErrorMessage(categoryConfigError);
+      return;
+    }
 
     const validationErrors = validateCarListingDraft({
       isCarSaleCategory,
@@ -1491,6 +1830,11 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
 
     if (validationErrors.length > 0) {
       setErrorKey(`marketplace.create.errors.${validationErrors[0]}`);
+      return;
+    }
+    const dynamicFieldIssue = resolveDynamicFieldIssue();
+    if (dynamicFieldIssue) {
+      setErrorMessage(dynamicFieldIssue.value);
       return;
     }
     if (selectedImagesCount < MIN_IMAGE_COUNT) {
@@ -1545,7 +1889,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
         status: "available",
         locationName: submitLocationName,
         latitude: submitLatitude,
-        longitude: submitLongitude
+        longitude: submitLongitude,
+        attributes: listingAttributes
       });
       if (!createdListing && sessionToken) {
         createdListing = await createListingViaRest({
@@ -1560,7 +1905,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
           imageUrl: submitImageUrl,
           locationName: submitLocationName,
           latitude: submitLatitude,
-          longitude: submitLongitude
+          longitude: submitLongitude,
+          attributes: listingAttributes
         });
       }
       if (draftStorageKey) {
@@ -1584,7 +1930,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
             description: buildListingDescription(),
             price: submitPrice,
             locationName: submitLocationName,
-            imageUrl: submitImageUrl
+            imageUrl: submitImageUrl,
+            attributes: listingAttributes
           })
         );
         return;
@@ -1605,7 +1952,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
             imageUrl: submitImageUrl,
             locationName: submitLocationName,
             latitude: submitLatitude,
-            longitude: submitLongitude
+            longitude: submitLongitude,
+            attributes: listingAttributes
           });
           onCreated(createdListing);
           return;
@@ -1622,7 +1970,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
               description: buildListingDescription(),
               price: submitPrice,
               locationName: submitLocationName,
-              imageUrl: submitImageUrl
+              imageUrl: submitImageUrl,
+              attributes: listingAttributes
             })
           );
           return;
@@ -1653,6 +2002,14 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
     }
 
     if (currentStep === "details") {
+      if (isCategoryConfigLoading) {
+        setErrorMessage(t("marketplace.create.errors.categoryFieldsLoading"));
+        return;
+      }
+      if (categoryConfigError) {
+        setErrorMessage(categoryConfigError);
+        return;
+      }
       const validationErrors = validateCarListingDraft({
         isCarSaleCategory,
         shouldRequirePrice: shouldShowPriceInput,
@@ -1671,6 +2028,11 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
 
       if (validationErrors.length > 0) {
         setErrorKey(`marketplace.create.errors.${validationErrors[0]}`);
+        return;
+      }
+      const dynamicFieldIssue = resolveDynamicFieldIssue();
+      if (dynamicFieldIssue) {
+        setErrorMessage(dynamicFieldIssue.value);
         return;
       }
       if (selectedImagesCount < MIN_IMAGE_COUNT) {
@@ -1924,137 +2286,181 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
                 placeholder={t("marketplace.create.listingDescriptionPlaceholder")}
               />
 
+              {isCategoryConfigLoading ? <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.errors.categoryFieldsLoading")}</Text> : null}
+              {categoryConfigError ? <Text style={[styles.errorLabel, { textAlign }]}>{categoryConfigError}</Text> : null}
+
               {isCarSaleCategory ? (
                 <View style={styles.carDetailsCard}>
                   <Text style={[styles.carDetailsTitle, { textAlign }]}>{t("marketplace.create.carDetails.title")}</Text>
 
-                  <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
-                    <MobileIcon name="cars" size={14} color="#2563eb" />
-                    <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.brandLabel")}</Text>
-                  </View>
-                  <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.selectModelHint")}</Text>
-                  <TextInput
-                    style={[styles.input, { textAlign }]}
-                    value={carBrandSearch}
-                    onChangeText={setCarBrandSearch}
-                    placeholder={t("marketplace.create.carDetails.brandSearchPlaceholder")}
-                  />
-                  {recentCarBrands.length > 0 ? (
+                  {shouldShowCarField("make") ? (
                     <>
-                      <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.recentBrandsTitle")}</Text>
-                      <View style={styles.optionsRow}>
-                        {recentCarBrands.map((item) => (
-                          <Pressable key={`recent-${item}`} style={[styles.optionChip, carBrand === item ? styles.optionChipSelected : undefined]} onPress={() => onSelectCarBrand(item)}>
-                            <Text style={[styles.optionChipLabel, carBrand === item ? styles.optionChipLabelSelected : undefined]}>
+                      <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
+                        <MobileIcon name="cars" size={14} color="#2563eb" />
+                        <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.brandLabel")}</Text>
+                      </View>
+                      <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.selectModelHint")}</Text>
+                      <TextInput
+                        style={[styles.input, { textAlign }]}
+                        value={carBrandSearch}
+                        onChangeText={setCarBrandSearch}
+                        placeholder={t("marketplace.create.carDetails.brandSearchPlaceholder")}
+                      />
+                      <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.brandCarouselHint")}</Text>
+                      {filteredRecentCarBrands.length > 0 ? (
+                        <>
+                          <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.recentBrandsTitle")}</Text>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={[styles.brandRailContent, direction === "rtl" ? styles.brandRailContentRtl : undefined]}
+                            style={styles.brandRail}
+                          >
+                            {filteredRecentCarBrands.map((item) => (
+                              <Pressable key={`recent-${item}`} style={[styles.brandLogoCard, carBrand === item ? styles.brandLogoCardSelected : undefined]} onPress={() => onSelectCarBrand(item)}>
+                                <View
+                                  style={[
+                                    styles.brandLogoBadge,
+                                    { backgroundColor: getBrandLogoAccent(item) },
+                                    carBrand === item ? styles.brandLogoBadgeSelected : undefined
+                                  ]}
+                                >
+                                  <Text style={[styles.brandLogoCode, carBrand === item ? styles.brandLogoCodeSelected : undefined]}>{BRAND_LOGO_CODES[item]}</Text>
+                                </View>
+                                <Text style={[styles.brandLogoLabel, carBrand === item ? styles.brandLogoLabelSelected : undefined]} numberOfLines={1}>
+                                  {carMakeLabelById[item]}
+                                </Text>
+                              </Pressable>
+                            ))}
+                          </ScrollView>
+                        </>
+                      ) : null}
+                      <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.allBrandsTitle")}</Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={[styles.brandRailContent, direction === "rtl" ? styles.brandRailContentRtl : undefined]}
+                        style={styles.brandRail}
+                      >
+                        {filteredCarMakes.map((item) => (
+                          <Pressable
+                            key={item}
+                            style={[styles.brandLogoCard, carBrand === item ? styles.brandLogoCardSelected : undefined]}
+                            onPress={() => onSelectCarBrand(item)}
+                          >
+                            <View
+                              style={[
+                                styles.brandLogoBadge,
+                                { backgroundColor: getBrandLogoAccent(item) },
+                                carBrand === item ? styles.brandLogoBadgeSelected : undefined
+                              ]}
+                            >
+                              <Text style={[styles.brandLogoCode, carBrand === item ? styles.brandLogoCodeSelected : undefined]}>{BRAND_LOGO_CODES[item]}</Text>
+                            </View>
+                            <Text style={[styles.brandLogoLabel, carBrand === item ? styles.brandLogoLabelSelected : undefined]} numberOfLines={1}>
                               {carMakeLabelById[item]}
                             </Text>
                           </Pressable>
                         ))}
-                      </View>
-                    </>
-                  ) : null}
-                  <View style={styles.optionsRow}>
-                    {filteredCarMakes.map((item) => (
-                      <Pressable
-                        key={item}
-                        style={[styles.optionChip, carBrand === item ? styles.optionChipSelected : undefined]}
-                        onPress={() => onSelectCarBrand(item)}
-                      >
-                        <Text style={[styles.optionChipLabel, carBrand === item ? styles.optionChipLabelSelected : undefined]}>
-                          {carMakeLabelById[item]}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  {filteredCarMakes.length === 0 ? <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.noBrandsFound")}</Text> : null}
-                  {carBrand ? (
-                    <Pressable
-                      style={styles.mapEditorButton}
-                      onPress={() => {
-                        setCarBrand(null);
-                        setCarModelOption(null);
-                        setCarModelOther("");
-                        setCarModelSearch("");
-                        setCarYear(null);
-                        setIsYearDropdownOpen(false);
-                      }}
-                    >
-                      <Text style={styles.mapEditorButtonLabel}>{t("marketplace.create.carDetails.clearSelection")}</Text>
-                    </Pressable>
-                  ) : null}
-
-                  {carBrand ? (
-                    <>
-                      <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.modelOptionLabel")}</Text>
-                      <TextInput
-                        style={[styles.input, { textAlign }]}
-                        value={carModelSearch}
-                        onChangeText={setCarModelSearch}
-                        placeholder={t("marketplace.create.carDetails.modelSearchPlaceholder")}
-                      />
-                      <View style={styles.optionsRow}>
-                        {filteredCarModels.map((item) => (
-                          <Pressable
-                            key={item.id}
-                            style={[styles.optionChip, carModelOption === item.id ? styles.optionChipSelected : undefined]}
-                            onPress={() => {
-                              setCarModelOption(item.id);
-                              setCarModelOther("");
-                              setErrorKey(null);
-                            }}
-                          >
-                            <Text style={[styles.optionChipLabel, carModelOption === item.id ? styles.optionChipLabelSelected : undefined]}>{item.label}</Text>
-                          </Pressable>
-                        ))}
+                      </ScrollView>
+                      {filteredCarMakes.length === 0 ? <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.noBrandsFound")}</Text> : null}
+                      {carBrand ? (
                         <Pressable
-                          style={[styles.optionChip, carModelOption === OTHER_CAR_MODEL_ID ? styles.optionChipSelected : undefined]}
+                          style={styles.mapEditorButton}
                           onPress={() => {
-                            setCarModelOption(OTHER_CAR_MODEL_ID);
-                            setErrorKey(null);
+                            setCarBrand(null);
+                            setCarModelOption(null);
+                            setCarModelOther("");
+                            setCarModelSearch("");
+                            setCarYear(null);
+                            setIsYearDropdownOpen(false);
                           }}
                         >
-                          <Text style={[styles.optionChipLabel, carModelOption === OTHER_CAR_MODEL_ID ? styles.optionChipLabelSelected : undefined]}>
-                            {t("marketplace.create.carDetails.modelOtherOption")}
-                          </Text>
+                          <Text style={styles.mapEditorButtonLabel}>{t("marketplace.create.carDetails.clearSelection")}</Text>
                         </Pressable>
-                      </View>
-                      {filteredCarModels.length === 0 ? <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.noModelsFound")}</Text> : null}
-                      {carModelOption === OTHER_CAR_MODEL_ID ? (
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {shouldShowCarField("model") || shouldShowCarField("year") ? carBrand ? (
+                    <>
+                      {shouldShowCarField("model") ? (
                         <>
-                          <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.modelOtherLabel")}</Text>
+                          <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.modelOptionLabel")}</Text>
                           <TextInput
                             style={[styles.input, { textAlign }]}
-                            value={carModelOther}
-                            onChangeText={setCarModelOther}
-                            placeholder={t("marketplace.create.carDetails.modelOtherPlaceholder")}
+                            value={carModelSearch}
+                            onChangeText={setCarModelSearch}
+                            placeholder={t("marketplace.create.carDetails.modelSearchPlaceholder")}
                           />
-                        </>
-                      ) : null}
-
-                      <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.yearLabel")}</Text>
-                      <Pressable style={styles.yearDropdownTrigger} onPress={() => setIsYearDropdownOpen((value) => !value)}>
-                        <Text style={[styles.yearDropdownValue, { textAlign }]}>{carYear ?? t("marketplace.create.carDetails.yearSearchPlaceholder")}</Text>
-                      </Pressable>
-                      {isYearDropdownOpen ? (
-                        <ScrollView style={styles.yearDropdownList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                          {carYears.map((item) => (
+                          <View style={styles.optionsRow}>
+                            {filteredCarModels.map((item) => (
+                              <Pressable
+                                key={item.id}
+                                style={[styles.optionChip, carModelOption === item.id ? styles.optionChipSelected : undefined]}
+                                onPress={() => {
+                                  setCarModelOption(item.id);
+                                  setCarModelOther("");
+                                  setErrorKey(null);
+                                }}
+                              >
+                                <Text style={[styles.optionChipLabel, carModelOption === item.id ? styles.optionChipLabelSelected : undefined]}>{item.label}</Text>
+                              </Pressable>
+                            ))}
                             <Pressable
-                              key={item}
-                              style={[styles.yearDropdownItem, carYear === item ? styles.yearDropdownItemSelected : undefined]}
+                              style={[styles.optionChip, carModelOption === OTHER_CAR_MODEL_ID ? styles.optionChipSelected : undefined]}
                               onPress={() => {
-                                setCarYear(item);
-                                setIsYearDropdownOpen(false);
+                                setCarModelOption(OTHER_CAR_MODEL_ID);
+                                setErrorKey(null);
                               }}
                             >
-                              <Text style={[styles.yearDropdownItemLabel, carYear === item ? styles.yearDropdownItemLabelSelected : undefined]}>{item}</Text>
+                              <Text style={[styles.optionChipLabel, carModelOption === OTHER_CAR_MODEL_ID ? styles.optionChipLabelSelected : undefined]}>
+                                {t("marketplace.create.carDetails.modelOtherOption")}
+                              </Text>
                             </Pressable>
-                          ))}
-                        </ScrollView>
+                          </View>
+                          {filteredCarModels.length === 0 ? <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.noModelsFound")}</Text> : null}
+                          {carModelOption === OTHER_CAR_MODEL_ID ? (
+                            <>
+                              <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.modelOtherLabel")}</Text>
+                              <TextInput
+                                style={[styles.input, { textAlign }]}
+                                value={carModelOther}
+                                onChangeText={setCarModelOther}
+                                placeholder={t("marketplace.create.carDetails.modelOtherPlaceholder")}
+                              />
+                            </>
+                          ) : null}
+                        </>
+                      ) : null}
+                      {shouldShowCarField("year") ? (
+                        <>
+                          <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.yearLabel")}</Text>
+                          <Pressable style={styles.yearDropdownTrigger} onPress={() => setIsYearDropdownOpen((value) => !value)}>
+                            <Text style={[styles.yearDropdownValue, { textAlign }]}>{carYear ?? t("marketplace.create.carDetails.yearSearchPlaceholder")}</Text>
+                          </Pressable>
+                          {isYearDropdownOpen ? (
+                            <ScrollView style={styles.yearDropdownList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                              {carYears.map((item) => (
+                                <Pressable
+                                  key={item}
+                                  style={[styles.yearDropdownItem, carYear === item ? styles.yearDropdownItemSelected : undefined]}
+                                  onPress={() => {
+                                    setCarYear(item);
+                                    setIsYearDropdownOpen(false);
+                                  }}
+                                >
+                                  <Text style={[styles.yearDropdownItemLabel, carYear === item ? styles.yearDropdownItemLabelSelected : undefined]}>{item}</Text>
+                                </Pressable>
+                              ))}
+                            </ScrollView>
+                          ) : null}
+                        </>
                       ) : null}
                     </>
                   ) : (
                     <Text style={[styles.selectionHint, { textAlign }]}>{t("marketplace.create.carDetails.selectBrandFirst")}</Text>
-                  )}
+                  ) : null}
 
                   <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
                     <MobileIcon name="location" size={14} color="#2563eb" />
@@ -2075,17 +2481,21 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
                     </Pressable>
                   </View>
 
-                  <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
-                    <MobileIcon name="time" size={14} color="#2563eb" />
-                    <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.mileageLabel")}</Text>
-                  </View>
-                  <TextInput
-                    style={[styles.input, { textAlign }]}
-                    value={carMileage}
-                    onChangeText={(value) => setCarMileage(value.replace(/[^\d]/g, ""))}
-                    keyboardType="numeric"
-                    placeholder={t("marketplace.create.carDetails.mileagePlaceholder")}
-                  />
+                  {shouldShowCarField("mileage") ? (
+                    <>
+                      <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
+                        <MobileIcon name="time" size={14} color="#2563eb" />
+                        <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.mileageLabel")}</Text>
+                      </View>
+                      <TextInput
+                        style={[styles.input, { textAlign }]}
+                        value={carMileage}
+                        onChangeText={(value) => setCarMileage(value.replace(/[^\d]/g, ""))}
+                        keyboardType="numeric"
+                        placeholder={t("marketplace.create.carDetails.mileagePlaceholder")}
+                      />
+                    </>
+                  ) : null}
 
                   <>
                       <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
@@ -2102,33 +2512,45 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
                         ))}
                       </View>
 
-                      <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
-                        <MobileIcon name="sort" size={14} color="#2563eb" />
-                        <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.conditionLabel")}</Text>
-                      </View>
-                      <View style={styles.optionsRow}>
-                        {CAR_CONDITIONS.map((item) => (
-                          <Pressable key={item} style={[styles.optionChip, carCondition === item ? styles.optionChipSelected : undefined]} onPress={() => setCarCondition(item)}>
-                            <Text style={[styles.optionChipLabel, carCondition === item ? styles.optionChipLabelSelected : undefined]}>
-                              {t(`marketplace.create.carDetails.conditionOptions.${item}`)}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
+                      {shouldShowCarField("condition") ? (
+                        <>
+                          <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
+                            <MobileIcon name="sort" size={14} color="#2563eb" />
+                            <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.conditionLabel")}</Text>
+                          </View>
+                          <View style={styles.optionsRow}>
+                            {(conditionField?.options.length ? conditionField.options : CAR_CONDITIONS.map((item) => ({ value: item, labelAr: t(`marketplace.create.carDetails.conditionOptions.${item}`), labelEn: t(`marketplace.create.carDetails.conditionOptions.${item}`) }))).map((item) => {
+                              const isSelected = carCondition === item.value;
+                              const optionLabel = fieldLanguage === "ar" ? item.labelAr : item.labelEn;
+                              return (
+                                <Pressable key={item.value} style={[styles.optionChip, isSelected ? styles.optionChipSelected : undefined]} onPress={() => setCarCondition(item.value as CarCondition)}>
+                                  <Text style={[styles.optionChipLabel, isSelected ? styles.optionChipLabelSelected : undefined]}>{optionLabel}</Text>
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        </>
+                      ) : null}
 
-                      <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
-                        <MobileIcon name="sort" size={14} color="#2563eb" />
-                        <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.fuelLabel")}</Text>
-                      </View>
-                      <View style={styles.optionsRow}>
-                        {CAR_FUEL_TYPES.map((item) => (
-                          <Pressable key={item} style={[styles.optionChip, carFuelType === item ? styles.optionChipSelected : undefined]} onPress={() => setCarFuelType(item)}>
-                            <Text style={[styles.optionChipLabel, carFuelType === item ? styles.optionChipLabelSelected : undefined]}>
-                              {t(`marketplace.create.carDetails.fuelOptions.${item}`)}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
+                      {shouldShowCarField("fuelType") ? (
+                        <>
+                          <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
+                            <MobileIcon name="sort" size={14} color="#2563eb" />
+                            <Text style={[styles.label, { textAlign }]}>{t("marketplace.create.carDetails.fuelLabel")}</Text>
+                          </View>
+                          <View style={styles.optionsRow}>
+                            {(fuelTypeField?.options.length ? fuelTypeField.options : CAR_FUEL_TYPES.map((item) => ({ value: item, labelAr: t(`marketplace.create.carDetails.fuelOptions.${item}`), labelEn: t(`marketplace.create.carDetails.fuelOptions.${item}`) }))).map((item) => {
+                              const isSelected = carFuelType === item.value;
+                              const optionLabel = fieldLanguage === "ar" ? item.labelAr : item.labelEn;
+                              return (
+                                <Pressable key={item.value} style={[styles.optionChip, isSelected ? styles.optionChipSelected : undefined]} onPress={() => setCarFuelType(item.value as CarFuelType)}>
+                                  <Text style={[styles.optionChipLabel, isSelected ? styles.optionChipLabelSelected : undefined]}>{optionLabel}</Text>
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        </>
+                      ) : null}
 
                       <View style={[styles.fieldLabelRow, direction === "rtl" ? styles.fieldLabelRowRtl : undefined]}>
                         <MobileIcon name="filter" size={14} color="#2563eb" />
@@ -2160,7 +2582,9 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
                 </>
               ) : null}
 
-              {!isCarSaleCategory ? (
+              {genericCategoryFields.length > 0 ? genericCategoryFields.map((field) => renderDynamicField(field)) : null}
+
+              {!isCarSaleCategory && genericCategoryFields.length === 0 ? (
                 <>
                   <Text style={[styles.label, { textAlign }]}>{extraLabel}</Text>
                   <TextInput
@@ -2204,23 +2628,32 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
                 {isCarSaleCategory ? (
                   <>
                     <Text style={[styles.previewItem, styles.previewMetaTitle, { textAlign }]}>{t("marketplace.create.carDetails.structuredTitle")}</Text>
-                    <Text style={[styles.previewItem, { textAlign }]}>
-                      {t("marketplace.create.carDetails.modelLabel")}: {carModel || "-"}
-                    </Text>
+                    {listingAttributeSummaryRows.length > 0 ? (
+                      listingAttributeSummaryRows.map((row) => (
+                        <Text key={row} style={[styles.previewItem, { textAlign }]}>
+                          {row.replace(/^- /, "")}
+                        </Text>
+                      ))
+                    ) : (
+                      <Text style={[styles.previewItem, { textAlign }]}>
+                        {t("marketplace.create.carDetails.modelLabel")}: {carModel || "-"}
+                      </Text>
+                    )}
                     <Text style={[styles.previewItem, { textAlign }]}>
                       {t("marketplace.create.carDetails.locationLabel")}: {carLocation || "-"}
-                    </Text>
-                    <Text style={[styles.previewItem, { textAlign }]}>
-                      {t("marketplace.create.carDetails.mileageLabel")}: {carMileage || "-"}
-                    </Text>
-                    <Text style={[styles.previewItem, { textAlign }]}>
-                      {t("marketplace.create.carDetails.conditionLabel")}: {t(`marketplace.create.carDetails.conditionOptions.${carCondition}`)}
                     </Text>
                     <Text style={[styles.previewItem, { textAlign }]}>
                       {t("marketplace.create.carDetails.priceModeLabel")}: {t(`marketplace.create.carDetails.priceModeOptions.${carPriceMode}`)}
                     </Text>
                   </>
                 ) : null}
+                {!isCarSaleCategory && listingAttributeSummaryRows.length > 0
+                  ? listingAttributeSummaryRows.map((row) => (
+                      <Text key={row} style={[styles.previewItem, { textAlign }]}>
+                        {row.replace(/^- /, "")}
+                      </Text>
+                    ))
+                  : null}
                 <Text style={[styles.previewDescription, { textAlign }]}>{buildPreviewDescription() || t("marketplace.detail.noDescription")}</Text>
               </View>
             </View>
@@ -2610,6 +3043,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#64748b"
   },
+  dynamicFieldBlock: {
+    marginBottom: 2
+  },
   fieldLabelRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -2707,6 +3143,59 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8
+  },
+  brandRail: {
+    marginBottom: 12
+  },
+  brandRailContent: {
+    gap: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 2
+  },
+  brandRailContentRtl: {
+    flexDirection: "row-reverse"
+  },
+  brandLogoCard: {
+    width: 82,
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 8,
+    paddingVertical: 10
+  },
+  brandLogoCardSelected: {
+    borderColor: "#0d9488",
+    backgroundColor: "#f0fdfa"
+  },
+  brandLogoBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  brandLogoBadgeSelected: {
+    backgroundColor: "#ccfbf1"
+  },
+  brandLogoCode: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0f172a"
+  },
+  brandLogoCodeSelected: {
+    color: "#0f766e"
+  },
+  brandLogoLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#334155",
+    textAlign: "center"
+  },
+  brandLogoLabelSelected: {
+    color: "#0f766e"
   },
   yearDropdownTrigger: {
     marginBottom: 8,

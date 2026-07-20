@@ -36,6 +36,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<MobileTab>("explore");
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
+  const [commissionListingId, setCommissionListingId] = useState<string | null>(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editingListing, setEditingListing] = useState<MarketplaceListing | null>(null);
@@ -151,9 +152,11 @@ function AppContent() {
                   onOpenChat={(intentListing) => {
                     setChatIntentListing({ ...intentListing });
                     setActiveTab("chat");
+                    setCommissionListingId(null);
                     setSelectedListing(null);
                   }}
                   onOpenListing={(nextListing) => {
+                    setCommissionListingId(null);
                     setSelectedListing(nextListing);
                   }}
                   onOpenSellerProfile={(sellerId) => {
@@ -161,7 +164,11 @@ function AppContent() {
                     setSelectedSellerId(sellerId);
                   }}
                   onEditListing={() => setEditingListing(selectedListing)}
-                  onMarkAsSold={() => setSelectedListing(null)}
+                  onOpenCommission={(commissionListing) => {
+                    setCommissionListingId(commissionListing.id);
+                    setSelectedListing(null);
+                    setActiveTab("myAds");
+                  }}
                 />
               ) : selectedSellerId ? (
                 <SellerProfileScreen
@@ -245,7 +252,14 @@ function AppContent() {
                     />
                   </View>
                   <View style={[styles.scene, activeTab === "myAds" ? styles.sceneActive : styles.sceneHidden]}>
-                    <MyAdsScreen direction={direction} previewState={myAdsPreviewState} onExploreMarketplace={() => setActiveTab("explore")} onOpenListing={setSelectedListing} />
+                    <MyAdsScreen
+                      direction={direction}
+                      previewState={myAdsPreviewState}
+                      commissionListingId={commissionListingId}
+                      onCommissionListingHandled={() => setCommissionListingId(null)}
+                      onExploreMarketplace={() => setActiveTab("explore")}
+                      onOpenListing={setSelectedListing}
+                    />
                   </View>
                   <View style={[styles.scene, activeTab === "notifications" ? styles.sceneActive : styles.sceneHidden]}>
                     <NotificationsScreen direction={direction} />

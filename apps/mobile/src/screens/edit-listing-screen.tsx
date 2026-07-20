@@ -16,6 +16,7 @@ import {
 } from "@sanany/shared";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
+import { createStaticMapPreviewUrl, reverseGeocodeLocation, translateMapPressToCoordinates } from "../lib/location-map";
 import { getMobileListingsRepository } from "../lib/listings-repository";
 import { getMobileSupabaseClient } from "../lib/supabase-client";
 import { MobileIcon } from "../components/mobile-icons";
@@ -83,7 +84,7 @@ function buildInitialImages(listing: MarketplaceListing): SelectedImage[] {
 }
 
 export function EditListingScreen({ direction, listing, onBack, onSaved }: EditListingScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { snapshot } = useAuth();
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
   const isRtl = direction === "rtl";
@@ -93,9 +94,18 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
   const [description, setDescription] = useState(listing.description ?? "");
   const [price, setPrice] = useState(listing.price > 0 ? String(listing.price) : "");
   const [locationName, setLocationName] = useState(listing.locationName ?? "");
+  const [locationLatitude, setLocationLatitude] = useState<number | null>(listing.latitude ?? null);
+  const [locationLongitude, setLocationLongitude] = useState<number | null>(listing.longitude ?? null);
+  const [isMapEditorOpen, setIsMapEditorOpen] = useState(false);
+  const [mapDraftLocation, setMapDraftLocation] = useState(listing.locationName ?? "");
+  const [mapDraftLatitude, setMapDraftLatitude] = useState<number>(listing.latitude ?? 24.7136);
+  const [mapDraftLongitude, setMapDraftLongitude] = useState<number>(listing.longitude ?? 46.6753);
+  const [mapPreviewSize, setMapPreviewSize] = useState({ width: 0, height: 0 });
+  const [isResolvingMapLocation, setIsResolvingMapLocation] = useState(false);
+  const [mapLocationError, setMapLocationError] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>(() => buildInitialImages(listing));
   const [isImagePicking, setIsImagePicking] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [submitMode, setSubmitMode] = useState<"save" | "publish" | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hasUnsavedChangesRef = useRef(false);
@@ -107,6 +117,10 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
   const canAddMoreImages = selectedImages.length < MAX_IMAGE_COUNT;
   const parsedPrice = Number(price);
   const validPrice = Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : 0;
+  const defaultLatitude = 24.7136;
+  const defaultLongitude = 46.6753;
+  const defaultLocationName = t("marketplace.create.defaultLocation");
+  const mapPreviewUrl = createStaticMapPreviewUrl(mapDraftLatitude, mapDraftLongitude);
 
   const pickImages = async () => {
     if (isImagePicking) {
@@ -187,6 +201,51 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
     markChanged();
   };
 
+  const openMapEditor = () => {
+    setMapDraftLatitude(locationLatitude ?? defaultLatitude);
+    setMapDraftLongitude(locationLongitude ?? defaultLongitude);
+    setMapDraftLocation(locationName.trim() || defaultLocationName);
+    setMapLocationError(null);
+    setIsMapEditorOpen(true);
+  };
+
+  const handleMapPress = async (pressX: number, pressY: number, width: number, height: number) => {
+    const nextCoordinates = translateMapPressToCoordinates({
+      centerLatitude: mapDraftLatitude,
+      centerLongitude: mapDraftLongitude,
+      pressX,
+      pressY,
+      width,
+      height
+    });
+
+    setMapDraftLatitude(nextCoordinates.latitude);
+    setMapDraftLongitude(nextCoordinates.longitude);
+    setIsResolvingMapLocation(true);
+    setMapLocationError(null);
+
+    try {
+      const nextLocationLabel = await reverseGeocodeLocation({
+        latitude: nextCoordinates.latitude,
+        longitude: nextCoordinates.longitude,
+        language: i18n.language || "ar"
+      });
+      setMapDraftLocation(nextLocationLabel || defaultLocationName);
+    } catch {
+      setMapLocationError(t("marketplace.edit.errors.locationResolveFailed"));
+    } finally {
+      setIsResolvingMapLocation(false);
+    }
+  };
+
+  const onSaveMapEditor = () => {
+    setLocationLatitude(mapDraftLatitude);
+    setLocationLongitude(mapDraftLongitude);
+    setLocationName(mapDraftLocation.trim() || defaultLocationName);
+    setIsMapEditorOpen(false);
+    markChanged();
+  };
+
   const handleBack = () => {
     if (hasUnsavedChangesRef.current) {
       Alert.alert(t("marketplace.detail.unsavedChangesTitle"), t("marketplace.detail.unsavedChangesMessage"), [
@@ -198,31 +257,31 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
     }
   };
 
-  const handleSave = async () => {
+  const handleSubmit = async (mode: "save" | "publish") => {
     const ownerId = snapshot.user?.id;
     if (!ownerId) {
-      setErrorMessage(t("marketplace.create.edit.errors.authRequired"));
+      setErrorMessage(t("marketplace.edit.errors.authRequired"));
       return;
     }
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      setErrorMessage(t("marketplace.create.edit.errors.titleRequired"));
+      setErrorMessage(t("marketplace.edit.errors.titleRequired"));
       return;
     }
     if (validPrice <= 0) {
-      setErrorMessage(t("marketplace.create.edit.errors.priceInvalid"));
+      setErrorMessage(t("marketplace.edit.errors.priceInvalid"));
       return;
     }
     if (selectedImages.length === 0) {
-      setErrorMessage(t("marketplace.create.edit.errors.imageRequired"));
+      setErrorMessage(t("marketplace.edit.errors.imageRequired"));
       return;
     }
     if (isImagePicking) {
-      setErrorMessage(t("marketplace.create.edit.errors.imagesProcessing"));
+      setErrorMessage(t("marketplace.edit.errors.imagesProcessing"));
       return;
     }
 
-    setIsSaving(true);
+    setSubmitMode(mode);
     setErrorMessage(null);
     try {
       const uploadedImages: SelectedImage[] = [];
@@ -239,7 +298,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
               status: "uploaded"
             });
           } catch {
-            throw new Error(t("marketplace.create.edit.errors.saveFailed"));
+            throw new Error(t("marketplace.edit.errors.saveFailed"));
           }
         }
       }
@@ -248,22 +307,27 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         uploadedImages.map((img) => img.publicUrl ?? img.previewUri)
       );
 
-      const updated = await listingsRepository.publishDraft({
+      const payload = {
         id: listing.id,
         ownerId,
         title: trimmedTitle,
         description: description.trim(),
         price: validPrice,
-        status: "available",
+        status: mode === "publish" ? ("available" as const) : ("draft" as const),
         imageUrl: serializedImageUrl ?? undefined,
         locationName: locationName.trim() || undefined,
-        latitude: listing.latitude ?? undefined,
-        longitude: listing.longitude ?? undefined,
+        latitude: locationLatitude ?? undefined,
+        longitude: locationLongitude ?? undefined,
         ownerPhone: listing.ownerPhone ?? undefined,
         offerType: listing.offerType ?? undefined,
         categorySlug: listing.categorySlug ?? undefined,
         images: toCreateListingImageInputs(uploadedImages)
-      });
+      };
+
+      const updated =
+        mode === "publish"
+          ? await listingsRepository.publishDraft(payload)
+          : await listingsRepository.saveDraft(payload);
 
       hasUnsavedChangesRef.current = false;
       setShowSuccess(true);
@@ -272,9 +336,9 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         onSaved(updated);
       }, 1500);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : t("marketplace.create.edit.errors.saveFailed"));
+      setErrorMessage(err instanceof Error ? err.message : t("marketplace.edit.errors.saveFailed"));
     } finally {
-      setIsSaving(false);
+      setSubmitMode(null);
     }
   };
 
@@ -285,14 +349,14 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         <Pressable style={styles.backButton} onPress={handleBack}>
           <MobileIcon name="chevron" size={18} color="#334155" />
         </Pressable>
-        <Text style={styles.headerTitle}>{t("marketplace.create.edit.title")}</Text>
+        <Text style={styles.headerTitle}>{t("marketplace.edit.title")}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Title */}
         <View style={styles.field}>
-          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.edit.titleLabel")}</Text>
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.titleLabel")}</Text>
           <TextInput
             style={[styles.input, { textAlign }]}
             value={title}
@@ -305,7 +369,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
 
         {/* Description */}
         <View style={styles.field}>
-          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.edit.descriptionLabel")}</Text>
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.descriptionLabel")}</Text>
           <TextInput
             style={[styles.input, styles.textArea, { textAlign }]}
             value={description}
@@ -320,7 +384,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
 
         {/* Price */}
         <View style={styles.field}>
-          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.edit.priceLabel")}</Text>
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.priceLabel")}</Text>
           <TextInput
             style={[styles.input, { textAlign }]}
             value={price}
@@ -334,21 +398,27 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
 
         {/* Location */}
         <View style={styles.field}>
-          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.edit.locationLabel")}</Text>
-          <TextInput
-            style={[styles.input, { textAlign }]}
-            value={locationName}
-            onChangeText={(v) => { setLocationName(v); markChanged(); }}
-            maxLength={120}
-            placeholder={t("marketplace.create.locationPlaceholder")}
-            placeholderTextColor="#94a3b8"
-          />
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.locationLabel")}</Text>
+          <Pressable style={styles.locationSelectorCard} onPress={openMapEditor}>
+            <View style={[styles.locationSelectorHeader, isRtl ? styles.locationSelectorHeaderRtl : undefined]}>
+              <MobileIcon name="location" size={16} color="#0f766e" focused />
+              <Text style={[styles.locationSelectorValue, { textAlign }]} numberOfLines={2}>
+                {locationName.trim() || t("marketplace.create.carDetails.locationPlaceholder")}
+              </Text>
+            </View>
+            <View style={[styles.locationSelectorActions, isRtl ? styles.locationSelectorActionsRtl : undefined]}>
+              <Text style={[styles.locationSelectorHint, { textAlign }]}>{t("marketplace.edit.locationHint")}</Text>
+              <View style={styles.mapPickerAction}>
+                <Text style={styles.mapPickerActionLabel}>{t("marketplace.create.carDetails.editLocationFromMap")}</Text>
+              </View>
+            </View>
+          </Pressable>
         </View>
 
         {/* Images */}
         <View style={styles.field}>
-          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.edit.imagesTitle")}</Text>
-          <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.create.edit.imagesHint")}</Text>
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.imagesTitle")}</Text>
+          <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.edit.imagesHint")}</Text>
 
           <View style={styles.imageGrid}>
             {selectedImages.map((img, index) => (
@@ -356,7 +426,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
                 <Image source={{ uri: img.publicUrl ?? img.previewUri }} style={styles.imageThumbnail} resizeMode="cover" />
                 {img.isPrimary ? (
                   <View style={styles.primaryBadge}>
-                    <Text style={styles.primaryBadgeLabel}>{t("marketplace.create.images.primary")}</Text>
+                    <Text style={styles.primaryBadgeLabel}>{t("marketplace.create.images.primaryBadge")}</Text>
                   </View>
                 ) : null}
                 <View style={[styles.imageActions, isRtl ? styles.imageActionsRtl : undefined]}>
@@ -397,16 +467,26 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
           </View>
         ) : null}
 
-        {/* Save button */}
-        <Pressable
-          style={[styles.saveButton, isSaving ? styles.saveButtonDisabled : undefined]}
-          disabled={isSaving}
-          onPress={() => void handleSave()}
-        >
-          <Text style={styles.saveButtonLabel}>
-            {isSaving ? t("marketplace.create.edit.saving") : t("marketplace.create.edit.saveChanges")}
-          </Text>
-        </Pressable>
+        <View style={[styles.submitRow, isRtl ? styles.submitRowRtl : undefined]}>
+          <Pressable
+            style={[styles.secondarySubmitButton, submitMode !== null ? styles.saveButtonDisabled : undefined]}
+            disabled={submitMode !== null}
+            onPress={() => void handleSubmit("save")}
+          >
+            <Text style={styles.secondarySubmitButtonLabel}>
+              {submitMode === "save" ? t("marketplace.edit.savingDraft") : t("marketplace.edit.saveAction")}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.saveButton, submitMode !== null ? styles.saveButtonDisabled : undefined]}
+            disabled={submitMode !== null}
+            onPress={() => void handleSubmit("publish")}
+          >
+            <Text style={styles.saveButtonLabel}>
+              {submitMode === "publish" ? t("marketplace.edit.publishing") : t("marketplace.edit.publishAction")}
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       {/* Success overlay */}
@@ -414,7 +494,47 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         <View style={styles.successOverlay}>
           <View style={styles.successCard}>
             <MobileIcon name="verified" size={42} color="#0f766e" focused />
-            <Text style={styles.successText}>{t("marketplace.create.edit.success")}</Text>
+            <Text style={styles.successText}>{t("marketplace.edit.success")}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {isMapEditorOpen ? (
+        <View style={styles.mapEditorOverlay}>
+          <View style={styles.mapEditorCard}>
+            <Text style={[styles.mapEditorTitle, { textAlign }]}>{t("marketplace.create.carDetails.mapEditorTitle")}</Text>
+            <Text style={[styles.mapEditorHint, { textAlign }]}>{t("marketplace.edit.mapSelectionHint")}</Text>
+            <Pressable
+              style={styles.mapPreviewCard}
+              onLayout={(event) => setMapPreviewSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
+              onPress={(event) =>
+                void handleMapPress(
+                  event.nativeEvent.locationX,
+                  event.nativeEvent.locationY,
+                  mapPreviewSize.width || 1,
+                  mapPreviewSize.height || 1
+                )
+              }
+            >
+              <Image source={{ uri: mapPreviewUrl }} style={styles.mapPreviewImage} resizeMode="cover" />
+              <View pointerEvents="none" style={styles.mapPinBadge}>
+                <MobileIcon name="location" size={18} color="#ffffff" focused />
+              </View>
+            </Pressable>
+            <View style={styles.mapLocationSummary}>
+              <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.locationLabel")}</Text>
+              <Text style={[styles.mapLocationValue, { textAlign }]}>{mapDraftLocation.trim() || defaultLocationName}</Text>
+              {isResolvingMapLocation ? <Text style={[styles.mapLocationStatus, { textAlign }]}>{t("marketplace.edit.resolvingLocation")}</Text> : null}
+              {mapLocationError ? <Text style={[styles.mapLocationError, { textAlign }]}>{mapLocationError}</Text> : null}
+            </View>
+            <View style={[styles.mapEditorActions, isRtl ? styles.mapEditorActionsRtl : undefined]}>
+              <Pressable style={styles.secondaryButton} onPress={() => setIsMapEditorOpen(false)}>
+                <Text style={styles.secondaryButtonLabel}>{t("marketplace.create.flow.back")}</Text>
+              </Pressable>
+              <Pressable style={styles.submitButtonInline} onPress={onSaveMapEditor}>
+                <Text style={styles.submitButtonInlineLabel}>{t("marketplace.create.carDetails.saveMapLocation")}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       ) : null}
@@ -487,6 +607,52 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: "top",
     paddingTop: 12
+  },
+  locationSelectorCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    backgroundColor: "#ffffff",
+    padding: 14,
+    gap: 10
+  },
+  locationSelectorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  locationSelectorHeaderRtl: {
+    flexDirection: "row-reverse"
+  },
+  locationSelectorValue: {
+    flex: 1,
+    fontSize: 14,
+    color: "#0f172a"
+  },
+  locationSelectorActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  locationSelectorActionsRtl: {
+    flexDirection: "row-reverse"
+  },
+  locationSelectorHint: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#64748b"
+  },
+  mapPickerAction: {
+    borderRadius: 999,
+    backgroundColor: "#ecfdfa",
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  mapPickerActionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0f766e"
   },
   imageGrid: {
     flexDirection: "row",
@@ -563,7 +729,9 @@ const styles = StyleSheet.create({
   addImageLabel: {
     fontSize: 11,
     color: "#64748b",
-    textAlign: "center"
+    textAlign: "center",
+    lineHeight: 14,
+    paddingHorizontal: 6
   },
   errorBox: {
     backgroundColor: "#fef2f2",
@@ -577,17 +745,146 @@ const styles = StyleSheet.create({
     color: "#dc2626"
   },
   saveButton: {
+    flex: 1,
     backgroundColor: "#0f766e",
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
     marginTop: 8
   },
+  submitRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8
+  },
+  submitRowRtl: {
+    flexDirection: "row-reverse"
+  },
+  secondarySubmitButton: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    marginTop: 8
+  },
+  secondarySubmitButtonLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#334155"
+  },
   saveButtonDisabled: {
     opacity: 0.55
   },
   saveButtonLabel: {
     fontSize: 15,
+    fontWeight: "700",
+    color: "#ffffff"
+  },
+  mapEditorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15,23,42,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    zIndex: 98
+  },
+  mapEditorCard: {
+    width: "100%",
+    maxWidth: 520,
+    borderRadius: 24,
+    backgroundColor: "#ffffff",
+    padding: 18,
+    gap: 14
+  },
+  mapEditorTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0f172a"
+  },
+  mapEditorHint: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: "#475569"
+  },
+  mapPreviewCard: {
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#e2e8f0",
+    height: 220,
+    position: "relative"
+  },
+  mapPreviewImage: {
+    width: "100%",
+    height: "100%"
+  },
+  mapPinBadge: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    width: 34,
+    height: 34,
+    marginLeft: -17,
+    marginTop: -30,
+    borderRadius: 17,
+    backgroundColor: "#0f766e",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#ffffff"
+  },
+  mapLocationSummary: {
+    gap: 6
+  },
+  mapLocationValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0f172a"
+  },
+  mapLocationStatus: {
+    fontSize: 12,
+    color: "#0f766e"
+  },
+  mapLocationError: {
+    fontSize: 12,
+    color: "#dc2626"
+  },
+  mapEditorActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  mapEditorActionsRtl: {
+    flexDirection: "row-reverse"
+  },
+  secondaryButton: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff"
+  },
+  secondaryButtonLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#334155"
+  },
+  submitButtonInline: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0f766e"
+  },
+  submitButtonInlineLabel: {
+    fontSize: 14,
     fontWeight: "700",
     color: "#ffffff"
   },

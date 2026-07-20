@@ -91,6 +91,9 @@ export type MarketplaceCategoryField = {
   options: MarketplaceCategoryFieldOption[];
 };
 
+export type ListingAttributeValue = string | number | boolean | string[] | null;
+export type ListingAttributes = Record<string, ListingAttributeValue>;
+
 export type MarketplaceCategory = {
   id: string;
   parentId: string | null;
@@ -172,6 +175,7 @@ export type MarketplaceListing = {
   locationName: string | null;
   latitude: number | null;
   longitude: number | null;
+  attributes?: ListingAttributes | null;
   createdAt: string;
   updatedAt?: string;
 };
@@ -226,6 +230,7 @@ export type CreateListingInput = {
   locationName?: string;
   latitude?: number;
   longitude?: number;
+  attributes?: ListingAttributes;
   images?: CreateListingImageInput[];
 };
 
