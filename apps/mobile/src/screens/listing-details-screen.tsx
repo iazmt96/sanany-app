@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createClient } from "@supabase/supabase-js";
 import { useTranslation } from "react-i18next";
+import { createListingsRepository } from "@sanany/api";
 import type { MarketplaceListing } from "@sanany/types";
 import {
   FAVORITES_STORAGE_KEY,
@@ -14,12 +16,14 @@ import {
   getRenderableListingImageUrls,
   hasStoredId,
   parseStoredIdList,
+  readMetadataPhone,
   toggleStoredId
 } from "@sanany/shared";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { MobileListingCard } from "../components/mobile-listing-card";
 import { MobileIcon } from "../components/mobile-icons";
+import { getMobileSupabaseEnv } from "../config/env";
 import { setPendingChatListingIntent } from "../lib/chat-intent-store";
 import { getMobileListingsRepository } from "../lib/listings-repository";
 
@@ -97,6 +101,21 @@ function resolveSpecIcon(label: string): "cars" | "location" | "time" | "filter"
   return "filter";
 }
 
+function resolveDetailErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim().length > 0) {
+      return message;
+    }
+  }
+
+  return fallback;
+}
+
 export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, onOpenListing, onOpenSellerProfile, onEditListing, onOpenCommission }: ListingDetailsScreenProps) {
   const { t, i18n } = useTranslation();
   const { snapshot } = useAuth();
@@ -118,6 +137,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const [isFavorite, setIsFavorite] = useState(false);
   const [isReported, setIsReported] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshingListing, setIsRefreshingListing] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [similarListings, setSimilarListings] = useState<MarketplaceListing[]>([]);
   const priceModeSpec = parsedCarSpecs.specs.find((item) => {
@@ -305,6 +325,60 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
     ]);
   };
 
+  const refreshListing = async () => {
+    if (!snapshot.user?.id || !isListingOwner || isRefreshingListing) {
+      return;
+    }
+
+    setIsRefreshingListing(true);
+    setActionMessage(null);
+    try {
+      const sessionToken = snapshot.session?.access_token;
+      const repository =
+        sessionToken && sessionToken.trim().length > 0
+          ? createListingsRepository(
+              createClient(getMobileSupabaseEnv().supabaseUrl, getMobileSupabaseEnv().supabaseAnonKey, {
+                auth: { persistSession: false, autoRefreshToken: false },
+                global: {
+                  headers: {
+                    Authorization: `Bearer ${sessionToken}`
+                  }
+                }
+              })
+            )
+          : listingsRepository;
+      const ownerPhone =
+        (snapshot.user.phone && snapshot.user.phone.trim().length > 0 ? snapshot.user.phone.trim() : null) ??
+        readMetadataPhone(snapshot.user.user_metadata) ??
+        listing.ownerPhone ??
+        null;
+      const payload = {
+        id: listing.id,
+        ownerId: snapshot.user.id,
+        ownerPhone: ownerPhone ?? undefined,
+        offerType: listing.offerType ?? undefined,
+        categorySlug: listing.categorySlug ?? undefined,
+        title: listing.title,
+        description: listing.description ?? "",
+        price: listing.price,
+        status: listing.status,
+        imageUrl: listing.imageUrl ?? undefined,
+        locationName: listing.locationName ?? undefined,
+        latitude: listing.latitude ?? undefined,
+        longitude: listing.longitude ?? undefined,
+        attributes: listing.attributes ?? {}
+      };
+      const updatedListing =
+        listing.status === "draft" ? await repository.saveDraft(payload) : await repository.publishDraft(payload);
+      setActionMessage(t("marketplace.detail.updatedSuccess"));
+      onOpenListing(updatedListing);
+    } catch (error) {
+      setActionMessage(resolveDetailErrorMessage(error, t("marketplace.detail.updateFailed")));
+    } finally {
+      setIsRefreshingListing(false);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={[styles.topBar, isRtl ? styles.topBarRtl : undefined]}>
@@ -347,6 +421,14 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
             <Pressable style={styles.actionButton} onPress={() => void shareListing()}>
               <MobileIcon name="share" size={15} color="#334155" />
               <Text style={styles.actionButtonLabel}>{t("marketplace.detail.share")}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, isRefreshingListing ? styles.actionButtonDisabled : undefined]}
+              disabled={isRefreshingListing}
+              onPress={() => void refreshListing()}
+            >
+              <MobileIcon name="refresh" size={15} color="#334155" />
+              <Text style={styles.actionButtonLabel}>{t("marketplace.detail.updateAction")}</Text>
             </Pressable>
             <Pressable
               style={[styles.actionButton, styles.actionButtonDanger, isDeleting ? styles.actionButtonDisabled : undefined]}
