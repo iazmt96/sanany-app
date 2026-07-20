@@ -104,7 +104,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const locale = (i18n.language || "ar").startsWith("ar") ? "ar" : "en";
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
   const imageUrl = getPrimaryImage(listing.imageUrl);
-  const postedAt = formatRelativeTime(listing.createdAt, locale);
+  const updatedAt = formatRelativeTime(listing.updatedAt ?? listing.createdAt, locale);
   const latitude = listing.latitude ?? 24.7136;
   const longitude = listing.longitude ?? 46.6753;
   const mapPreviewUrl = `https://static-maps.yandex.ru/1.x/?ll=${longitude},${latitude}&z=13&l=map&size=900,420&pt=${longitude},${latitude},pm2rdm`;
@@ -392,8 +392,8 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
 
         <View style={[styles.metaRow, isRtl ? styles.metaRowRtl : undefined]}>
           <View style={[styles.metaItem, isRtl ? styles.metaItemRtl : undefined]}>
-            <MobileIcon name="time" size={14} color="#64748b" />
-            <Text style={styles.metaLabel}>{t("marketplace.postedAt", { value: postedAt })}</Text>
+            <MobileIcon name="refresh" size={14} color="#64748b" />
+            <Text style={styles.metaLabel}>{t("marketplace.updatedAt", { value: updatedAt })}</Text>
           </View>
           <View style={[styles.metaItem, isRtl ? styles.metaItemRtl : undefined]}>
             <MobileIcon name="location" size={14} color="#64748b" />

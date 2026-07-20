@@ -408,6 +408,7 @@
     pricePerDay: "{{value}} ريال",
     listCount: "{{count}} إعلان",
     postedAt: "نشر {{value}}",
+    updatedAt: "تحديث {{value}}",
     create: {
       title: "أضف إعلان جديد",
       open: "أضف إعلاناً",

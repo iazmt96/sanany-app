@@ -22,9 +22,10 @@ export function MobileListingCard({ direction, listing, priceLabel, statusLabel,
   const imageUrl = getPrimaryImage(listing.imageUrl);
   const isRtl = direction === "rtl";
   const locale = (i18n.language || "ar").startsWith("ar") ? "ar" : "en";
+  const activityAt = listing.updatedAt ?? listing.createdAt;
 
-  const postedAtLabel = (() => {
-    const date = new Date(listing.createdAt);
+  const updatedAtLabel = (() => {
+    const date = new Date(activityAt);
     const diffMs = date.getTime() - Date.now();
     const diffMinutes = Math.round(diffMs / (1000 * 60));
     const absMinutes = Math.abs(diffMinutes);
@@ -96,8 +97,8 @@ export function MobileListingCard({ direction, listing, priceLabel, statusLabel,
         </View>
         <View style={[styles.metaRow, isRtl ? styles.metaRowRtl : undefined]}>
           <View style={[styles.metaItem, isRtl ? styles.metaItemRtl : undefined]}>
-            <MobileIcon name="time" size={14} color="#64748b" />
-            <Text style={styles.metaText}>{t("marketplace.postedAt", { value: postedAtLabel })}</Text>
+            <MobileIcon name="refresh" size={14} color="#64748b" />
+            <Text style={styles.metaText}>{t("marketplace.updatedAt", { value: updatedAtLabel })}</Text>
           </View>
         </View>
       </View>

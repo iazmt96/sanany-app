@@ -36,9 +36,10 @@ export function MobileListingTile({
   const isRtl = direction === "rtl";
   const imageUrl = getPrimaryListingImageUrl(listing.imageUrl);
   const imageCount = useMemo(() => parseListingImageUrls(listing.imageUrl).length, [listing.imageUrl]);
-  const postedAt = useMemo(() => {
+  const activityAt = listing.updatedAt ?? listing.createdAt;
+  const updatedAt = useMemo(() => {
     const locale = (i18n.language || "ar").startsWith("ar") ? "ar" : "en";
-    const date = new Date(listing.createdAt);
+    const date = new Date(activityAt);
     const diffMs = date.getTime() - Date.now();
     const diffMinutes = Math.round(diffMs / (1000 * 60));
     const absMinutes = Math.abs(diffMinutes);
@@ -57,7 +58,7 @@ export function MobileListingTile({
 
     const diffDays = Math.round(diffHours / 24);
     return formatter.format(diffDays, "day");
-  }, [i18n.language, listing.createdAt]);
+  }, [activityAt, i18n.language]);
 
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={listing.title} style={[styles.card, { width }]} onPress={onPress}>
@@ -118,7 +119,10 @@ export function MobileListingTile({
               {listing.locationName ?? t("marketplace.detail.approximateLocation")}
             </Text>
           </View>
-          <Text style={styles.metaText}>{postedAt}</Text>
+          <View style={[styles.metaItem, isRtl ? styles.metaItemRtl : undefined]}>
+            <MobileIcon name="refresh" size={12} color="#64748b" />
+            <Text style={styles.metaText}>{t("marketplace.updatedAt", { value: updatedAt })}</Text>
+          </View>
         </View>
 
         {sellerProfile ? (

@@ -25,6 +25,7 @@ type MobileIconName =
   | "furniture"
   | "jobs"
   | "time"
+  | "refresh"
   | "image"
   | "report"
   | "share"
@@ -69,6 +70,7 @@ const iconMap: Record<MobileIconName, { inactive: keyof typeof Ionicons.glyphMap
   furniture: { inactive: "bed-outline", active: "bed" },
   jobs: { inactive: "briefcase-outline", active: "briefcase" },
   time: { inactive: "time-outline", active: "time" },
+  refresh: { inactive: "refresh-outline", active: "refresh" },
   image: { inactive: "image-outline", active: "image" },
   report: { inactive: "flag-outline", active: "flag" },
   share: { inactive: "share-social-outline", active: "share-social" },

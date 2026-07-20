@@ -408,6 +408,7 @@
     pricePerDay: "SAR {{value}}",
     listCount: "{{count}} listings",
     postedAt: "Posted {{value}}",
+    updatedAt: "Updated {{value}}",
     create: {
       title: "Post a new listing",
       open: "Post listing",
