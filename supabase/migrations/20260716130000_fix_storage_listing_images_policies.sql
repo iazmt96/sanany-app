@@ -1,4 +1,4 @@
-﻿-- Fix: Ensure car-listings storage bucket exists with correct settings
+-- Fix: Ensure car-listings storage bucket exists with correct settings
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'car-listings',
