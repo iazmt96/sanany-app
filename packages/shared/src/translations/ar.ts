@@ -1573,7 +1573,14 @@
       whatsapp: "واتساب",
       email: "بريد إلكتروني"
     },
-    datePlaceholder: "YYYY-MM-DD"
+    datePlaceholder: "YYYY-MM-DD",
+    sellerWorkspace: {
+      title: "مساحة البيع",
+      subtitle: "ملخص سريع لإعلاناتك.",
+      active: "نشط",
+      drafts: "مسودات",
+      reserved: "محجوز"
+    }
   },
   favorites: {
     pageTitle: "المفضلة",

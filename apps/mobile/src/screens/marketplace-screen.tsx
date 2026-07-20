@@ -406,26 +406,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
         </View>
       ) : null}
 
-      {isSellerFocused && ownerSummary ? (
-        <View style={styles.sectionCard}>
-          <MobileSectionHeader direction={direction} title={t("home.sections.sellerWorkspace")} subtitle={t("home.sectionDescriptions.sellerWorkspace")} />
-          <View style={styles.ownerGrid}>
-            <View style={[styles.ownerMetricCard, styles.ownerMetricActive]}>
-              <Text style={styles.ownerMetricLabel}>{t("home.owner.active")}</Text>
-              <Text style={styles.ownerMetricValue}>{ownerSummary.active}</Text>
-            </View>
-            <View style={[styles.ownerMetricCard, styles.ownerMetricDrafts]}>
-              <Text style={styles.ownerMetricLabel}>{t("home.owner.drafts")}</Text>
-              <Text style={styles.ownerMetricValue}>{ownerSummary.drafts}</Text>
-            </View>
-            <View style={[styles.ownerMetricCard, styles.ownerMetricReserved]}>
-              <Text style={styles.ownerMetricLabel}>{t("home.owner.reserved")}</Text>
-              <Text style={styles.ownerMetricValue}>{ownerSummary.reserved}</Text>
-            </View>
-          </View>
-        </View>
-      ) : null}
-
       {savedSearches.length > 0 ? (
         <View style={styles.sectionCard}>
           <MobileSectionHeader direction={direction} title={t("home.sections.savedSearches")} subtitle={t("home.sectionDescriptions.savedSearches")} />

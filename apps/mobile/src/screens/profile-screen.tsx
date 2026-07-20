@@ -7,6 +7,8 @@ import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { MobileIcon } from "../components/mobile-icons";
 import { MobileListingTile } from "../components/mobile-listing-tile";
+import { MobileSectionHeader } from "../components/mobile-section-header";
+import { getMobileListingsRepository } from "../lib/listings-repository";
 import { getMobileSellersRepository } from "../lib/sellers-repository";
 
 type ProfileScreenProps = {
@@ -14,9 +16,11 @@ type ProfileScreenProps = {
   onOpenListing(listing: MarketplaceListing): void;
   onOpenVerification(): void;
   onOpenEditProfile(): void;
+  onOpenMyAds(): void;
 };
 
 type ProfileTab = "all" | "active" | "sold" | "ratings";
+type OwnerSummary = { active: number; drafts: number; reserved: number };
 
 const PAGE_SIZE = 8;
 
@@ -39,16 +43,18 @@ function getTrustScore(profile: SellerProfile, completionPercentage: number): nu
   return Math.max(0, Math.min(100, score));
 }
 
-export function ProfileScreen({ direction, onOpenListing, onOpenVerification, onOpenEditProfile }: ProfileScreenProps) {
+export function ProfileScreen({ direction, onOpenListing, onOpenVerification, onOpenEditProfile, onOpenMyAds }: ProfileScreenProps) {
   const { t, i18n } = useTranslation();
   const { accountProfile, snapshot } = useAuth();
   const repository = useMemo(() => getMobileSellersRepository(), []);
+  const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
   const isRtl = direction === "rtl";
   const textAlign = isRtl ? "right" : "left";
   const [tab, setTab] = useState<ProfileTab>("all");
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<SellerProfile | null>(null);
+  const [ownerSummary, setOwnerSummary] = useState<OwnerSummary | null>(null);
   const [listingsData, setListingsData] = useState<PaginatedResult<MarketplaceListing>>({
     items: [],
     totalItems: 0,
@@ -98,6 +104,31 @@ export function ProfileScreen({ direction, onOpenListing, onOpenVerification, on
   useEffect(() => {
     void loadProfileData();
   }, [loadProfileData]);
+
+  useEffect(() => {
+    if (!snapshot.user?.id) {
+      setOwnerSummary(null);
+      return;
+    }
+    let active = true;
+    const ownerId = snapshot.user.id;
+    const run = async () => {
+      try {
+        const [activeListings, draftListings, reservedListings] = await Promise.all([
+          listingsRepository.listByOwner(ownerId, { search: "", status: "available", sort: "newest", page: 1, pageSize: 1 }),
+          listingsRepository.listByOwner(ownerId, { search: "", status: "draft", sort: "newest", page: 1, pageSize: 1 }),
+          listingsRepository.listByOwner(ownerId, { search: "", status: "reserved", sort: "newest", page: 1, pageSize: 1 })
+        ]);
+        if (active) {
+          setOwnerSummary({ active: activeListings.totalItems, drafts: draftListings.totalItems, reserved: reservedListings.totalItems });
+        }
+      } catch {
+        if (active) setOwnerSummary(null);
+      }
+    };
+    void run();
+    return () => { active = false; };
+  }, [listingsRepository, snapshot.user?.id]);
 
   const joinedLabel = profile?.joinedAt ? formatMonthYear(profile.joinedAt, i18n.language || "ar", "-") : "-";
   const completionPercentage = getProfileCompletionPercentage(accountProfile, snapshot.user?.email);
@@ -175,6 +206,31 @@ export function ProfileScreen({ direction, onOpenListing, onOpenVerification, on
             <Text style={styles.statLabel}>{t("sellerProfile.stats.following")}</Text>
           </View>
         </View>
+      ) : null}
+
+      {ownerSummary !== null ? (
+        <Pressable style={styles.sellerCard} onPress={onOpenMyAds}>
+          <View style={[styles.sellerCardHeader, isRtl ? styles.rowRtl : undefined]}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[styles.sellerCardTitle, { textAlign }]}>{t("profile.sellerWorkspace.title")}</Text>
+              <Text style={[styles.sellerCardSubtitle, { textAlign }]}>{t("profile.sellerWorkspace.subtitle")}</Text>
+            </View>
+          </View>
+          <View style={styles.ownerGrid}>
+            <View style={[styles.ownerMetricCard, styles.ownerMetricActive]}>
+              <Text style={styles.ownerMetricLabel}>{t("profile.sellerWorkspace.active")}</Text>
+              <Text style={styles.ownerMetricValue}>{ownerSummary.active}</Text>
+            </View>
+            <View style={[styles.ownerMetricCard, styles.ownerMetricDrafts]}>
+              <Text style={styles.ownerMetricLabel}>{t("profile.sellerWorkspace.drafts")}</Text>
+              <Text style={styles.ownerMetricValue}>{ownerSummary.drafts}</Text>
+            </View>
+            <View style={[styles.ownerMetricCard, styles.ownerMetricReserved]}>
+              <Text style={styles.ownerMetricLabel}>{t("profile.sellerWorkspace.reserved")}</Text>
+              <Text style={styles.ownerMetricValue}>{ownerSummary.reserved}</Text>
+            </View>
+          </View>
+        </Pressable>
       ) : null}
 
       <View style={styles.completionCard}>
@@ -334,6 +390,57 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     gap: 6
+  },
+  sellerCard: {
+    borderRadius: 26,
+    backgroundColor: "#ffffff",
+    padding: 16,
+    gap: 12
+  },
+  sellerCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10
+  },
+  sellerCardTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0f172a"
+  },
+  sellerCardSubtitle: {
+    fontSize: 11,
+    lineHeight: 17,
+    color: "#64748b"
+  },
+  ownerGrid: {
+    flexDirection: "row",
+    gap: 8
+  },
+  ownerMetricCard: {
+    flex: 1,
+    borderRadius: 14,
+    padding: 12,
+    gap: 4
+  },
+  ownerMetricActive: {
+    backgroundColor: "#ecfdfa"
+  },
+  ownerMetricDrafts: {
+    backgroundColor: "#fefce8"
+  },
+  ownerMetricReserved: {
+    backgroundColor: "#fff7ed"
+  },
+  ownerMetricLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#475569"
+  },
+  ownerMetricValue: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0f172a",
+    marginTop: 2
   },
   completionCard: {
     borderRadius: 16,

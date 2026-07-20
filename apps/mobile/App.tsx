@@ -259,6 +259,7 @@ function AppContent() {
                       onOpenListing={setSelectedListing}
                       onOpenVerification={() => setIsVerificationOpen(true)}
                       onOpenEditProfile={() => setIsEditProfileOpen(true)}
+                      onOpenMyAds={() => setActiveTab("myAds")}
                     />
                   </View>
                 </Animated.View>

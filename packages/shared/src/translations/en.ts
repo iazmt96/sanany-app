@@ -1574,7 +1574,14 @@
       whatsapp: "WhatsApp",
       email: "Email"
     },
-    datePlaceholder: "YYYY-MM-DD"
+    datePlaceholder: "YYYY-MM-DD",
+    sellerWorkspace: {
+      title: "Seller Workspace",
+      subtitle: "A quick snapshot of your listings.",
+      active: "Active",
+      drafts: "Drafts",
+      reserved: "Reserved"
+    }
   },
   favorites: {
     pageTitle: "Favorites",
