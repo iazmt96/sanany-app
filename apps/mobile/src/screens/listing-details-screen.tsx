@@ -11,6 +11,7 @@ import {
   REPORTED_LISTINGS_STORAGE_KEY,
   canContactListingOwner,
   canDeleteListing,
+  createGoogleMapsSearchUrl,
   formatRelativeTime,
   getPrimaryListingImageUrl,
   getRenderableListingImageUrls,
@@ -26,6 +27,7 @@ import { MobileIcon } from "../components/mobile-icons";
 import { getMobileSupabaseEnv } from "../config/env";
 import { setPendingChatListingIntent } from "../lib/chat-intent-store";
 import { getMobileListingsRepository } from "../lib/listings-repository";
+import { createStaticMapPreviewUrl } from "../lib/location-map";
 
 const CHAT_OPEN_INTENT_STORAGE_KEY = "sanany:chat-open-intent";
 const CHAT_OPEN_THREAD_STORAGE_KEY = "sanany:chat-open-thread-id";
@@ -126,7 +128,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const updatedAt = formatRelativeTime(listing.updatedAt ?? listing.createdAt, locale);
   const latitude = listing.latitude ?? 24.7136;
   const longitude = listing.longitude ?? 46.6753;
-  const mapPreviewUrl = `https://static-maps.yandex.ru/1.x/?ll=${longitude},${latitude}&z=13&l=map&size=900,420&pt=${longitude},${latitude},pm2rdm`;
+  const mapPreviewUrl = createStaticMapPreviewUrl(latitude, longitude);
   const advertiserPhone = listing.ownerPhone?.trim() ?? "";
   const advertiserName = t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() });
   const listingImages = useMemo(() => {
@@ -293,7 +295,13 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   };
 
   const openInMaps = async () => {
-    await Linking.openURL(`https://www.google.com/maps?q=${latitude},${longitude}`);
+    await Linking.openURL(
+      createGoogleMapsSearchUrl({
+        latitude,
+        longitude,
+        query: listing.locationName ?? null
+      })
+    );
   };
 
   const deleteListing = () => {

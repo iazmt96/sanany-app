@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListing } from "@sanany/types";
+import { loadGoogleMapsApi } from "../lib/google-maps";
 
 type ListingsMapProps = {
   listings: MarketplaceListing[];
@@ -18,12 +19,6 @@ const RIYADH_CENTER: Coordinates = {
   latitude: 24.7136,
   longitude: 46.6753
 };
-
-declare global {
-  interface Window {
-    L?: any;
-  }
-}
 
 function hashString(value: string): number {
   let hash = 0;
@@ -52,52 +47,27 @@ function toCoordinates(listing: MarketplaceListing): Coordinates {
   };
 }
 
-async function loadLeaflet(): Promise<any> {
-  if (window.L) {
-    return window.L;
-  }
+function buildInfoWindowContent(title: string, priceLabel: string) {
+  const container = document.createElement("div");
+  container.className = "min-w-[140px] space-y-1";
 
-  const cssId = "leaflet-css";
-  if (!document.getElementById(cssId)) {
-    const link = document.createElement("link");
-    link.id = cssId;
-    link.rel = "stylesheet";
-    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-    document.head.appendChild(link);
-  }
+  const titleElement = document.createElement("div");
+  titleElement.className = "text-sm font-semibold text-slate-900";
+  titleElement.textContent = title;
 
-  const scriptId = "leaflet-js";
-  const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
-  if (!existingScript) {
-    await new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.id = scriptId;
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load map library."));
-      document.body.appendChild(script);
-    });
-  } else if (!window.L) {
-    await new Promise<void>((resolve) => {
-      existingScript.addEventListener("load", () => resolve(), { once: true });
-      const wait = window.setInterval(() => {
-        if (window.L) {
-          window.clearInterval(wait);
-          resolve();
-        }
-      }, 50);
-    });
-  }
+  const priceElement = document.createElement("div");
+  priceElement.className = "text-xs text-slate-600";
+  priceElement.textContent = priceLabel;
 
-  return window.L;
+  container.append(titleElement, priceElement);
+  return container;
 }
 
 export function ListingsMap({ listings, className }: ListingsMapProps) {
   const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
-  const markersLayerRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const markerItems = useMemo(
     () =>
       listings.map((listing) => ({
@@ -115,51 +85,71 @@ export function ListingsMap({ listings, className }: ListingsMapProps) {
         return;
       }
 
-      const L = await loadLeaflet();
+      const googleMaps = await loadGoogleMapsApi();
       if (!active || !mapContainerRef.current) {
         return;
       }
 
       if (!mapRef.current) {
-        mapRef.current = L.map(mapContainerRef.current, {
-          zoomControl: true
-        }).setView([RIYADH_CENTER.latitude, RIYADH_CENTER.longitude], 10);
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "&copy; OpenStreetMap contributors"
-        }).addTo(mapRef.current);
+        mapRef.current = new googleMaps.Map(mapContainerRef.current, {
+          center: { lat: RIYADH_CENTER.latitude, lng: RIYADH_CENTER.longitude },
+          zoom: 10,
+          fullscreenControl: false,
+          mapTypeControl: false,
+          streetViewControl: false
+        });
       }
 
-      if (!markersLayerRef.current) {
-        markersLayerRef.current = L.layerGroup().addTo(mapRef.current);
-      } else {
-        markersLayerRef.current.clearLayers();
-      }
+      markersRef.current.forEach((marker) => marker.setMap(null));
+      markersRef.current = [];
 
       if (markerItems.length === 0) {
-        mapRef.current.setView([RIYADH_CENTER.latitude, RIYADH_CENTER.longitude], 10);
+        mapRef.current.setCenter({ lat: RIYADH_CENTER.latitude, lng: RIYADH_CENTER.longitude });
+        mapRef.current.setZoom(10);
         return;
       }
 
-      const bounds = L.latLngBounds([]);
-      markerItems.forEach((item) => {
-        const marker = L.marker([item.latitude, item.longitude], {
-          icon: L.divIcon({
-            className: "sanany-map-marker",
-            html: '<span class="sanany-map-marker__pulse"></span><span class="sanany-map-marker__dot"></span>',
-            iconSize: [26, 26],
-            iconAnchor: [13, 13]
-          })
-        });
+      const infoWindow = new googleMaps.InfoWindow();
+      if (markerItems.length === 1) {
+        const singleItem = markerItems[0];
+        if (!singleItem) {
+          return;
+        }
 
-        marker.bindPopup(
-          `<strong>${item.listing.title}</strong><br/>${t("marketplace.pricePerDay", { value: item.listing.price })}`
-        );
-        marker.addTo(markersLayerRef.current);
-        bounds.extend([item.latitude, item.longitude]);
+        const singlePosition = { lat: singleItem.latitude, lng: singleItem.longitude };
+        const singleMarker = new googleMaps.Marker({
+          map: mapRef.current,
+          position: singlePosition,
+          title: singleItem.listing.title
+        });
+        singleMarker.addListener("click", () => {
+          infoWindow.setContent(
+            buildInfoWindowContent(singleItem.listing.title, t("marketplace.pricePerDay", { value: singleItem.listing.price }))
+          );
+          infoWindow.open({ anchor: singleMarker, map: mapRef.current });
+        });
+        markersRef.current = [singleMarker];
+        mapRef.current.setCenter(singlePosition);
+        mapRef.current.setZoom(13);
+        return;
+      }
+
+      const bounds = new googleMaps.LatLngBounds();
+      markerItems.forEach((item) => {
+        const marker = new googleMaps.Marker({
+          map: mapRef.current,
+          position: { lat: item.latitude, lng: item.longitude },
+          title: item.listing.title
+        });
+        marker.addListener("click", () => {
+          infoWindow.setContent(buildInfoWindowContent(item.listing.title, t("marketplace.pricePerDay", { value: item.listing.price })));
+          infoWindow.open({ anchor: marker, map: mapRef.current });
+        });
+        markersRef.current.push(marker);
+        bounds.extend({ lat: item.latitude, lng: item.longitude });
       });
 
-      mapRef.current.fitBounds(bounds.pad(0.2));
+      mapRef.current.fitBounds(bounds);
     }
 
     void renderMap();

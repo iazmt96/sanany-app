@@ -45,3 +45,14 @@ export function getWebSupabaseEnv() {
     phoneOtpChannel
   };
 }
+
+export function getWebGoogleMapsApiKey() {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error(
+      "Missing required web environment variable: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY. Define it in apps/web/.env.local."
+    );
+  }
+
+  return apiKey;
+}

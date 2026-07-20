@@ -22,8 +22,9 @@ Phase 2 baseline for a production-oriented SANANY marketplace stack.
    2. Fill in real Supabase project values.
    3. For web and mobile, use `*_SUPABASE_PUBLISHABLE_KEY` as the primary key.
    4. To deliver OTP by WhatsApp, set `NEXT_PUBLIC_SUPABASE_PHONE_OTP_CHANNEL=whatsapp` and `EXPO_PUBLIC_SUPABASE_PHONE_OTP_CHANNEL=whatsapp`.
-   5. To enable commission checkout via Tap on web, set `TAP_SECRET_KEY` (server-side only) and `SANANY_SITE_URL` (public base URL for Tap return redirect).
-   6. Mobile currently prepares sale commission records, while Tap payment completion is enforced through the web dashboard flow.
+   5. To enable Google Maps, set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `apps/web/.env.local` and `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` in `apps/mobile/.env`. Enable the Maps JavaScript API, Static Maps API, and Geocoding API for that key in Google Cloud.
+   6. To enable commission checkout via Tap on web, set `TAP_SECRET_KEY` (server-side only) and `SANANY_SITE_URL` (public base URL for Tap return redirect).
+   7. Mobile currently prepares sale commission records, while Tap payment completion is enforced through the web dashboard flow.
 3. Run web:
    `npm run dev:web`
 4. Run mobile:
@@ -68,6 +69,11 @@ These enforce:
 ## Runtime validation behavior
 
 Both apps fail fast with explicit errors when required Supabase environment variables are missing.
+
+Google Maps features also fail fast when their API key is missing:
+
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` for web listing/location maps
+- `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` for mobile static previews and reverse geocoding
 
 Phone OTP channel defaults to `sms`. Supported values:
 
