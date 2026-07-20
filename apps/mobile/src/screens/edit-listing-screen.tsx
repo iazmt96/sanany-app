@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
+import { createClient } from "@supabase/supabase-js";
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListing } from "@sanany/types";
+import { createListingsRepository } from "@sanany/api";
 import {
   buildListingImageStoragePath,
   createListingImageUploadItem,
@@ -10,12 +12,14 @@ import {
   getRenderableListingImageUrls,
   LISTING_IMAGES_BUCKET,
   normalizeListingImageOrder,
+  readMetadataPhone,
   serializeListingImageUrls,
   toCreateListingImageInputs,
   type ListingImageUploadItem
 } from "@sanany/shared";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
+import { getMobileSupabaseEnv } from "../config/env";
 import { createStaticMapPreviewUrl, reverseGeocodeLocation, translateMapPressToCoordinates } from "../lib/location-map";
 import { getMobileListingsRepository } from "../lib/listings-repository";
 import { getMobileSupabaseClient } from "../lib/supabase-client";
@@ -34,6 +38,21 @@ const MAX_IMAGE_COUNT = 10;
 
 function normalizeSelectedImages(items: SelectedImage[]): SelectedImage[] {
   return normalizeListingImageOrder(items.map((item, index) => ({ ...item, isPrimary: index === 0, sortOrder: index })));
+}
+
+function resolveEditErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim().length > 0) {
+      return message;
+    }
+  }
+
+  return fallback;
 }
 
 async function uploadMobileListingImage(input: { ownerId: string; image: SelectedImage }) {
@@ -284,6 +303,25 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
     setSubmitMode(mode);
     setErrorMessage(null);
     try {
+      const ownerPhone =
+        (snapshot.user?.phone && snapshot.user.phone.trim().length > 0 ? snapshot.user.phone.trim() : null) ??
+        readMetadataPhone(snapshot.user?.user_metadata) ??
+        listing.ownerPhone ??
+        null;
+      const sessionToken = snapshot.session?.access_token;
+      const repository =
+        sessionToken && sessionToken.trim().length > 0
+          ? createListingsRepository(
+              createClient(getMobileSupabaseEnv().supabaseUrl, getMobileSupabaseEnv().supabaseAnonKey, {
+                auth: { persistSession: false, autoRefreshToken: false },
+                global: {
+                  headers: {
+                    Authorization: `Bearer ${sessionToken}`
+                  }
+                }
+              })
+            )
+          : listingsRepository;
       const uploadedImages: SelectedImage[] = [];
       for (const image of selectedImages) {
         if (image.status === "uploaded" && image.publicUrl) {
@@ -297,8 +335,9 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
               publicUrl: result.publicUrl,
               status: "uploaded"
             });
-          } catch {
-            throw new Error(t("marketplace.edit.errors.saveFailed"));
+          } catch (uploadError) {
+            console.error("[edit-listing-screen] image upload failed", uploadError);
+            throw new Error(resolveEditErrorMessage(uploadError, t("marketplace.edit.errors.saveFailed")));
           }
         }
       }
@@ -318,16 +357,17 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         locationName: locationName.trim() || undefined,
         latitude: locationLatitude ?? undefined,
         longitude: locationLongitude ?? undefined,
-        ownerPhone: listing.ownerPhone ?? undefined,
+        ownerPhone: ownerPhone ?? undefined,
         offerType: listing.offerType ?? undefined,
         categorySlug: listing.categorySlug ?? undefined,
+        attributes: listing.attributes ?? {},
         images: toCreateListingImageInputs(uploadedImages)
       };
 
       const updated =
         mode === "publish"
-          ? await listingsRepository.publishDraft(payload)
-          : await listingsRepository.saveDraft(payload);
+          ? await repository.publishDraft(payload)
+          : await repository.saveDraft(payload);
 
       hasUnsavedChangesRef.current = false;
       setShowSuccess(true);
@@ -336,7 +376,8 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         onSaved(updated);
       }, 1500);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : t("marketplace.edit.errors.saveFailed"));
+      console.error("[edit-listing-screen] submit failed", err);
+      setErrorMessage(resolveEditErrorMessage(err, t("marketplace.edit.errors.saveFailed")));
     } finally {
       setSubmitMode(null);
     }
