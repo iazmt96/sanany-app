@@ -3,7 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import { createClient } from "@supabase/supabase-js";
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { CAR_CONDITIONS, CAR_FUEL_TYPES, CAR_PRICE_MODES, type CarCondition, type CarFuelType, type CarPriceMode, type MarketplaceListing } from "@sanany/types";
+import { CAR_AD_TYPES, CAR_CONDITIONS, CAR_FUEL_TYPES, CAR_PRICE_MODES, type CarAdType, type CarCondition, type CarFuelType, type CarPriceMode, type MarketplaceListing } from "@sanany/types";
 import { createListingsRepository } from "@sanany/api";
 import {
   buildListingImageStoragePath,
@@ -103,7 +103,7 @@ function normalizeLabelToken(label: string): string {
   return label.trim().toLowerCase();
 }
 
-function isSpecLabelType(label: string, type: "condition" | "fuelType" | "priceMode" | "location"): boolean {
+function isSpecLabelType(label: string, type: "condition" | "fuelType" | "priceMode" | "location" | "adType"): boolean {
   const token = normalizeLabelToken(label);
   if (type === "condition") {
     return token.includes("حالة السيارة") || token.includes("condition");
@@ -113,6 +113,9 @@ function isSpecLabelType(label: string, type: "condition" | "fuelType" | "priceM
   }
   if (type === "priceMode") {
     return token.includes("تسعير الإعلان") || token.includes("price mode");
+  }
+  if (type === "adType") {
+    return token.includes("نوع الإعلان") || token.includes("ad type");
   }
   return token.includes("الموقع") || token.includes("location");
 }
@@ -191,7 +194,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
     [listing.attributes]
   );
   const resolveSpecValue = useCallback(
-    (type: "condition" | "fuelType" | "priceMode"): string | null => {
+    (type: "condition" | "fuelType" | "priceMode" | "adType"): string | null => {
       const row = parsedDescription.rows.find((item) => isSpecLabelType(item.label, type));
       return row?.value?.trim() || null;
     },
@@ -239,6 +242,14 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
     const parsedValue = resolveOptionValue(CAR_PRICE_MODES, "marketplace.create.carDetails.priceModeOptions", resolveSpecValue("priceMode"));
     return parsedValue ?? "fixed";
   });
+  const [carAdType, setCarAdType] = useState<CarAdType>(() => {
+    const attributeValue = listingAttributes.adType;
+    if (typeof attributeValue === "string" && CAR_AD_TYPES.includes(attributeValue as CarAdType)) {
+      return attributeValue as CarAdType;
+    }
+    const parsedValue = resolveOptionValue(CAR_AD_TYPES, "marketplace.create.carDetails.adTypeOptions", resolveSpecValue("adType"));
+    return parsedValue ?? "sell";
+  });
   const [locationName, setLocationName] = useState(listing.locationName ?? "");
   const [locationLatitude, setLocationLatitude] = useState<number | null>(listing.latitude ?? null);
   const [locationLongitude, setLocationLongitude] = useState<number | null>(listing.longitude ?? null);
@@ -272,6 +283,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
     () =>
       parsedDescription.rows.filter(
         (row) =>
+          !isSpecLabelType(row.label, "adType") &&
           !isSpecLabelType(row.label, "condition") &&
           !isSpecLabelType(row.label, "fuelType") &&
           !isSpecLabelType(row.label, "priceMode") &&
@@ -286,9 +298,10 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
     return (
       typeof listingAttributes.condition === "string" ||
       typeof listingAttributes.fuelType === "string" ||
-      typeof listingAttributes.priceMode === "string"
+      typeof listingAttributes.priceMode === "string" ||
+      typeof listingAttributes.adType === "string"
     );
-  }, [listingAttributes.condition, listingAttributes.fuelType, listingAttributes.priceMode, parsedDescription.rows.length]);
+  }, [listingAttributes.adType, listingAttributes.condition, listingAttributes.fuelType, listingAttributes.priceMode, parsedDescription.rows.length]);
 
   const pickImages = async () => {
     if (isImagePicking) {
@@ -497,6 +510,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
 
       const nextAttributes = {
         ...listingAttributes,
+        adType: carAdType,
         condition: carCondition,
         fuelType: carFuelType,
         priceMode: carPriceMode
@@ -506,6 +520,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         metadataParts.push(t("marketplace.create.carDetails.structuredTitle"));
         metadataParts.push(...specificationRows.map((row) => `- ${row.label}: ${row.value}`));
         metadataParts.push(`- ${t("marketplace.create.carDetails.locationLabel")}: ${locationName.trim() || "-"}`);
+        metadataParts.push(`- ${t("marketplace.create.carDetails.adTypeLabel")}: ${t(`marketplace.create.carDetails.adTypeOptions.${carAdType}`)}`);
         metadataParts.push(`- ${t("marketplace.create.carDetails.conditionLabel")}: ${t(`marketplace.create.carDetails.conditionOptions.${carCondition}`)}`);
         metadataParts.push(`- ${t("marketplace.create.carDetails.fuelLabel")}: ${t(`marketplace.create.carDetails.fuelOptions.${carFuelType}`)}`);
         metadataParts.push(`- ${t("marketplace.create.carDetails.priceModeLabel")}: ${t(`marketplace.create.carDetails.priceModeOptions.${carPriceMode}`)}`);
@@ -610,6 +625,23 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
             ))}
           </View>
           {!shouldShowPriceInput ? <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.edit.priceOptionalHint")}</Text> : null}
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.carDetails.adTypeLabel")}</Text>
+          <View style={[styles.optionChipWrap, isRtl ? styles.optionChipWrapRtl : undefined]}>
+            {CAR_AD_TYPES.map((adType) => (
+              <Pressable
+                key={adType}
+                style={[styles.optionChip, carAdType === adType ? styles.optionChipSelected : undefined]}
+                onPress={() => {
+                  setCarAdType(adType);
+                  markChanged();
+                }}
+              >
+                <Text style={[styles.optionChipLabel, carAdType === adType ? styles.optionChipLabelSelected : undefined]}>
+                  {t(`marketplace.create.carDetails.adTypeOptions.${adType}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
           <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.carDetails.conditionLabel")}</Text>
           <View style={[styles.optionChipWrap, isRtl ? styles.optionChipWrapRtl : undefined]}>
             {CAR_CONDITIONS.map((condition) => (
