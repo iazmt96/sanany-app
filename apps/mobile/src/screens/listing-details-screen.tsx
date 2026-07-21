@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import { useTranslation } from "react-i18next";
 import { createListingsRepository } from "@sanany/api";
-import type { MarketplaceListing } from "@sanany/types";
+import type { ListingSalePayment, MarketplaceCommissionSettings, MarketplaceListing } from "@sanany/types";
 import {
   FAVORITES_STORAGE_KEY,
   LISTING_VIEWS_STORAGE_KEY,
@@ -23,6 +23,7 @@ import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { MobileListingCard } from "../components/mobile-listing-card";
 import { MobileIcon } from "../components/mobile-icons";
+import { MyAdsSaleSheet } from "../components/my-ads-sale-sheet";
 import { getMobileSupabaseEnv } from "../config/env";
 import { setPendingChatListingIntent } from "../lib/chat-intent-store";
 import { getMobileListingsRepository } from "../lib/listings-repository";
@@ -142,6 +143,10 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const [isRefreshingListing, setIsRefreshingListing] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [similarListings, setSimilarListings] = useState<MarketplaceListing[]>([]);
+  const [isCommissionSheetOpen, setIsCommissionSheetOpen] = useState(false);
+  const [isCommissionLoading, setIsCommissionLoading] = useState(false);
+  const [commissionSettings, setCommissionSettings] = useState<MarketplaceCommissionSettings | null>(null);
+  const [commissionPayment, setCommissionPayment] = useState<ListingSalePayment | null>(null);
   const priceLabel = useMemo(() => resolveListingPriceLabel(listing, t), [listing, t]);
   const isListingOwner = canDeleteListing(snapshot.user?.id, listing.ownerId);
   const contactPermissions = canContactListingOwner({
@@ -383,6 +388,39 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
       setActionMessage(resolveDetailErrorMessage(error, t("marketplace.detail.updateFailed")));
     } finally {
       setIsRefreshingListing(false);
+    }
+  };
+
+  const openCommissionSheet = async () => {
+    if (!snapshot.user?.id) {
+      setActionMessage(t("marketplace.loadError"));
+      return;
+    }
+    if (listing.status === "sold" || isCommissionLoading) {
+      return;
+    }
+
+    setIsCommissionLoading(true);
+    setActionMessage(null);
+    try {
+      const [settingsResult, paymentsResult] = await Promise.all([
+        listingsRepository.getCommissionSettings(),
+        listingsRepository.listSalePaymentsBySeller(snapshot.user.id)
+      ]);
+      setCommissionSettings(settingsResult);
+      setCommissionPayment(paymentsResult.find((item) => item.listingId === listing.id) ?? null);
+      setIsCommissionSheetOpen(true);
+    } catch (error) {
+      setActionMessage(resolveDetailErrorMessage(error, t("marketplace.loadError")));
+    } finally {
+      setIsCommissionLoading(false);
+    }
+  };
+
+  const handleCommissionPaymentUpdated = (payment: ListingSalePayment) => {
+    setCommissionPayment(payment);
+    if (payment.paymentStatus === "paid") {
+      onOpenListing({ ...listing, status: "sold" });
     }
   };
 
@@ -649,12 +687,16 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
           <View style={styles.section}>
             <View style={styles.commissionCard}>
               <Pressable
-                style={[styles.commissionButton, listing.status === "sold" ? styles.commissionButtonDisabled : undefined]}
-                disabled={listing.status === "sold"}
-                onPress={() => onOpenCommission?.(listing)}
+                style={[styles.commissionButton, listing.status === "sold" || isCommissionLoading ? styles.commissionButtonDisabled : undefined]}
+                disabled={listing.status === "sold" || isCommissionLoading}
+                onPress={() => void openCommissionSheet()}
               >
                 <Text style={styles.commissionButtonLabel}>
-                  {listing.status === "sold" ? t("marketplace.detail.commissionTransferredAction") : t("marketplace.detail.transferCommissionAction")}
+                  {listing.status === "sold"
+                    ? t("marketplace.detail.commissionTransferredAction")
+                    : isCommissionLoading
+                      ? t("common.loading")
+                      : t("marketplace.detail.transferCommissionAction")}
                 </Text>
               </Pressable>
             </View>
@@ -681,6 +723,17 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
           </View>
         ) : null}
       </View>
+      <MyAdsSaleSheet
+        visible={isCommissionSheetOpen}
+        direction={direction}
+        language={i18n.language || "ar"}
+        listing={listing}
+        sellerId={snapshot.user?.id ?? null}
+        settings={commissionSettings}
+        payment={commissionPayment}
+        onClose={() => setIsCommissionSheetOpen(false)}
+        onPaymentUpdated={handleCommissionPaymentUpdated}
+      />
     </ScrollView>
   );
 }
