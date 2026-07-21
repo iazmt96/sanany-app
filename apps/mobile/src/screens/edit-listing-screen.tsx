@@ -36,8 +36,49 @@ type SelectedImage = ListingImageUploadItem;
 
 const MAX_IMAGE_COUNT = 10;
 
+type StructuredSpecRow = {
+  label: string;
+  value: string;
+};
+
 function normalizeSelectedImages(items: SelectedImage[]): SelectedImage[] {
   return normalizeListingImageOrder(items.map((item, index) => ({ ...item, isPrimary: index === 0, sortOrder: index })));
+}
+
+function parseStructuredSpecificationRows(description: string): StructuredSpecRow[] {
+  if (!description.trim()) {
+    return [];
+  }
+
+  const lines = description
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const structuredIndex = lines.findIndex((line) => line === "بيانات السيارة" || line === "Car data");
+  if (structuredIndex < 0) {
+    return [];
+  }
+
+  const rows: StructuredSpecRow[] = [];
+  for (const line of lines.slice(structuredIndex + 1)) {
+    if (!line.startsWith("- ")) {
+      continue;
+    }
+    const separatorIndex = line.indexOf(":");
+    if (separatorIndex < 0) {
+      continue;
+    }
+    const label = line.slice(2, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    if (!label) {
+      continue;
+    }
+    rows.push({
+      label,
+      value: value.length > 0 ? value : "-"
+    });
+  }
+  return rows;
 }
 
 function resolveEditErrorMessage(error: unknown, fallback: string): string {
@@ -140,6 +181,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
   const defaultLongitude = 46.6753;
   const defaultLocationName = t("marketplace.create.defaultLocation");
   const mapPreviewUrl = createStaticMapPreviewUrl(mapDraftLatitude, mapDraftLongitude);
+  const specificationRows = useMemo(() => parseStructuredSpecificationRows(description), [description]);
 
   const pickImages = async () => {
     if (isImagePicking) {
@@ -423,6 +465,22 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
           />
         </View>
 
+        {specificationRows.length > 0 ? (
+          <View style={styles.field}>
+            <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.detail.specificationsTitle")}</Text>
+            <View style={styles.specificationCard}>
+              {specificationRows.map((row, index) => (
+                <View key={`${row.label}-${index}`} style={[styles.specificationRow, isRtl ? styles.specificationRowRtl : undefined]}>
+                  <Text style={[styles.specificationLabel, { textAlign }]}>{row.label}</Text>
+                  <Text style={[styles.specificationValue, { textAlign }]} numberOfLines={2}>
+                    {row.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         {/* Price */}
         <View style={styles.field}>
           <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.priceLabel")}</Text>
@@ -648,6 +706,35 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: "top",
     paddingTop: 12
+  },
+  specificationCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    backgroundColor: "#f8fbfd",
+    padding: 12,
+    gap: 8
+  },
+  specificationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  specificationRowRtl: {
+    flexDirection: "row-reverse"
+  },
+  specificationLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#334155"
+  },
+  specificationValue: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#0f172a"
   },
   locationSelectorCard: {
     borderRadius: 14,
