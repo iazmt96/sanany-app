@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListing, SellerProfile } from "@sanany/types";
 import {
@@ -119,6 +119,8 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const [seller, setSeller] = useState<SellerProfile | null>(null);
   const [similarListings, setSimilarListings] = useState<MarketplaceListing[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [previewImageIndex, setPreviewImageIndex] = useState(0);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -127,6 +129,8 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMarkingAsSold, setIsMarkingAsSold] = useState(false);
+  const mediaCarouselRef = useRef<HTMLDivElement | null>(null);
+  const previewCarouselRef = useRef<HTMLDivElement | null>(null);
 
   const listingImages = useMemo(() => getRenderableListingImageUrls(listing?.imageUrl ?? null), [listing?.imageUrl]);
   const primaryImage = listingImages[selectedImageIndex] ?? listingImages[0] ?? null;
@@ -205,7 +209,37 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
 
   useEffect(() => {
     setSelectedImageIndex(0);
+    setPreviewImageIndex(0);
   }, [listing?.id]);
+
+  const updateCarouselIndex = (element: HTMLDivElement, setIndex: (value: number) => void) => {
+    if (listingImages.length <= 1) {
+      setIndex(0);
+      return;
+    }
+    const slideWidth = element.clientWidth;
+    if (slideWidth <= 0) {
+      return;
+    }
+    const nextIndex = Math.max(0, Math.min(listingImages.length - 1, Math.round(element.scrollLeft / slideWidth)));
+    setIndex(nextIndex);
+  };
+
+  const openImagePreview = () => {
+    if (listingImages.length === 0) {
+      return;
+    }
+    setPreviewImageIndex(selectedImageIndex);
+    setIsImagePreviewOpen(true);
+  };
+
+  useEffect(() => {
+    if (!isImagePreviewOpen || !previewCarouselRef.current) {
+      return;
+    }
+    const container = previewCarouselRef.current;
+    container.scrollTo({ left: previewImageIndex * container.clientWidth, behavior: "auto" });
+  }, [isImagePreviewOpen, previewImageIndex]);
 
   useEffect(() => {
     if (!listing) {
@@ -465,36 +499,39 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
               <Card className="space-y-4">
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                   {primaryImage ? (
-                    <div className="relative h-80 w-full">
-                      <Image src={primaryImage} alt={listing.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 70vw" />
+                    <button type="button" onClick={openImagePreview} className="relative block h-80 w-full cursor-zoom-in text-start">
+                      <div
+                        ref={mediaCarouselRef}
+                        className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                        onScroll={(event) => updateCarouselIndex(event.currentTarget, setSelectedImageIndex)}
+                      >
+                        {listingImages.map((url, index) => (
+                          <div key={`${listing.id}-image-${index}`} className="relative h-full w-full shrink-0 snap-center">
+                            <Image src={url} alt={listing.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 70vw" />
+                          </div>
+                        ))}
+                      </div>
                       <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-2">
                         <span className="inline-flex items-center rounded-full bg-slate-900/60 px-2.5 py-1 text-xs font-semibold text-white">
                           {t("marketplace.detail.imagesCount", { count: Math.max(listingImages.length, 1) })}
                         </span>
                         <Badge variant={listing.status}>{t(`marketplace.status.${listing.status}`)}</Badge>
                       </div>
-                    </div>
+                      {listingImages.length > 1 ? (
+                        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-center justify-center gap-2">
+                          {listingImages.map((_, index) => (
+                            <span
+                              key={`${listing.id}-dot-${index}`}
+                              className={`rounded-full transition-all ${selectedImageIndex === index ? "h-1.5 w-5 bg-white" : "h-1.5 w-1.5 bg-white/55"}`}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </button>
                   ) : (
                     <div className="flex h-80 items-center justify-center text-sm text-slate-500">{t("marketplace.detail.noImage")}</div>
                   )}
                 </div>
-                {listingImages.length > 1 ? (
-                  <div className="grid grid-cols-5 gap-2 sm:grid-cols-7">
-                    {listingImages.map((url, index) => (
-                      <button
-                        key={`${listing.id}-image-${index}`}
-                        type="button"
-                        onClick={() => setSelectedImageIndex(index)}
-                        className={`relative overflow-hidden rounded-lg border ${
-                          selectedImageIndex === index ? "border-brand" : "border-slate-200"
-                        }`}
-                      >
-                        <span className="sr-only">{t("marketplace.detail.imageThumb", { index: index + 1 })}</span>
-                        <Image src={url} alt="" width={88} height={72} className="h-16 w-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
               </Card>
 
               <Card className="space-y-3">
@@ -751,6 +788,38 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
           </div>
         ) : null}
       </main>
+      {isImagePreviewOpen && listingImages.length > 0 ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 p-4">
+          <button
+            type="button"
+            onClick={() => setIsImagePreviewOpen(false)}
+            className="absolute right-4 top-4 z-10 rounded-full bg-slate-900/70 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-900"
+          >
+            {t("common.close")}
+          </button>
+          <div
+            ref={previewCarouselRef}
+            className="flex h-full max-h-[88vh] w-full max-w-5xl snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onScroll={(event) => updateCarouselIndex(event.currentTarget, setPreviewImageIndex)}
+          >
+            {listingImages.map((url, index) => (
+              <div key={`${listing?.id ?? listingId}-preview-${index}`} className="relative h-full w-full shrink-0 snap-center">
+                <Image src={url} alt={listing?.title ?? ""} fill className="object-contain" sizes="100vw" />
+              </div>
+            ))}
+          </div>
+          {listingImages.length > 1 ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-8 flex items-center justify-center gap-2">
+              {listingImages.map((_, index) => (
+                <span
+                  key={`${listing?.id ?? listingId}-preview-dot-${index}`}
+                  className={`rounded-full transition-all ${previewImageIndex === index ? "h-2 w-6 bg-white" : "h-2 w-2 bg-slate-300/70"}`}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </RequireAuth>
   );
 }
