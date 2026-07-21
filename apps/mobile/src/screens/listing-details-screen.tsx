@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import { useTranslation } from "react-i18next";
 import { createListingsRepository } from "@sanany/api";
-import { CAR_PRICE_MODES, type CarPriceMode, type MarketplaceListing } from "@sanany/types";
+import type { MarketplaceListing } from "@sanany/types";
 import {
   FAVORITES_STORAGE_KEY,
   LISTING_VIEWS_STORAGE_KEY,
@@ -26,6 +26,7 @@ import { MobileIcon } from "../components/mobile-icons";
 import { getMobileSupabaseEnv } from "../config/env";
 import { setPendingChatListingIntent } from "../lib/chat-intent-store";
 import { getMobileListingsRepository } from "../lib/listings-repository";
+import { resolveListingPriceLabel } from "../lib/listing-price-label";
 
 const CHAT_OPEN_INTENT_STORAGE_KEY = "sanany:chat-open-intent";
 const CHAT_OPEN_THREAD_STORAGE_KEY = "sanany:chat-open-thread-id";
@@ -140,27 +141,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const [isRefreshingListing, setIsRefreshingListing] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [similarListings, setSimilarListings] = useState<MarketplaceListing[]>([]);
-  const attributePriceMode = useMemo<CarPriceMode | null>(() => {
-    const value = listing.attributes?.priceMode;
-    if (typeof value === "string" && CAR_PRICE_MODES.includes(value as CarPriceMode)) {
-      return value as CarPriceMode;
-    }
-    return null;
-  }, [listing.attributes]);
-  const priceModeSpec = parsedCarSpecs.specs.find((item) => {
-    const label = item.label.toLowerCase();
-    return label.includes("تسعير") || label.includes("price mode");
-  });
-  const isNonFixedPricing =
-    attributePriceMode !== null
-      ? attributePriceMode !== "fixed"
-      : priceModeSpec !== undefined && !priceModeSpec.value.toLowerCase().includes("fixed") && !priceModeSpec.value.includes("سعر محدد");
-  const priceLabel =
-    isNonFixedPricing
-      ? attributePriceMode
-        ? t(`marketplace.create.carDetails.priceModeOptions.${attributePriceMode}`)
-        : priceModeSpec?.value ?? t("marketplace.pricePerDay", { value: listing.price })
-      : t("marketplace.pricePerDay", { value: listing.price });
+  const priceLabel = useMemo(() => resolveListingPriceLabel(listing, t), [listing, t]);
   const isListingOwner = canDeleteListing(snapshot.user?.id, listing.ownerId);
   const contactPermissions = canContactListingOwner({
     viewerId: snapshot.user?.id,
@@ -600,7 +581,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
                   <MobileListingCard
                     direction={direction}
                     listing={item}
-                    priceLabel={t("marketplace.pricePerDay", { value: item.price })}
+                    priceLabel={resolveListingPriceLabel(item, t)}
                     statusLabel={t(`marketplace.status.${item.status}`)}
                     locationFallback={t("marketplace.detail.approximateLocation")}
                   />

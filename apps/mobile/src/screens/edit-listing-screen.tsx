@@ -607,24 +607,6 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         {hasEditableSpecsContext ? (
           <View style={styles.field}>
           <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.specificationsEditableTitle")}</Text>
-          <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.edit.pricingModeHint")}</Text>
-          <View style={[styles.optionChipWrap, isRtl ? styles.optionChipWrapRtl : undefined]}>
-            {CAR_PRICE_MODES.map((mode) => (
-              <Pressable
-                key={mode}
-                style={[styles.optionChip, carPriceMode === mode ? styles.optionChipSelected : undefined]}
-                onPress={() => {
-                  setCarPriceMode(mode);
-                  markChanged();
-                }}
-              >
-                <Text style={[styles.optionChipLabel, carPriceMode === mode ? styles.optionChipLabelSelected : undefined]}>
-                  {t(`marketplace.create.carDetails.priceModeOptions.${mode}`)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {!shouldShowPriceInput ? <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.edit.priceOptionalHint")}</Text> : null}
           <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.carDetails.adTypeLabel")}</Text>
           <View style={[styles.optionChipWrap, isRtl ? styles.optionChipWrapRtl : undefined]}>
             {CAR_AD_TYPES.map((adType) => (
@@ -676,6 +658,25 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
               </Pressable>
             ))}
           </View>
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.carDetails.priceModeLabel")}</Text>
+          <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.edit.pricingModeHint")}</Text>
+          <View style={[styles.optionChipWrap, isRtl ? styles.optionChipWrapRtl : undefined]}>
+            {CAR_PRICE_MODES.map((mode) => (
+              <Pressable
+                key={mode}
+                style={[styles.optionChip, carPriceMode === mode ? styles.optionChipSelected : undefined]}
+                onPress={() => {
+                  setCarPriceMode(mode);
+                  markChanged();
+                }}
+              >
+                <Text style={[styles.optionChipLabel, carPriceMode === mode ? styles.optionChipLabelSelected : undefined]}>
+                  {t(`marketplace.create.carDetails.priceModeOptions.${mode}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {!shouldShowPriceInput ? <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.edit.priceOptionalHint")}</Text> : null}
           </View>
         ) : null}
 

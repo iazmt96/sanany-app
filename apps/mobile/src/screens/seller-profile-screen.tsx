@@ -16,6 +16,7 @@ import { MobileIcon } from "../components/mobile-icons";
 import { MobileListingCard } from "../components/mobile-listing-card";
 import { MobileSectionHeader } from "../components/mobile-section-header";
 import { getMobileSellersRepository } from "../lib/sellers-repository";
+import { resolveListingPriceLabel } from "../lib/listing-price-label";
 
 type SellerProfileScreenProps = {
   direction: Direction;
@@ -323,7 +324,7 @@ export function SellerProfileScreen({ direction, sellerId, onBack, onOpenListing
                       <MobileListingCard
                         direction={direction}
                         listing={item}
-                        priceLabel={t("marketplace.pricePerDay", { value: item.price })}
+                        priceLabel={resolveListingPriceLabel(item, t)}
                         statusLabel={t(`marketplace.status.${item.status}`)}
                         locationFallback={t("marketplace.detail.approximateLocation")}
                       />

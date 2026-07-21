@@ -5,6 +5,7 @@ import { getPrimaryListingImageUrl, parseListingImageUrls } from "@sanany/shared
 import type { MarketplaceListing, SellerProfile } from "@sanany/types";
 import { type Direction } from "@sanany/utils";
 import { MobileIcon } from "./mobile-icons";
+import { resolveListingPriceLabel } from "../lib/listing-price-label";
 
 type MobileListingTileProps = {
   direction: Direction;
@@ -59,6 +60,7 @@ export function MobileListingTile({
     const diffDays = Math.round(diffHours / 24);
     return formatter.format(diffDays, "day");
   }, [activityAt, i18n.language]);
+  const priceLabel = useMemo(() => resolveListingPriceLabel(listing, t), [listing, t]);
 
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={listing.title} style={[styles.card, { width }]} onPress={onPress}>
@@ -106,7 +108,7 @@ export function MobileListingTile({
 
       <View style={styles.content}>
         <Text style={[styles.price, { textAlign: isRtl ? "right" : "left" }]} numberOfLines={1}>
-          {t("marketplace.pricePerDay", { value: listing.price })}
+          {priceLabel}
         </Text>
         <Text style={[styles.title, { textAlign: isRtl ? "right" : "left" }]} numberOfLines={2}>
           {listing.title}
