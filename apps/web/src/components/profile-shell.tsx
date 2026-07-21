@@ -13,6 +13,7 @@ import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { RequireAuth } from "../auth/guards";
 import { getWebListingsRepository } from "../lib/listings-repository";
+import { resolveListingPriceLabel } from "../lib/listing-price-label";
 import { getWebSellersRepository } from "../lib/sellers-repository";
 
 type ProfileShellProps = {
@@ -386,7 +387,7 @@ export function ProfileShell({ language, tab = null, tapPaymentReturn = null }: 
                             </span>
                           </Link>
                           <div className="space-y-3 p-3.5 sm:p-4">
-                            <p className="text-lg font-extrabold text-slate-900">{t("marketplace.pricePerDay", { value: listing.price })}</p>
+                            <p className="text-lg font-extrabold text-slate-900">{resolveListingPriceLabel(listing, t)}</p>
                             <h3 className="line-clamp-2 text-sm font-semibold text-slate-900">{listing.title}</h3>
                             <div className="space-y-1 text-xs text-slate-500">
                               <p>{listing.locationName ?? t("marketplace.detail.approximateLocation")}</p>

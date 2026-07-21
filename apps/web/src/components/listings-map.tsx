@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { MarketplaceListing } from "@sanany/types";
+import { resolveListingPriceLabel } from "../lib/listing-price-label";
 
 type ListingsMapProps = {
   listings: MarketplaceListing[];
@@ -153,7 +154,7 @@ export function ListingsMap({ listings, className }: ListingsMapProps) {
         });
 
         marker.bindPopup(
-          `<strong>${item.listing.title}</strong><br/>${t("marketplace.pricePerDay", { value: item.listing.price })}`
+          `<strong>${item.listing.title}</strong><br/>${resolveListingPriceLabel(item.listing, t)}`
         );
         marker.addTo(markersLayerRef.current);
         bounds.extend([item.latitude, item.longitude]);

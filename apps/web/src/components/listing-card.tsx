@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import type { MarketplaceListing, SellerProfile } from "@sanany/types";
 import { FAVORITES_STORAGE_KEY, formatRelativeTime, getPrimaryListingImageUrl, hasStoredId, toggleStoredId } from "@sanany/shared";
 import { Badge, Card } from "@sanany/ui";
+import { resolveListingPriceLabel } from "../lib/listing-price-label";
 
 type ListingCardProps = {
   listing: MarketplaceListing;
@@ -30,6 +31,7 @@ export function ListingCard({ listing, language, sellerProfile = null, insightLa
   const listingHref = `/${language}/listing/${listing.id}`;
   const locationLabel = listing.locationName ?? t("marketplace.detail.approximateLocation");
   const postedAtLabel = t("marketplace.postedAt", { value: formatRelativeTime(listing.createdAt, language) });
+  const priceLabel = useMemo(() => resolveListingPriceLabel(listing, t), [listing, t]);
   const trustLabel = useMemo(() => {
     if (!sellerProfile) {
       return null;
@@ -127,7 +129,7 @@ export function ListingCard({ listing, language, sellerProfile = null, insightLa
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-lg font-extrabold tracking-tight text-slate-900">{t("marketplace.pricePerDay", { value: listing.price })}</p>
+              <p className="text-lg font-extrabold tracking-tight text-slate-900">{priceLabel}</p>
               {listing.status === "sold" ? (
                 <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
                   {t("marketplace.status.sold")}

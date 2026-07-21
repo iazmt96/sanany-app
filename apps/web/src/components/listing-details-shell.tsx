@@ -22,6 +22,7 @@ import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { RequireAuth } from "../auth/guards";
 import { getWebListingsRepository } from "../lib/listings-repository";
+import { resolveListingPriceLabel } from "../lib/listing-price-label";
 import { getWebSellersRepository } from "../lib/sellers-repository";
 import { ListingCard } from "./listing-card";
 
@@ -161,6 +162,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const availabilityState = listing ? deriveAvailabilityState(listing, snapshot.user?.id) : "active";
   const specificationRows = useMemo(() => parseListingSpecifications(listing?.description ?? null), [listing?.description]);
   const descriptionBody = useMemo(() => getDescriptionBody(listing?.description ?? null), [listing?.description]);
+  const listingPriceLabel = useMemo(() => (listing ? resolveListingPriceLabel(listing, t) : null), [listing, t]);
   const advertiserPhone = listing?.ownerPhone?.trim() ?? "";
   const isOwner = Boolean(listing?.ownerId && listing.ownerId === snapshot.user?.id);
   const mapLatitude = listing?.latitude ?? 24.7136;
@@ -665,7 +667,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
               <Card className="sticky top-24 space-y-4">
                 <div className="rounded-lg bg-slate-50 p-3">
                   <div className="flex flex-wrap items-center gap-2 text-lg font-bold text-slate-900">
-                    <span>{t("marketplace.pricePerDay", { value: listing.price })}</span>
+                    <span>{listingPriceLabel}</span>
                     {listing.status === "sold" ? (
                       <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                         {t("marketplace.status.sold")}
