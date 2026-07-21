@@ -22,7 +22,6 @@ export * from "./social-rules.ts";
 export * from "./messaging-rules.ts";
 export * from "./admin-rbac.ts";
 export * from "./listing-attributes.ts";
-export * from "./google-maps.ts";
 
 export const resources = {
   ar: { translation: ar },

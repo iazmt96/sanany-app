@@ -54,7 +54,6 @@ import { useAuth } from "../auth/auth-context";
 import { getMobileSupabaseEnv } from "../config/env";
 import { getMobileCategoriesRepository } from "../lib/categories-repository";
 import { getMobileListingsRepository } from "../lib/listings-repository";
-import { createStaticMapPreviewUrl } from "../lib/location-map";
 import { getMobileSupabaseClient } from "../lib/supabase-client";
 import { MobileIcon } from "../components/mobile-icons";
 
@@ -711,7 +710,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
   const mapPreviewLongitude = Number(mapDraftLongitude);
   const mapImageLatitude = Number.isFinite(mapPreviewLatitude) ? mapPreviewLatitude : defaultLatitude;
   const mapImageLongitude = Number.isFinite(mapPreviewLongitude) ? mapPreviewLongitude : defaultLongitude;
-  const mapPreviewUrl = createStaticMapPreviewUrl(mapImageLatitude, mapImageLongitude);
+  const mapPreviewUrl = `https://static-maps.yandex.ru/1.x/?ll=${mapImageLongitude},${mapImageLatitude}&z=13&l=map&size=900,420&pt=${mapImageLongitude},${mapImageLatitude},pm2rdm`;
   const fieldLanguage = direction === "rtl" ? "ar" : "en";
   const selectedImagesCount = selectedImages.length;
   const canAddMoreImages = selectedImagesCount < MAX_IMAGE_COUNT;

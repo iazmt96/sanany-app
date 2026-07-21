@@ -1,6 +1,3 @@
-import { createGoogleMapsStaticPreviewUrl } from "@sanany/shared";
-import { getMobileGoogleMapsApiKey } from "../config/env";
-
 const WORLD_TILE_SIZE = 256;
 const DEFAULT_MAP_ZOOM = 13;
 const MAX_LATITUDE = 85.05112878;
@@ -43,45 +40,31 @@ function worldYToLatitude(worldY: number, zoom: number) {
   return clampLatitude((latitudeRadians * 180) / Math.PI);
 }
 
-type GoogleGeocodeComponent = {
-  long_name?: string;
-  types?: string[];
-};
-
-type GoogleGeocodeResult = {
-  address_components?: GoogleGeocodeComponent[];
-  formatted_address?: string;
-};
-
-function pickAddressComponent(result: GoogleGeocodeResult, preferredTypes: string[]) {
-  for (const preferredType of preferredTypes) {
-    const match = result.address_components?.find((component) => component.types?.includes(preferredType));
-    if (typeof match?.long_name === "string" && match.long_name.trim().length > 0) {
-      return match.long_name.trim();
+function pickAddressPart(address: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = address[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
     }
   }
   return "";
 }
 
 function formatReverseGeocodeLabel(payload: unknown) {
-  if (!payload || typeof payload !== "object" || !Array.isArray((payload as { results?: unknown[] }).results)) {
+  if (!payload || typeof payload !== "object") {
     return "";
   }
-
-  const firstResult = ((payload as { results: unknown[] }).results[0] ?? null) as GoogleGeocodeResult | null;
-  if (!firstResult) {
-    return "";
-  }
-
-  const primary = pickAddressComponent(firstResult, ["neighborhood", "sublocality_level_1", "route", "administrative_area_level_2", "locality"]);
-  const secondary = pickAddressComponent(firstResult, ["locality", "administrative_area_level_1", "country"]);
+  const address = (payload as { address?: Record<string, unknown> }).address ?? {};
+  const primary = pickAddressPart(address, ["neighbourhood", "suburb", "city_district", "road", "town", "village"]);
+  const secondary = pickAddressPart(address, ["city", "state"]);
   const parts = [primary, secondary].filter((value, index, array) => value.length > 0 && array.indexOf(value) === index);
   if (parts.length > 0) {
     return parts.join("، ");
   }
 
-  if (typeof firstResult.formatted_address === "string" && firstResult.formatted_address.trim().length > 0) {
-    return firstResult.formatted_address
+  const displayName = (payload as { display_name?: unknown }).display_name;
+  if (typeof displayName === "string" && displayName.trim().length > 0) {
+    return displayName
       .split(",")
       .map((part) => part.trim())
       .filter(Boolean)
@@ -93,12 +76,7 @@ function formatReverseGeocodeLabel(payload: unknown) {
 }
 
 export function createStaticMapPreviewUrl(latitude: number, longitude: number) {
-  return createGoogleMapsStaticPreviewUrl({
-    apiKey: getMobileGoogleMapsApiKey(),
-    latitude,
-    longitude,
-    zoom: DEFAULT_MAP_ZOOM
-  });
+  return `https://static-maps.yandex.ru/1.x/?ll=${longitude},${latitude}&z=${DEFAULT_MAP_ZOOM}&l=map&size=900,420&pt=${longitude},${latitude},pm2rdm`;
 }
 
 export function translateMapPressToCoordinates(input: {
@@ -123,22 +101,12 @@ export function translateMapPressToCoordinates(input: {
 }
 
 export async function reverseGeocodeLocation(input: { language: string; latitude: number; longitude: number }) {
-  const params = new URLSearchParams({
-    latlng: `${input.latitude},${input.longitude}`,
-    language: input.language,
-    region: "SA",
-    key: getMobileGoogleMapsApiKey()
-  });
   const response = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${input.latitude}&lon=${input.longitude}&zoom=16&accept-language=${encodeURIComponent(input.language)}`
   );
   if (!response.ok) {
     throw new Error(`Reverse geocoding failed with status ${response.status}`);
   }
   const payload = (await response.json()) as unknown;
-  const status = (payload as { status?: unknown }).status;
-  if (status !== "OK" && status !== "ZERO_RESULTS") {
-    throw new Error(`Google reverse geocoding failed with status ${String(status ?? "UNKNOWN")}`);
-  }
   return formatReverseGeocodeLabel(payload);
 }

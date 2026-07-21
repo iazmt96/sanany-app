@@ -11,7 +11,6 @@ import {
   LISTING_VIEWS_STORAGE_KEY,
   REPORTED_LISTINGS_STORAGE_KEY,
   canContactListingOwner,
-  createGoogleMapsSearchUrl,
   formatRelativeTime,
   getRenderableListingImageUrls,
   hasStoredId,
@@ -22,7 +21,6 @@ import { Badge, Card } from "@sanany/ui";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { RequireAuth } from "../auth/guards";
-import { createWebStaticMapPreviewUrl } from "../lib/google-maps";
 import { getWebListingsRepository } from "../lib/listings-repository";
 import { getWebSellersRepository } from "../lib/sellers-repository";
 import { ListingCard } from "./listing-card";
@@ -167,7 +165,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const isOwner = Boolean(listing?.ownerId && listing.ownerId === snapshot.user?.id);
   const mapLatitude = listing?.latitude ?? 24.7136;
   const mapLongitude = listing?.longitude ?? 46.6753;
-  const mapPreviewUrl = createWebStaticMapPreviewUrl(mapLatitude, mapLongitude);
+  const mapPreviewUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${mapLatitude},${mapLongitude}&zoom=13&size=900x420&markers=${mapLatitude},${mapLongitude},red-pushpin`;
   const contactPermissions = canContactListingOwner({
     viewerId: snapshot.user?.id,
     ownerId: listing?.ownerId,
@@ -624,11 +622,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                   <p className="text-xs text-slate-500">{t("marketplace.detail.locationPrivacyHint")}</p>
                   {listing.locationName ? (
                     <a
-                      href={createGoogleMapsSearchUrl({
-                        latitude: mapLatitude,
-                        longitude: mapLongitude,
-                        query: listing.locationName
-                      })}
+                      href={`https://www.google.com/maps?q=${encodeURIComponent(listing.locationName)}`}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex text-sm font-semibold text-brand hover:underline"
@@ -637,11 +631,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                     </a>
                   ) : null}
                   <a
-                    href={createGoogleMapsSearchUrl({
-                      latitude: mapLatitude,
-                      longitude: mapLongitude,
-                      query: listing.locationName
-                    })}
+                    href={`https://www.google.com/maps?q=${encodeURIComponent(listing.locationName ?? `${mapLatitude},${mapLongitude}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="group relative block overflow-hidden rounded-xl border border-slate-200"
