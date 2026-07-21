@@ -42,10 +42,6 @@ type ListingDetailsScreenProps = {
   onOpenCommission?(listing: MarketplaceListing): void;
 };
 
-function getPrimaryImage(imageUrl: string | null): string | null {
-  return getPrimaryListingImageUrl(imageUrl);
-}
-
 type CarSpecEntry = {
   label: string;
   value: string;
@@ -123,16 +119,17 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const isRtl = direction === "rtl";
   const locale = (i18n.language || "ar").startsWith("ar") ? "ar" : "en";
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
-  const imageUrl = getPrimaryImage(listing.imageUrl);
+  const listingImages = useMemo(() => {
+    return getRenderableListingImageUrls(listing.imageUrl);
+  }, [listing.imageUrl]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const imageUrl = listingImages[activeImageIndex] ?? getPrimaryListingImageUrl(listing.imageUrl);
   const updatedAt = formatRelativeTime(listing.updatedAt ?? listing.createdAt, locale);
   const latitude = listing.latitude ?? 24.7136;
   const longitude = listing.longitude ?? 46.6753;
   const mapPreviewUrl = `https://static-maps.yandex.ru/1.x/?ll=${longitude},${latitude}&z=13&l=map&size=900,420&pt=${longitude},${latitude},pm2rdm`;
   const advertiserPhone = listing.ownerPhone?.trim() ?? "";
   const advertiserName = t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() });
-  const listingImages = useMemo(() => {
-    return getRenderableListingImageUrls(listing.imageUrl);
-  }, [listing.imageUrl]);
   const parsedCarSpecs = useMemo(() => parseCarSpecs(listing.description), [listing.description]);
   const [viewCount, setViewCount] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -150,6 +147,10 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   });
   const canShowChatAction = contactPermissions.canChat;
   const canShowCallAction = contactPermissions.canCall;
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [listing.id, listing.imageUrl]);
 
   useEffect(() => {
     const bootstrapListingState = async () => {
@@ -400,6 +401,23 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
           </View>
         </View>
       </View>
+      {listingImages.length > 1 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.thumbnailRow, isRtl ? styles.thumbnailRowRtl : undefined]}
+        >
+          {listingImages.map((item, index) => (
+            <Pressable
+              key={`${listing.id}-thumb-${item}-${index}`}
+              style={[styles.thumbnailButton, activeImageIndex === index ? styles.thumbnailButtonActive : undefined]}
+              onPress={() => setActiveImageIndex(index)}
+            >
+              <Image source={{ uri: item }} style={styles.thumbnailImage} resizeMode="cover" />
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
 
       <View style={[styles.actionsRow, isRtl ? styles.actionsRowRtl : undefined]}>
         {isListingOwner ? (
@@ -664,6 +682,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#ffffff"
+  },
+  thumbnailRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 2
+  },
+  thumbnailRowRtl: {
+    flexDirection: "row-reverse"
+  },
+  thumbnailButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#dbe4ee",
+    backgroundColor: "#ffffff"
+  },
+  thumbnailButtonActive: {
+    borderColor: "#0f766e",
+    borderWidth: 2
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%"
   },
   actionsRow: {
     flexDirection: "row",

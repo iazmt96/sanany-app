@@ -257,6 +257,13 @@ function buildListingCreatePayload(input: CreateListingInput, status: Marketplac
   };
 }
 
+function buildListingUpdatePayload(input: CreateListingInput, status: MarketplaceListing["status"]) {
+  return {
+    ...buildListingCreatePayload(input, status),
+    updated_at: new Date().toISOString()
+  };
+}
+
 function buildListingLegacyCreatePayload(input: CreateListingInput, status: MarketplaceListing["status"]) {
   return {
     title: input.title.trim(),
@@ -266,6 +273,10 @@ function buildListingLegacyCreatePayload(input: CreateListingInput, status: Mark
     image_url: input.imageUrl ?? null,
     owner_id: input.ownerId
   };
+}
+
+function buildListingLegacyUpdatePayload(input: CreateListingInput, status: MarketplaceListing["status"]) {
+  return buildListingLegacyCreatePayload(input, status);
 }
 
 async function createListingRow(client: SupabaseClient, input: CreateListingInput, status: MarketplaceListing["status"]) {
@@ -442,7 +453,7 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
       if (input.id) {
         let updateResult = await client
           .from("listings")
-          .update(buildListingCreatePayload(input, desiredStatus))
+          .update(buildListingUpdatePayload(input, desiredStatus))
           .eq("id", input.id)
           .eq("owner_id", input.ownerId)
           .select(LISTING_SELECT_WITH_OWNER_PHONE)
@@ -451,7 +462,7 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
         if (updateResult.error && isMissingListingsColumnError(updateResult.error)) {
           updateResult = await client
             .from("listings")
-            .update(buildListingLegacyCreatePayload(input, desiredStatus))
+            .update(buildListingLegacyUpdatePayload(input, desiredStatus))
             .eq("id", input.id)
             .eq("owner_id", input.ownerId)
             .select(LISTING_SELECT_LEGACY)
@@ -480,7 +491,7 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
       if (input.id) {
         let updateResult = await client
           .from("listings")
-          .update(buildListingCreatePayload(input, desiredStatus))
+          .update(buildListingUpdatePayload(input, desiredStatus))
           .eq("id", input.id)
           .eq("owner_id", input.ownerId)
           .select(LISTING_SELECT_WITH_OWNER_PHONE)
@@ -489,7 +500,7 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
         if (updateResult.error && isMissingListingsColumnError(updateResult.error)) {
           updateResult = await client
             .from("listings")
-            .update(buildListingLegacyCreatePayload(input, desiredStatus))
+            .update(buildListingLegacyUpdatePayload(input, desiredStatus))
             .eq("id", input.id)
             .eq("owner_id", input.ownerId)
             .select(LISTING_SELECT_LEGACY)
