@@ -70,12 +70,12 @@ function parseStructuredSpecificationRows(description: string): StructuredSpecRo
     }
     const label = line.slice(2, separatorIndex).trim();
     const value = line.slice(separatorIndex + 1).trim();
-    if (!label) {
+    if (!label || !value || value === "-") {
       continue;
     }
     rows.push({
       label,
-      value: value.length > 0 ? value : "-"
+      value
     });
   }
   return rows;
@@ -469,14 +469,18 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
           <View style={styles.field}>
             <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.detail.specificationsTitle")}</Text>
             <View style={styles.specificationCard}>
-              {specificationRows.map((row, index) => (
-                <View key={`${row.label}-${index}`} style={[styles.specificationRow, isRtl ? styles.specificationRowRtl : undefined]}>
-                  <Text style={[styles.specificationLabel, { textAlign }]}>{row.label}</Text>
-                  <Text style={[styles.specificationValue, { textAlign }]} numberOfLines={2}>
-                    {row.value}
-                  </Text>
-                </View>
-              ))}
+              <View style={[styles.specificationGrid, isRtl ? styles.specificationGridRtl : undefined]}>
+                {specificationRows.map((row, index) => (
+                  <View key={`${row.label}-${index}`} style={styles.specificationItem}>
+                    <Text style={[styles.specificationLabel, { textAlign }]} numberOfLines={1}>
+                      {row.label}
+                    </Text>
+                    <Text style={[styles.specificationValue, { textAlign }]} numberOfLines={2}>
+                      {row.value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
         ) : null}
@@ -708,32 +712,41 @@ const styles = StyleSheet.create({
     paddingTop: 12
   },
   specificationCard: {
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: "#dbe4ee",
-    backgroundColor: "#f8fbfd",
+    backgroundColor: "#f8fafc",
     padding: 12,
-    gap: 8
+    gap: 10
   },
-  specificationRow: {
+  specificationGrid: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
     gap: 8
   },
-  specificationRowRtl: {
+  specificationGridRtl: {
     flexDirection: "row-reverse"
   },
+  specificationItem: {
+    flexBasis: "48.5%",
+    flexGrow: 1,
+    minWidth: 140,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    gap: 4
+  },
   specificationLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#334155"
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#64748b"
   },
   specificationValue: {
-    flex: 1,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "700",
     color: "#0f172a"
   },
   locationSelectorCard: {
