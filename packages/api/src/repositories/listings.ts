@@ -146,6 +146,22 @@ function isMissingListingsColumnError(error: unknown): boolean {
   return isPostgresMissingColumn || isPostgrestSchemaCacheMissingColumn;
 }
 
+function isMissingListingImagesTableError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const payload = error as { code?: string; message?: string };
+  const message = typeof payload.message === "string" ? payload.message : "";
+  const normalizedMessage = message.toLowerCase();
+  const isPostgrestMissingTable =
+    payload.code === "PGRST205" &&
+    normalizedMessage.includes("public.listing_images") &&
+    normalizedMessage.includes("schema cache");
+  const isPostgresMissingTable = payload.code === "42P01" && normalizedMessage.includes("listing_images");
+  return isPostgrestMissingTable || isPostgresMissingTable;
+}
+
 function mapRow(row: ListingRow): MarketplaceListing {
   return {
     id: row.id,
@@ -298,6 +314,9 @@ async function syncListingImagesForListing(client: SupabaseClient, input: {
     .eq("listing_id", input.listingId)
     .eq("user_id", input.ownerId);
   if (existingImagesResult.error) {
+    if (isMissingListingImagesTableError(existingImagesResult.error)) {
+      return;
+    }
     throw existingImagesResult.error;
   }
 
@@ -307,6 +326,9 @@ async function syncListingImagesForListing(client: SupabaseClient, input: {
 
   const deleteRowsResult = await client.from("listing_images").delete().eq("listing_id", input.listingId).eq("user_id", input.ownerId);
   if (deleteRowsResult.error) {
+    if (isMissingListingImagesTableError(deleteRowsResult.error)) {
+      return;
+    }
     throw deleteRowsResult.error;
   }
 
@@ -324,6 +346,9 @@ async function syncListingImagesForListing(client: SupabaseClient, input: {
     }));
     const insertImagesResult = await client.from("listing_images").insert(listingImageRows);
     if (insertImagesResult.error) {
+      if (isMissingListingImagesTableError(insertImagesResult.error)) {
+        return;
+      }
       throw insertImagesResult.error;
     }
   }
