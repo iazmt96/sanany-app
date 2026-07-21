@@ -565,12 +565,6 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
         {isListingOwner ? (
           <View style={styles.section}>
             <View style={styles.commissionCard}>
-              <View style={styles.commissionHeader}>
-                <Text style={[styles.sectionTitle, { textAlign: isRtl ? "right" : "left" }]}>{t("marketplace.detail.commissionTitle")}</Text>
-                <Text style={[styles.commissionCaption, { textAlign: isRtl ? "right" : "left" }]}>
-                  {listing.status === "sold" ? t("marketplace.detail.commissionTransferredHint") : t("marketplace.detail.transferCommissionHint")}
-                </Text>
-              </View>
               <Pressable
                 style={[styles.commissionButton, listing.status === "sold" ? styles.commissionButtonDisabled : undefined]}
                 disabled={listing.status === "sold"}
@@ -580,11 +574,6 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
                   {listing.status === "sold" ? t("marketplace.detail.commissionTransferredAction") : t("marketplace.detail.transferCommissionAction")}
                 </Text>
               </Pressable>
-              <View style={styles.commissionNote}>
-                <Text style={[styles.commissionHint, { textAlign: isRtl ? "right" : "left" }]}>
-                  {listing.status === "sold" ? t("marketplace.detail.commissionTransferredHint") : t("marketplace.detail.transferCommissionHint")}
-                </Text>
-              </View>
             </View>
           </View>
         ) : null}
