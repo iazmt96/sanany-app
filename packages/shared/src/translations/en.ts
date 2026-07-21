@@ -776,6 +776,10 @@
       saving: "Saving...",
       resolvingLocation: "Updating location name...",
       success: "Advertisement updated successfully",
+      specificationsEditableTitle: "Editable specifications",
+      specificationsReadonlyTitle: "Additional specifications",
+      pricingModeHint: "Pricing mode controls the price behavior. When set to bid/by work, a fixed numeric price is not required.",
+      priceOptionalHint: "Price field is hidden because the selected pricing mode is not fixed.",
       errors: {
         authRequired: "You must be signed in to edit a listing.",
         titleRequired: "Advertisement title is required.",

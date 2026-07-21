@@ -775,6 +775,10 @@
       saving: "جاري الحفظ...",
       resolvingLocation: "جاري تحديث اسم الموقع...",
       success: "تم تحديث الإعلان بنجاح",
+      specificationsEditableTitle: "المواصفات القابلة للتعديل",
+      specificationsReadonlyTitle: "مواصفات إضافية",
+      pricingModeHint: "تسعير الإعلان مرتبط بمنطق السعر. إذا اخترت (على السوم/حسب العمل) لن يُفرض إدخال سعر ثابت.",
+      priceOptionalHint: "تم إخفاء حقل السعر لأن التسعير الحالي ليس سعرًا ثابتًا.",
       errors: {
         authRequired: "يجب تسجيل الدخول لتعديل الإعلان.",
         titleRequired: "عنوان الإعلان مطلوب.",

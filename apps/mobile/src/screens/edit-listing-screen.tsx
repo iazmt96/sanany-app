@@ -3,7 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import { createClient } from "@supabase/supabase-js";
 import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { MarketplaceListing } from "@sanany/types";
+import { CAR_CONDITIONS, CAR_FUEL_TYPES, CAR_PRICE_MODES, type CarCondition, type CarFuelType, type CarPriceMode, type MarketplaceListing } from "@sanany/types";
 import { createListingsRepository } from "@sanany/api";
 import {
   buildListingImageStoragePath,
@@ -41,22 +41,25 @@ type StructuredSpecRow = {
   value: string;
 };
 
+type ParsedDescriptionContent = {
+  cleanDescription: string;
+  rows: StructuredSpecRow[];
+};
+
 function normalizeSelectedImages(items: SelectedImage[]): SelectedImage[] {
   return normalizeListingImageOrder(items.map((item, index) => ({ ...item, isPrimary: index === 0, sortOrder: index })));
 }
 
-function parseStructuredSpecificationRows(description: string): StructuredSpecRow[] {
+function parseStructuredSpecificationRows(description: string): ParsedDescriptionContent {
   if (!description.trim()) {
-    return [];
+    return { cleanDescription: "", rows: [] };
   }
 
-  const lines = description
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+  const sourceLines = description.split("\n");
+  const lines = sourceLines.map((line) => line.trim()).filter((line) => line.length > 0);
   const structuredIndex = lines.findIndex((line) => line === "بيانات السيارة" || line === "Car data");
   if (structuredIndex < 0) {
-    return [];
+    return { cleanDescription: description.trim(), rows: [] };
   }
 
   const rows: StructuredSpecRow[] = [];
@@ -78,7 +81,40 @@ function parseStructuredSpecificationRows(description: string): StructuredSpecRo
       value
     });
   }
-  return rows;
+  const cleanDescription = lines.slice(0, structuredIndex).join("\n").trim();
+  if (cleanDescription.length > 0) {
+    return { cleanDescription, rows };
+  }
+  const rawStructuredAnchor = sourceLines.findIndex((line) => {
+    const trimmed = line.trim();
+    return trimmed === "بيانات السيارة" || trimmed === "Car data";
+  });
+  if (rawStructuredAnchor < 0) {
+    return { cleanDescription: description.trim(), rows };
+  }
+  const rawCleanDescription = sourceLines
+    .slice(0, rawStructuredAnchor)
+    .join("\n")
+    .trim();
+  return { cleanDescription: rawCleanDescription, rows };
+}
+
+function normalizeLabelToken(label: string): string {
+  return label.trim().toLowerCase();
+}
+
+function isSpecLabelType(label: string, type: "condition" | "fuelType" | "priceMode" | "location"): boolean {
+  const token = normalizeLabelToken(label);
+  if (type === "condition") {
+    return token.includes("حالة السيارة") || token.includes("condition");
+  }
+  if (type === "fuelType") {
+    return token.includes("الوقود") || token.includes("fuel");
+  }
+  if (type === "priceMode") {
+    return token.includes("تسعير الإعلان") || token.includes("price mode");
+  }
+  return token.includes("الموقع") || token.includes("location");
 }
 
 function resolveEditErrorMessage(error: unknown, fallback: string): string {
@@ -149,10 +185,60 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
   const isRtl = direction === "rtl";
   const textAlign = isRtl ? "right" : "left";
+  const parsedDescription = useMemo(() => parseStructuredSpecificationRows(listing.description ?? ""), [listing.description]);
+  const listingAttributes = useMemo(
+    () => (listing.attributes && typeof listing.attributes === "object" ? listing.attributes : {}),
+    [listing.attributes]
+  );
+  const resolveSpecValue = useCallback(
+    (type: "condition" | "fuelType" | "priceMode"): string | null => {
+      const row = parsedDescription.rows.find((item) => isSpecLabelType(item.label, type));
+      return row?.value?.trim() || null;
+    },
+    [parsedDescription.rows]
+  );
+  const resolveOptionValue = useCallback(
+    <T extends string>(keys: readonly T[], translationKeyBase: string, value: unknown): T | null => {
+      if (typeof value !== "string" || value.trim().length === 0) {
+        return null;
+      }
+      const normalizedValue = value.trim().toLowerCase();
+      const matched = keys.find((key) => {
+        const localizedLabel = t(`${translationKeyBase}.${key}`);
+        return localizedLabel.trim().toLowerCase() === normalizedValue;
+      });
+      return matched ?? null;
+    },
+    [t]
+  );
 
   const [title, setTitle] = useState(listing.title);
-  const [description, setDescription] = useState(listing.description ?? "");
+  const [description, setDescription] = useState(parsedDescription.cleanDescription);
   const [price, setPrice] = useState(listing.price > 0 ? String(listing.price) : "");
+  const [carCondition, setCarCondition] = useState<CarCondition>(() => {
+    const attributeValue = listingAttributes.condition;
+    if (typeof attributeValue === "string" && CAR_CONDITIONS.includes(attributeValue as CarCondition)) {
+      return attributeValue as CarCondition;
+    }
+    const parsedValue = resolveOptionValue(CAR_CONDITIONS, "marketplace.create.carDetails.conditionOptions", resolveSpecValue("condition"));
+    return parsedValue ?? "new";
+  });
+  const [carFuelType, setCarFuelType] = useState<CarFuelType>(() => {
+    const attributeValue = listingAttributes.fuelType;
+    if (typeof attributeValue === "string" && CAR_FUEL_TYPES.includes(attributeValue as CarFuelType)) {
+      return attributeValue as CarFuelType;
+    }
+    const parsedValue = resolveOptionValue(CAR_FUEL_TYPES, "marketplace.create.carDetails.fuelOptions", resolveSpecValue("fuelType"));
+    return parsedValue ?? "gasoline";
+  });
+  const [carPriceMode, setCarPriceMode] = useState<CarPriceMode>(() => {
+    const attributeValue = listingAttributes.priceMode;
+    if (typeof attributeValue === "string" && CAR_PRICE_MODES.includes(attributeValue as CarPriceMode)) {
+      return attributeValue as CarPriceMode;
+    }
+    const parsedValue = resolveOptionValue(CAR_PRICE_MODES, "marketplace.create.carDetails.priceModeOptions", resolveSpecValue("priceMode"));
+    return parsedValue ?? "fixed";
+  });
   const [locationName, setLocationName] = useState(listing.locationName ?? "");
   const [locationLatitude, setLocationLatitude] = useState<number | null>(listing.latitude ?? null);
   const [locationLongitude, setLocationLongitude] = useState<number | null>(listing.longitude ?? null);
@@ -177,11 +263,32 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
   const canAddMoreImages = selectedImages.length < MAX_IMAGE_COUNT;
   const parsedPrice = Number(price);
   const validPrice = Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : 0;
+  const shouldShowPriceInput = carPriceMode === "fixed";
   const defaultLatitude = 24.7136;
   const defaultLongitude = 46.6753;
   const defaultLocationName = t("marketplace.create.defaultLocation");
   const mapPreviewUrl = createStaticMapPreviewUrl(mapDraftLatitude, mapDraftLongitude);
-  const specificationRows = useMemo(() => parseStructuredSpecificationRows(description), [description]);
+  const specificationRows = useMemo(
+    () =>
+      parsedDescription.rows.filter(
+        (row) =>
+          !isSpecLabelType(row.label, "condition") &&
+          !isSpecLabelType(row.label, "fuelType") &&
+          !isSpecLabelType(row.label, "priceMode") &&
+          !isSpecLabelType(row.label, "location")
+      ),
+    [parsedDescription.rows]
+  );
+  const hasEditableSpecsContext = useMemo(() => {
+    if (parsedDescription.rows.length > 0) {
+      return true;
+    }
+    return (
+      typeof listingAttributes.condition === "string" ||
+      typeof listingAttributes.fuelType === "string" ||
+      typeof listingAttributes.priceMode === "string"
+    );
+  }, [listingAttributes.condition, listingAttributes.fuelType, listingAttributes.priceMode, parsedDescription.rows.length]);
 
   const pickImages = async () => {
     if (isImagePicking) {
@@ -329,7 +436,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
       setErrorMessage(t("marketplace.edit.errors.titleRequired"));
       return;
     }
-    if (validPrice <= 0) {
+    if (shouldShowPriceInput && validPrice <= 0) {
       setErrorMessage(t("marketplace.edit.errors.priceInvalid"));
       return;
     }
@@ -388,12 +495,29 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         uploadedImages.map((img) => img.publicUrl ?? img.previewUri)
       );
 
+      const nextAttributes = {
+        ...listingAttributes,
+        condition: carCondition,
+        fuelType: carFuelType,
+        priceMode: carPriceMode
+      };
+      const metadataParts: string[] = [];
+      if (hasEditableSpecsContext) {
+        metadataParts.push(t("marketplace.create.carDetails.structuredTitle"));
+        metadataParts.push(...specificationRows.map((row) => `- ${row.label}: ${row.value}`));
+        metadataParts.push(`- ${t("marketplace.create.carDetails.locationLabel")}: ${locationName.trim() || "-"}`);
+        metadataParts.push(`- ${t("marketplace.create.carDetails.conditionLabel")}: ${t(`marketplace.create.carDetails.conditionOptions.${carCondition}`)}`);
+        metadataParts.push(`- ${t("marketplace.create.carDetails.fuelLabel")}: ${t(`marketplace.create.carDetails.fuelOptions.${carFuelType}`)}`);
+        metadataParts.push(`- ${t("marketplace.create.carDetails.priceModeLabel")}: ${t(`marketplace.create.carDetails.priceModeOptions.${carPriceMode}`)}`);
+      }
+      const baseDescription = description.trim();
+      const nextDescription = metadataParts.length > 0 ? (baseDescription ? `${baseDescription}\n\n${metadataParts.join("\n")}` : metadataParts.join("\n")) : baseDescription;
       const payload = {
         id: listing.id,
         ownerId,
         title: trimmedTitle,
-        description: description.trim(),
-        price: validPrice,
+        description: nextDescription,
+        price: shouldShowPriceInput ? validPrice : listing.price,
         status: mode === "publish" ? ("available" as const) : ("draft" as const),
         imageUrl: serializedImageUrl ?? undefined,
         locationName: locationName.trim() || undefined,
@@ -402,7 +526,7 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         ownerPhone: ownerPhone ?? undefined,
         offerType: listing.offerType ?? undefined,
         categorySlug: listing.categorySlug ?? undefined,
-        attributes: listing.attributes ?? {},
+        attributes: nextAttributes,
         images: toCreateListingImageInputs(uploadedImages)
       };
 
@@ -465,9 +589,67 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
           />
         </View>
 
+        {hasEditableSpecsContext ? (
+          <View style={styles.field}>
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.specificationsEditableTitle")}</Text>
+          <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.edit.pricingModeHint")}</Text>
+          <View style={[styles.optionChipWrap, isRtl ? styles.optionChipWrapRtl : undefined]}>
+            {CAR_PRICE_MODES.map((mode) => (
+              <Pressable
+                key={mode}
+                style={[styles.optionChip, carPriceMode === mode ? styles.optionChipSelected : undefined]}
+                onPress={() => {
+                  setCarPriceMode(mode);
+                  markChanged();
+                }}
+              >
+                <Text style={[styles.optionChipLabel, carPriceMode === mode ? styles.optionChipLabelSelected : undefined]}>
+                  {t(`marketplace.create.carDetails.priceModeOptions.${mode}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {!shouldShowPriceInput ? <Text style={[styles.fieldHint, { textAlign }]}>{t("marketplace.edit.priceOptionalHint")}</Text> : null}
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.carDetails.conditionLabel")}</Text>
+          <View style={[styles.optionChipWrap, isRtl ? styles.optionChipWrapRtl : undefined]}>
+            {CAR_CONDITIONS.map((condition) => (
+              <Pressable
+                key={condition}
+                style={[styles.optionChip, carCondition === condition ? styles.optionChipSelected : undefined]}
+                onPress={() => {
+                  setCarCondition(condition);
+                  markChanged();
+                }}
+              >
+                <Text style={[styles.optionChipLabel, carCondition === condition ? styles.optionChipLabelSelected : undefined]}>
+                  {t(`marketplace.create.carDetails.conditionOptions.${condition}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.create.carDetails.fuelLabel")}</Text>
+          <View style={[styles.optionChipWrap, isRtl ? styles.optionChipWrapRtl : undefined]}>
+            {CAR_FUEL_TYPES.map((fuelType) => (
+              <Pressable
+                key={fuelType}
+                style={[styles.optionChip, carFuelType === fuelType ? styles.optionChipSelected : undefined]}
+                onPress={() => {
+                  setCarFuelType(fuelType);
+                  markChanged();
+                }}
+              >
+                <Text style={[styles.optionChipLabel, carFuelType === fuelType ? styles.optionChipLabelSelected : undefined]}>
+                  {t(`marketplace.create.carDetails.fuelOptions.${fuelType}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          </View>
+        ) : null}
+
         {specificationRows.length > 0 ? (
           <View style={styles.field}>
-            <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.detail.specificationsTitle")}</Text>
+            <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.specificationsReadonlyTitle")}</Text>
             <View style={styles.specificationCard}>
               <View style={[styles.specificationGrid, isRtl ? styles.specificationGridRtl : undefined]}>
                 {specificationRows.map((row, index) => (
@@ -486,7 +668,8 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
         ) : null}
 
         {/* Price */}
-        <View style={styles.field}>
+        {shouldShowPriceInput ? (
+          <View style={styles.field}>
           <Text style={[styles.fieldLabel, { textAlign }]}>{t("marketplace.edit.priceLabel")}</Text>
           <TextInput
             style={[styles.input, { textAlign }]}
@@ -497,7 +680,8 @@ export function EditListingScreen({ direction, listing, onBack, onSaved }: EditL
             placeholder="0"
             placeholderTextColor="#94a3b8"
           />
-        </View>
+          </View>
+        ) : null}
 
         {/* Location */}
         <View style={styles.field}>
@@ -748,6 +932,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#0f172a"
+  },
+  optionChipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  optionChipWrapRtl: {
+    flexDirection: "row-reverse"
+  },
+  optionChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: "#ffffff"
+  },
+  optionChipSelected: {
+    borderColor: "#0f766e",
+    backgroundColor: "#ecfdf5"
+  },
+  optionChipLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#334155"
+  },
+  optionChipLabelSelected: {
+    color: "#0f766e"
   },
   locationSelectorCard: {
     borderRadius: 14,
