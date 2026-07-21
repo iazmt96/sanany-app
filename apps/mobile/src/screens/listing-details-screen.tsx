@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Linking, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import { useTranslation } from "react-i18next";
@@ -122,7 +122,11 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const listingImages = useMemo(() => {
     return getRenderableListingImageUrls(listing.imageUrl);
   }, [listing.imageUrl]);
+  const { width: viewportWidth } = useWindowDimensions();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [mediaWidth, setMediaWidth] = useState(0);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [previewImageIndex, setPreviewImageIndex] = useState(0);
   const imageUrl = listingImages[activeImageIndex] ?? getPrimaryListingImageUrl(listing.imageUrl);
   const updatedAt = formatRelativeTime(listing.updatedAt ?? listing.createdAt, locale);
   const latitude = listing.latitude ?? 24.7136;
@@ -150,7 +154,16 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
 
   useEffect(() => {
     setActiveImageIndex(0);
+    setPreviewImageIndex(0);
   }, [listing.id, listing.imageUrl]);
+
+  const handleImagePagerScrollEnd = (offsetX: number, width: number, onIndexChange: (index: number) => void) => {
+    if (width <= 0 || listingImages.length <= 1) {
+      return;
+    }
+    const nextIndex = Math.max(0, Math.min(listingImages.length - 1, Math.round(offsetX / width)));
+    onIndexChange(nextIndex);
+  };
 
   useEffect(() => {
     const bootstrapListingState = async () => {
@@ -383,8 +396,40 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
       </View>
 
       <View style={styles.media}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.mediaImage} resizeMode="cover" />
+        {listingImages.length > 0 ? (
+          <Pressable
+            style={styles.mediaPressable}
+            onPress={() => {
+              setPreviewImageIndex(activeImageIndex);
+              setIsImagePreviewOpen(true);
+            }}
+          >
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onLayout={(event) => {
+                setMediaWidth(event.nativeEvent.layout.width);
+              }}
+              onMomentumScrollEnd={(event) => {
+                handleImagePagerScrollEnd(event.nativeEvent.contentOffset.x, mediaWidth, setActiveImageIndex);
+              }}
+            >
+              {listingImages.map((item, index) => (
+                <Image key={`${listing.id}-media-${item}-${index}`} source={{ uri: item }} style={[styles.mediaImage, mediaWidth > 0 ? { width: mediaWidth } : null]} resizeMode="cover" />
+              ))}
+            </ScrollView>
+          </Pressable>
+        ) : imageUrl ? (
+          <Pressable
+            style={styles.mediaPressable}
+            onPress={() => {
+              setPreviewImageIndex(0);
+              setIsImagePreviewOpen(true);
+            }}
+          >
+            <Image source={{ uri: imageUrl }} style={styles.mediaImage} resizeMode="cover" />
+          </Pressable>
         ) : (
           <View style={styles.mediaFallback}>
             <MobileIcon name="image" size={28} color="#0f766e" />
@@ -400,24 +445,51 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
             <Text style={styles.overlayPillLabel}>{t("marketplace.detail.viewsCount", { count: viewCount })}</Text>
           </View>
         </View>
+        {listingImages.length > 1 ? (
+          <View style={styles.mediaDotsWrap}>
+            {listingImages.map((_, index) => (
+              <View key={`${listing.id}-dot-${index}`} style={[styles.mediaDot, index === activeImageIndex ? styles.mediaDotActive : undefined]} />
+            ))}
+          </View>
+        ) : null}
       </View>
-      {listingImages.length > 1 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.thumbnailRow, isRtl ? styles.thumbnailRowRtl : undefined]}
-        >
-          {listingImages.map((item, index) => (
-            <Pressable
-              key={`${listing.id}-thumb-${item}-${index}`}
-              style={[styles.thumbnailButton, activeImageIndex === index ? styles.thumbnailButtonActive : undefined]}
-              onPress={() => setActiveImageIndex(index)}
-            >
-              <Image source={{ uri: item }} style={styles.thumbnailImage} resizeMode="cover" />
-            </Pressable>
-          ))}
-        </ScrollView>
-      ) : null}
+      <Modal
+        animationType="fade"
+        visible={isImagePreviewOpen && listingImages.length > 0}
+        transparent
+        onRequestClose={() => setIsImagePreviewOpen(false)}
+      >
+        <View style={styles.previewBackdrop}>
+          <Pressable
+            style={[styles.previewCloseButton, isRtl ? styles.previewCloseButtonRtl : undefined]}
+            onPress={() => setIsImagePreviewOpen(false)}
+          >
+            <Text style={styles.previewCloseLabel}>{t("common.close")}</Text>
+          </Pressable>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            contentOffset={{ x: previewImageIndex * viewportWidth, y: 0 }}
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => {
+              handleImagePagerScrollEnd(event.nativeEvent.contentOffset.x, viewportWidth, setPreviewImageIndex);
+            }}
+          >
+            {listingImages.map((item, index) => (
+              <View key={`${listing.id}-preview-${item}-${index}`} style={[styles.previewSlide, { width: viewportWidth }]}>
+                <Image source={{ uri: item }} style={styles.previewImage} resizeMode="contain" />
+              </View>
+            ))}
+          </ScrollView>
+          {listingImages.length > 1 ? (
+            <View style={styles.previewDotsWrap}>
+              {listingImages.map((_, index) => (
+                <View key={`${listing.id}-preview-dot-${index}`} style={[styles.previewDot, index === previewImageIndex ? styles.previewDotActive : undefined]} />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      </Modal>
 
       <View style={[styles.actionsRow, isRtl ? styles.actionsRowRtl : undefined]}>
         {isListingOwner ? (
@@ -683,30 +755,80 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#ffffff"
   },
-  thumbnailRow: {
+  mediaPressable: {
+    flex: 1
+  },
+  mediaDotsWrap: {
+    position: "absolute",
+    bottom: 12,
+    left: 0,
+    right: 0,
     flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 2
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6
   },
-  thumbnailRowRtl: {
-    flexDirection: "row-reverse"
+  mediaDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255, 255, 255, 0.45)"
   },
-  thumbnailButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#dbe4ee",
+  mediaDotActive: {
+    width: 18,
     backgroundColor: "#ffffff"
   },
-  thumbnailButtonActive: {
-    borderColor: "#0f766e",
-    borderWidth: 2
+  previewBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(2, 6, 23, 0.94)",
+    justifyContent: "center"
   },
-  thumbnailImage: {
+  previewCloseButton: {
+    position: "absolute",
+    top: 56,
+    right: 20,
+    zIndex: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(15, 23, 42, 0.64)",
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  previewCloseButtonRtl: {
+    right: undefined,
+    left: 20
+  },
+  previewCloseLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#ffffff"
+  },
+  previewSlide: {
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  previewImage: {
     width: "100%",
     height: "100%"
+  },
+  previewDotsWrap: {
+    position: "absolute",
+    bottom: 34,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8
+  },
+  previewDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(148, 163, 184, 0.6)"
+  },
+  previewDotActive: {
+    width: 20,
+    backgroundColor: "#ffffff"
   },
   actionsRow: {
     flexDirection: "row",
