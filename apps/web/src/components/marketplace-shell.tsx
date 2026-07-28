@@ -392,42 +392,43 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
       <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f0fdf9_55%,#f8fbfd_100%)] p-6 sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
-            <form onSubmit={onSubmitSearch} className="space-y-4 rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold text-slate-500">{t("siteLayout.header.searchLabel")}</span>
-                  <input
-                    ref={searchInputRef}
-                    value={searchText}
-                    onChange={(event) => setSearchText(event.target.value)}
-                    placeholder={rotatingPlaceholder || t("home.hero.searchPlaceholder")}
-                    className="h-12 w-full rounded-2xl border border-slate-300 px-4 text-sm outline-none ring-brand/20 transition focus:border-brand focus:ring"
-                  />
-                </label>
-                <div className="flex items-end gap-2">
-                  <label className="block space-y-1">
-                    <span className="text-xs font-semibold text-slate-500">{t("siteLayout.header.cityLabel")}</span>
-                    <select
-                      value={selectedCity}
-                      onChange={(event) => setSelectedCity(event.target.value as CityKey)}
-                      className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm outline-none ring-brand/20 transition focus:border-brand focus:ring"
-                    >
-                      {CITY_KEYS.map((cityKey) => (
-                        <option key={cityKey} value={cityKey}>
-                          {t(`siteLayout.cities.${cityKey}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <Link
-                    href={`/${resolvedLanguage}/map`}
-                    title={t("home.nextAction.mapCta")}
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 text-lg transition hover:bg-teal-100"
+            <form onSubmit={onSubmitSearch} className="space-y-3 rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
+              {/* Search input — full width always */}
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold text-slate-500">{t("siteLayout.header.searchLabel")}</span>
+                <input
+                  ref={searchInputRef}
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  placeholder={rotatingPlaceholder || t("home.hero.searchPlaceholder")}
+                  className="h-11 w-full rounded-2xl border border-slate-300 px-4 text-sm outline-none ring-brand/20 transition focus:border-brand focus:ring"
+                />
+              </label>
+
+              {/* City + map icon + submit — responsive row */}
+              <div className="flex items-end gap-2">
+                <label className="block min-w-0 flex-1 space-y-1">
+                  <span className="text-xs font-semibold text-slate-500">{t("siteLayout.header.cityLabel")}</span>
+                  <select
+                    value={selectedCity}
+                    onChange={(event) => setSelectedCity(event.target.value as CityKey)}
+                    className="h-11 w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm outline-none ring-brand/20 transition focus:border-brand focus:ring"
                   >
-                    🗺️
-                  </Link>
-                </div>
-                <button type="submit" className="h-12 self-end rounded-2xl bg-brand px-6 text-sm font-semibold text-white transition hover:bg-brand-dark">
+                    {CITY_KEYS.map((cityKey) => (
+                      <option key={cityKey} value={cityKey}>
+                        {t(`siteLayout.cities.${cityKey}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Link
+                  href={`/${resolvedLanguage}/map`}
+                  title={t("home.nextAction.mapCta")}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 text-base transition hover:bg-teal-100"
+                >
+                  🗺️
+                </Link>
+                <button type="submit" className="h-11 shrink-0 rounded-2xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-dark">
                   {t("home.hero.searchAction")}
                 </button>
               </div>
