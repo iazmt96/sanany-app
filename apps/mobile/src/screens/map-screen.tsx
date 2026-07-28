@@ -88,16 +88,33 @@ function buildLeafletHtml(listings: MapListing[], userLat: number, userLng: numb
 
   pins.forEach(function(pin) {
     var marker = L.marker([pin.lat, pin.lng], { icon: greenIcon }).addTo(map);
-    var imgHtml = pin.img ? '<img src="' + pin.img + '" alt="" onerror="this.style.display=\'none\'"/>' : '';
-    var popup = L.popup({ maxWidth: 230 }).setContent(
-      '<div class="listing-popup">' +
-        imgHtml +
-        '<div class="title">' + pin.title + '</div>' +
-        '<div class="price">' + pin.price.toLocaleString('ar-SA') + ' ر.س</div>' +
-        '<button class="open-btn" onclick="sendToApp({type:\'openListing\',listingId:\'' + pin.id + '\'})">فتح الإعلان</button>' +
-      '</div>'
-    );
-    marker.bindPopup(popup);
+    // Use DOM-based popup to avoid quote-escaping bugs in inline onclick/onerror handlers
+    marker.bindPopup(function() {
+      var container = document.createElement('div');
+      container.className = 'listing-popup';
+      if (pin.img) {
+        var firstUrl = pin.img.split('|')[0];
+        var img = document.createElement('img');
+        img.src = firstUrl;
+        img.alt = '';
+        img.onerror = function() { this.hidden = true; };
+        container.appendChild(img);
+      }
+      var titleEl = document.createElement('div');
+      titleEl.className = 'title';
+      titleEl.textContent = pin.title;
+      container.appendChild(titleEl);
+      var priceEl = document.createElement('div');
+      priceEl.className = 'price';
+      priceEl.textContent = (typeof pin.price === 'number' ? pin.price.toLocaleString('ar-SA') : pin.price) + ' ر.س';
+      container.appendChild(priceEl);
+      var btn = document.createElement('button');
+      btn.className = 'open-btn';
+      btn.textContent = 'فتح الإعلان';
+      btn.addEventListener('click', function() { sendToApp({ type: 'openListing', listingId: pin.id }); });
+      container.appendChild(btn);
+      return container;
+    }, { maxWidth: 230 });
   });
 
   sendToApp({ type: 'ready' });
