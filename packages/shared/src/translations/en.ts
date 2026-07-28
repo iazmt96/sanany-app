@@ -203,6 +203,11 @@
       categoriesTitle: "Start from a smart category",
       categoriesDescription: "When the keyword is unclear, start from the type."
     },
+    quickTabs: {
+      login: "Sign In",
+      myAccount: "My Account",
+      mapSearch: "Map Search"
+    },
     seeAll: "See all",
     verifiedBadge: "Verified account",
     seller: {

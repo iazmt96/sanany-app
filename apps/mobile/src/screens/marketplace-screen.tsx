@@ -31,6 +31,8 @@ type MarketplaceScreenProps = {
   onOpenListing(listing: MarketplaceListing): void;
   onOpenSearch(initialSearch?: string): void;
   onOpenMyAds(): void;
+  onOpenAuth?(): void;
+  onOpenMap?(): void;
   previewState?: "loading" | "error" | "empty" | "guest";
 };
 
@@ -104,7 +106,7 @@ function HomePlaceholder() {
   );
 }
 
-export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOpenMyAds, previewState }: MarketplaceScreenProps) {
+export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOpenMyAds, onOpenAuth, onOpenMap, previewState }: MarketplaceScreenProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
@@ -366,6 +368,15 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* Stories row — top of home screen */}
+      <StoriesRow
+        direction={direction}
+        followedStories={followedStories}
+        currentUserId={snapshot.user?.id ?? null}
+        onAddStory={() => setStoryCreatorVisible(true)}
+        onOpenStory={handleOpenStory}
+      />
+
       <View style={styles.heroCard}>
         <Text style={[styles.pageTitle, { textAlign }]}>{t("home.hero.title")}</Text>
         <Text style={[styles.pageSubtitle, { textAlign }]}>{primaryAssistantCopy}</Text>
@@ -420,53 +431,35 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
         </View>
       </View>
 
-      {/* Stories row — below search, above categories */}
-      <StoriesRow
-        direction={direction}
-        followedStories={followedStories}
-        currentUserId={snapshot.user?.id ?? null}
-        onAddStory={() => setStoryCreatorVisible(true)}
-        onOpenStory={handleOpenStory}
-      />
-
-      <View style={styles.nextActionsGrid}>
-        {recentViewedListings[0] ? (
-          <Pressable style={[styles.nextActionCard, styles.nextActionCardPrimary]} onPress={() => onOpenListing(recentViewedListings[0])}>
-            <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.continueTitle")}</Text>
-            <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.continueDescription")}</Text>
-          </Pressable>
-        ) : primarySavedSearch ? (
-          <Pressable style={[styles.nextActionCard, styles.nextActionCardPrimary]} onPress={() => onOpenSearch(primarySavedSearch.query)}>
-            <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.savedTitle")}</Text>
-            <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.savedDescription")}</Text>
-          </Pressable>
-        ) : isSellerFocused ? (
-          <Pressable style={[styles.nextActionCard, styles.nextActionCardPrimary]} onPress={onOpenMyAds}>
-            <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.sellerTitle")}</Text>
-            <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.sellerDescription")}</Text>
-          </Pressable>
-        ) : (
-          <Pressable style={[styles.nextActionCard, styles.nextActionCardPrimary]} onPress={() => onOpenSearch("")}>
-            <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.nearbyTitle")}</Text>
-            <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.nearbyDescription")}</Text>
-          </Pressable>
-        )}
-
+      <View style={[styles.quickTabsRow, isRtl ? styles.quickTabsRowRtl : undefined]}>
         <Pressable
-          style={styles.nextActionCard}
+          style={[styles.quickTab, styles.quickTabAuth]}
           onPress={() => {
-            const firstCategory = categories[0];
-            if (!firstCategory) {
-              onOpenSearch("");
-              return;
+            if (previewState === "guest" || !snapshot.user) {
+              onOpenAuth?.();
+            } else {
+              onOpenMyAds();
             }
-
-            const target = resolveCategorySearchTarget(firstCategory);
-            onOpenSearch(direction === "rtl" ? target.nameAr : target.nameEn);
           }}
         >
-          <Text style={[styles.nextActionTitle, { textAlign }]}>{t("home.nextAction.categoriesTitle")}</Text>
-          <Text style={[styles.nextActionDescription, { textAlign }]}>{t("home.nextAction.categoriesDescription")}</Text>
+          <MobileIcon name="person" size={20} color="#0f766e" />
+          <Text style={[styles.quickTabLabel, styles.quickTabAuthLabel]}>
+            {previewState === "guest" || !snapshot.user ? t("home.quickTabs.login") : t("home.quickTabs.myAccount")}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.quickTab, styles.quickTabMap]}
+          onPress={() => {
+            if (onOpenMap) {
+              onOpenMap();
+            } else {
+              onOpenSearch("");
+            }
+          }}
+        >
+          <MobileIcon name="map" size={20} color="#1d4ed8" />
+          <Text style={[styles.quickTabLabel, styles.quickTabMapLabel]}>{t("home.quickTabs.mapSearch")}</Text>
         </Pressable>
       </View>
 
@@ -808,6 +801,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: "#64748b"
+  },
+  quickTabsRow: {
+    flexDirection: "row",
+    gap: 10
+  },
+  quickTabsRowRtl: {
+    flexDirection: "row-reverse"
+  },
+  quickTab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 22,
+    paddingVertical: 16,
+    paddingHorizontal: 14
+  },
+  quickTabAuth: {
+    backgroundColor: "#f0fdfa",
+    borderWidth: 1.5,
+    borderColor: "#99f6e4"
+  },
+  quickTabMap: {
+    backgroundColor: "#eff6ff",
+    borderWidth: 1.5,
+    borderColor: "#bfdbfe"
+  },
+  quickTabLabel: {
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  quickTabAuthLabel: {
+    color: "#0f766e"
+  },
+  quickTabMapLabel: {
+    color: "#1d4ed8"
   },
   errorBox: {
     borderRadius: 22,

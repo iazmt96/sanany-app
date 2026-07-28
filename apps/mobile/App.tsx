@@ -213,6 +213,7 @@ function AppContent() {
                         previewState={isHomePreview ? homePreviewState : undefined}
                         onOpenListing={setSelectedListing}
                         onOpenMyAds={() => setActiveTab("myAds")}
+                        onOpenAuth={() => setActiveTab("profile")}
                         onOpenSearch={(initialSearch) => {
                           setHomeSearchQuery(initialSearch ?? "");
                           setIsSearchOpen(true);

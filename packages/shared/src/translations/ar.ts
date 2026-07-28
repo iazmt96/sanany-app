@@ -203,6 +203,11 @@
       categoriesTitle: "ابدأ من قسم مناسب",
       categoriesDescription: "عندما لا تكون متأكدًا من المصطلح، ابدأ من القسم."
     },
+    quickTabs: {
+      login: "تسجيل الدخول",
+      myAccount: "حسابي",
+      mapSearch: "بحث بالخريطة"
+    },
     seeAll: "عرض الكل",
     verifiedBadge: "حساب موثق",
     seller: {
