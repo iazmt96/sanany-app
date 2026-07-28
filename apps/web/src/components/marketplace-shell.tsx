@@ -405,7 +405,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                 />
               </label>
 
-              {/* City + map icon + submit — responsive row */}
+              {/* City + map icon row, then submit full-width on mobile */}
               <div className="flex items-end gap-2">
                 <label className="block min-w-0 flex-1 space-y-1">
                   <span className="text-xs font-semibold text-slate-500">{t("siteLayout.header.cityLabel")}</span>
@@ -428,10 +428,10 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                 >
                   🗺️
                 </Link>
-                <button type="submit" className="h-11 shrink-0 rounded-2xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-dark">
-                  {t("home.hero.searchAction")}
-                </button>
               </div>
+              <button type="submit" className="h-11 w-full rounded-2xl bg-brand text-sm font-semibold text-white transition hover:bg-brand-dark">
+                {t("home.hero.searchAction")}
+              </button>
 
               <div className="flex flex-wrap gap-2">
                 {recentSearches.slice(0, 2).map((search) => (
