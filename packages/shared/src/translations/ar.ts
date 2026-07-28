@@ -37,7 +37,8 @@
     add: "+",
     notifications: "الإشعارات",
     account: "الحساب",
-    settings: "الإعدادات"
+    settings: "الإعدادات",
+    map: "الخريطة"
   },
   siteLayout: {
     skipToContent: "تجاوز إلى المحتوى",

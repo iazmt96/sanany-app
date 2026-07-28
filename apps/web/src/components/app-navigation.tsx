@@ -15,6 +15,7 @@ export function AppNavigation({ language }: AppNavigationProps) {
   const items = [
     { href: `/${language}`, label: t("nav.marketplace") },
     { href: `/${language}/search`, label: t("nav.search") },
+    { href: `/${language}/map`, label: t("nav.map") },
     { href: `/${language}/categories`, label: t("nav.categories") },
     { href: `/${language}/favorites`, label: t("nav.favorites") },
     { href: `/${language}/chat`, label: t("nav.chat") },

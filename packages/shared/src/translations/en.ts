@@ -37,7 +37,8 @@
     add: "+",
     notifications: "Notifications",
     account: "Account",
-    settings: "Settings"
+    settings: "Settings",
+    map: "Map"
   },
   siteLayout: {
     skipToContent: "Skip to content",
