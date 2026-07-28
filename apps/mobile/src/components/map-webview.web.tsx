@@ -22,7 +22,7 @@ export function MapWebView({ html, onMessage, style }: Props) {
       srcDoc={html}
       // eslint-disable-next-line react-native/no-inline-styles
       style={{ flex: 1, border: "none", width: "100%", height: "100%", ...style }}
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-same-origin"
       title="map"
     />
   );

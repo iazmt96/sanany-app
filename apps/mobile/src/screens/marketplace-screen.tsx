@@ -377,6 +377,39 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
         onOpenStory={handleOpenStory}
       />
 
+      {/* Quick action tabs — visible immediately at top */}
+      <View style={[styles.quickTabsRow, isRtl ? styles.quickTabsRowRtl : undefined]}>
+        <Pressable
+          style={[styles.quickTab, styles.quickTabAuth]}
+          onPress={() => {
+            if (previewState === "guest" || !snapshot.user) {
+              onOpenAuth?.();
+            } else {
+              onOpenMyAds();
+            }
+          }}
+        >
+          <MobileIcon name="person" size={20} color="#0f766e" />
+          <Text style={[styles.quickTabLabel, styles.quickTabAuthLabel]}>
+            {previewState === "guest" || !snapshot.user ? t("home.quickTabs.login") : t("home.quickTabs.myAccount")}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.quickTab, styles.quickTabMap]}
+          onPress={() => {
+            if (onOpenMap) {
+              onOpenMap();
+            } else {
+              onOpenSearch("");
+            }
+          }}
+        >
+          <MobileIcon name="map" size={20} color="#1d4ed8" />
+          <Text style={[styles.quickTabLabel, styles.quickTabMapLabel]}>{t("home.quickTabs.mapSearch")}</Text>
+        </Pressable>
+      </View>
+
       <View style={styles.heroCard}>
         <Text style={[styles.pageTitle, { textAlign }]}>{t("home.hero.title")}</Text>
         <Text style={[styles.pageSubtitle, { textAlign }]}>{primaryAssistantCopy}</Text>
@@ -384,6 +417,15 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
         <View style={[styles.searchShell, isRtl ? styles.searchShellRtl : undefined]}>
           <MobileIcon name="search" size={18} color="#64748b" />
           <TextInput style={[styles.searchInput, { textAlign }]} value={search} onChangeText={setSearch} placeholder={t("home.hero.searchPlaceholder")} />
+          <Pressable
+            onPress={() => {
+              if (onOpenMap) onOpenMap();
+              else onOpenSearch("");
+            }}
+            style={styles.searchMapBtn}
+          >
+            <MobileIcon name="map" size={20} color="#1d4ed8" />
+          </Pressable>
         </View>
 
         <View style={[styles.cityRow, isRtl ? styles.cityRowRtl : undefined]}>
@@ -429,38 +471,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
             </Pressable>
           ))}
         </View>
-      </View>
-
-      <View style={[styles.quickTabsRow, isRtl ? styles.quickTabsRowRtl : undefined]}>
-        <Pressable
-          style={[styles.quickTab, styles.quickTabAuth]}
-          onPress={() => {
-            if (previewState === "guest" || !snapshot.user) {
-              onOpenAuth?.();
-            } else {
-              onOpenMyAds();
-            }
-          }}
-        >
-          <MobileIcon name="person" size={20} color="#0f766e" />
-          <Text style={[styles.quickTabLabel, styles.quickTabAuthLabel]}>
-            {previewState === "guest" || !snapshot.user ? t("home.quickTabs.login") : t("home.quickTabs.myAccount")}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.quickTab, styles.quickTabMap]}
-          onPress={() => {
-            if (onOpenMap) {
-              onOpenMap();
-            } else {
-              onOpenSearch("");
-            }
-          }}
-        >
-          <MobileIcon name="map" size={20} color="#1d4ed8" />
-          <Text style={[styles.quickTabLabel, styles.quickTabMapLabel]}>{t("home.quickTabs.mapSearch")}</Text>
-        </Pressable>
       </View>
 
       {error ? (
@@ -681,6 +691,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 14,
     color: "#0f172a"
+  },
+  searchMapBtn: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: "#eff6ff"
   },
   cityRow: {
     marginTop: 12,
