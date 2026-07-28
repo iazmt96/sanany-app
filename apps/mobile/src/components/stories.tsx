@@ -13,7 +13,7 @@ import {
   View
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { FollowedSellerStories, MarketplaceListing, Story, StoryMedia } from "@sanany/types";
+import type { FollowedSellerStories, MarketplaceListing, Story, StoryHighlight, StoryMedia } from "@sanany/types";
 import type { Direction } from "@sanany/utils";
 import { MobileIcon } from "./mobile-icons";
 
@@ -561,6 +561,56 @@ export function StoryCreator({ visible, direction, myListings, onClose, onPublis
   );
 }
 
+// ─── Highlights Row ───────────────────────────────────────────────────────────
+
+type HighlightsRowProps = {
+  highlights: StoryHighlight[];
+  onOpenHighlight(highlight: StoryHighlight): void;
+};
+
+export function HighlightsRow({ highlights, onOpenHighlight }: HighlightsRowProps) {
+  const { t } = useTranslation();
+
+  if (highlights.length === 0) return null;
+
+  return (
+    <View style={styles.highlightsContainer}>
+      <Text style={styles.highlightsTitle}>{t("stories.highlights")}</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.highlightsContent}
+      >
+        {highlights.map((hl) => (
+          <Pressable key={hl.id} style={styles.highlightItem} onPress={() => onOpenHighlight(hl)}>
+            <View style={styles.highlightCircle}>
+              {hl.coverUrl ? (
+                <Image
+                  source={{ uri: hl.coverUrl }}
+                  style={styles.highlightCoverImage}
+                />
+              ) : hl.previewMedia?.mediaUrl ? (
+                <Image
+                  source={{ uri: hl.previewMedia.mediaUrl }}
+                  style={styles.highlightCoverImage}
+                />
+              ) : (
+                <View style={styles.highlightCoverPlaceholder}>
+                  <Text style={styles.highlightCoverIcon}>🏷️</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.highlightLabel} numberOfLines={1}>{hl.title}</Text>
+            {hl.storyCount > 0 && (
+              <Text style={styles.highlightCount}>{hl.storyCount}</Text>
+            )}
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -827,5 +877,49 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   publishBtnDisabled: { opacity: 0.6 },
-  publishBtnText: { color: "white", fontSize: 15, fontWeight: "700" }
+  publishBtnText: { color: "white", fontSize: 15, fontWeight: "700" },
+
+  // Highlights
+  highlightsContainer: {
+    paddingTop: 16,
+    paddingBottom: 8
+  },
+  highlightsTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1e293b",
+    paddingHorizontal: 16,
+    marginBottom: 10
+  },
+  highlightsContent: { paddingHorizontal: 12, gap: 4 },
+  highlightItem: { alignItems: "center", marginHorizontal: 6, width: 64 },
+  highlightCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#0f766e"
+  },
+  highlightCoverImage: { width: "100%", height: "100%" },
+  highlightCoverPlaceholder: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#e2e8f0",
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  highlightCoverIcon: { fontSize: 24 },
+  highlightLabel: {
+    fontSize: 11,
+    color: "#475569",
+    marginTop: 5,
+    maxWidth: 64,
+    textAlign: "center"
+  },
+  highlightCount: {
+    fontSize: 10,
+    color: "#94a3b8",
+    textAlign: "center"
+  }
 });

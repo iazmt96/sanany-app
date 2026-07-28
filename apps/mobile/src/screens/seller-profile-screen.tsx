@@ -7,7 +7,9 @@ import type {
   SellerProfile,
   SellerProfileListingsSort,
   SellerProfileListingsTab,
-  SellerRating
+  SellerRating,
+  Story,
+  StoryHighlight
 } from "@sanany/types";
 import { formatMonthYear, formatRelativeTime } from "@sanany/shared";
 import { type Direction } from "@sanany/utils";
@@ -15,7 +17,9 @@ import { useAuth } from "../auth/auth-context";
 import { MobileIcon } from "../components/mobile-icons";
 import { MobileListingCard } from "../components/mobile-listing-card";
 import { MobileSectionHeader } from "../components/mobile-section-header";
+import { HighlightsRow, StoryViewer } from "../components/stories";
 import { getMobileSellersRepository } from "../lib/sellers-repository";
+import { getMobileStoriesRepository } from "../lib/stories-repository";
 import { resolveListingPriceLabel } from "../lib/listing-price-label";
 
 type SellerProfileScreenProps = {
@@ -41,6 +45,7 @@ export function SellerProfileScreen({ direction, sellerId, onBack, onOpenListing
   const { t, i18n } = useTranslation();
   const { snapshot } = useAuth();
   const repository = useMemo(() => getMobileSellersRepository(), []);
+  const storiesRepository = useMemo(() => getMobileStoriesRepository(), []);
   const isRtl = direction === "rtl";
   const textAlign = isRtl ? "right" : "left";
   const locale = (i18n.language || "ar").startsWith("ar") ? "ar" : "en";
@@ -63,6 +68,9 @@ export function SellerProfileScreen({ direction, sellerId, onBack, onOpenListing
     pageSize: PAGE_SIZE,
     totalPages: 1
   });
+  const [highlights, setHighlights] = useState<StoryHighlight[]>([]);
+  const [highlightViewerStories, setHighlightViewerStories] = useState<Story[]>([]);
+  const [highlightViewerVisible, setHighlightViewerVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +117,22 @@ export function SellerProfileScreen({ direction, sellerId, onBack, onOpenListing
       active = false;
     };
   }, [activeTab, page, ratingsSort, repository, sellerId, snapshot.user?.id, sort, t]);
+
+  useEffect(() => {
+    let active = true;
+    void storiesRepository.getSellerHighlights(sellerId).then((result) => {
+      if (active) setHighlights(result);
+    });
+    return () => { active = false; };
+  }, [sellerId, storiesRepository]);
+
+  const onOpenHighlight = async (highlight: StoryHighlight) => {
+    const stories = await storiesRepository.getHighlightStories(highlight.id, snapshot.user?.id ?? null);
+    if (stories.length > 0) {
+      setHighlightViewerStories(stories);
+      setHighlightViewerVisible(true);
+    }
+  };
 
   const onShare = async () => {
     if (!profile) {
@@ -265,6 +289,15 @@ export function SellerProfileScreen({ direction, sellerId, onBack, onOpenListing
             </View>
           </View>
 
+          {highlights.length > 0 && (
+            <View style={styles.highlightsWrapper}>
+              <HighlightsRow
+                highlights={highlights}
+                onOpenHighlight={(hl) => void onOpenHighlight(hl)}
+              />
+            </View>
+          )}
+
           <View style={[styles.tabsRow, isRtl ? styles.rowRtl : undefined]}>
             {(["all", "available", "sold", "ratings"] as const).map((tabKey) => (
               <Pressable key={tabKey} style={[styles.tabButton, activeTab === tabKey ? styles.tabButtonActive : undefined]} onPress={() => setActiveTab(tabKey)}>
@@ -338,6 +371,15 @@ export function SellerProfileScreen({ direction, sellerId, onBack, onOpenListing
           {actionMessage ? <Text style={[styles.infoText, { textAlign }]}>{actionMessage}</Text> : null}
         </>
       ) : null}
+
+      <StoryViewer
+        visible={highlightViewerVisible}
+        stories={highlightViewerStories}
+        direction={direction}
+        onClose={() => setHighlightViewerVisible(false)}
+        onMarkViewed={() => {}}
+        onOpenListing={onOpenListing}
+      />
     </View>
   );
 }
@@ -349,6 +391,10 @@ const styles = StyleSheet.create({
   },
   rowRtl: {
     flexDirection: "row-reverse"
+  },
+  highlightsWrapper: {
+    marginTop: 8,
+    marginHorizontal: -16
   },
   topBar: {
     flexDirection: "row",

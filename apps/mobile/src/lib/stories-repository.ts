@@ -14,6 +14,7 @@ import {
   markStoryViewed,
   deleteStory,
   getSellerHighlights,
+  getHighlightStories,
   createHighlight,
   addStoryToHighlight
 } from "@sanany/api";
@@ -42,6 +43,9 @@ export function getMobileStoriesRepository() {
 
     getSellerHighlights: (sellerId: string): Promise<StoryHighlight[]> =>
       getSellerHighlights(getClient(), sellerId),
+
+    getHighlightStories: (highlightId: string, currentUserId: string | null): Promise<Story[]> =>
+      getHighlightStories(getClient(), highlightId, currentUserId),
 
     createHighlight: (input: CreateHighlightInput): Promise<StoryHighlight | null> =>
       createHighlight(getClient(), input),

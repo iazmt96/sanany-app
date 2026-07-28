@@ -457,3 +457,64 @@ export async function addStoryToHighlight(
       { onConflict: "highlight_id,story_id" }
     );
 }
+
+/**
+ * Get all stories belonging to a highlight (includes expired stories — highlights persist).
+ */
+export async function getHighlightStories(
+  supabase: SupabaseClient,
+  highlightId: string,
+  currentUserId: string | null
+): Promise<Story[]> {
+  const { data: itemRows } = await supabase
+    .from("story_highlight_items")
+    .select("story_id")
+    .eq("highlight_id", highlightId);
+
+  if (!itemRows || itemRows.length === 0) return [];
+
+  const storyIds = (itemRows as { story_id: string }[]).map((r) => r.story_id);
+
+  const { data: rawStoryRows } = await supabase
+    .from("stories")
+    .select(`
+      id, seller_id, expires_at, view_count, created_at,
+      profiles:seller_id ( id, display_name, username, avatar_url )
+    `)
+    .in("id", storyIds)
+    .order("created_at", { ascending: false });
+
+  if (!rawStoryRows || rawStoryRows.length === 0) return [];
+
+  const storyRows = rawStoryRows as unknown as StoryRow[];
+
+  const [mediaResult, attachedResult, viewsResult] = await Promise.all([
+    supabase
+      .from("story_media")
+      .select("*")
+      .in("story_id", storyIds)
+      .order("ordinal", { ascending: true }),
+    supabase
+      .from("story_attached_listings")
+      .select(`id, story_id, listing_id, ordinal, listings:listing_id ( id, title, price, image_url, status )`)
+      .in("story_id", storyIds)
+      .order("ordinal", { ascending: true }),
+    currentUserId
+      ? supabase
+          .from("story_views")
+          .select("story_id, viewer_id")
+          .in("story_id", storyIds)
+          .eq("viewer_id", currentUserId)
+      : Promise.resolve({ data: [] as StoryViewRow[] })
+  ]);
+
+  const mediaByStory = groupBy((mediaResult.data ?? []) as StoryMediaRow[], "story_id");
+  const attachedByStory = groupBy((attachedResult.data ?? []) as unknown as RawAttachedRow[], "story_id");
+  const viewedIds = new Set(((viewsResult.data ?? []) as StoryViewRow[]).map((v) => v.story_id));
+
+  return storyRows.map((row) => {
+    const media = (mediaByStory[row.id] ?? []).map(mapMedia);
+    const attached = (attachedByStory[row.id] ?? []).map(mapAttached);
+    return mapStory(row, media, attached, viewedIds.has(row.id));
+  });
+}
