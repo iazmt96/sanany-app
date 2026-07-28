@@ -125,36 +125,6 @@ function SectionHeader(props: { title: string; description: string; actionLabel?
   );
 }
 
-function NextActionCard(props: { title: string; description: string; cta: string; href?: string; onClick?(): void; tone?: "soft" | "brand" }) {
-  const className =
-    props.tone === "brand"
-      ? "rounded-[28px] border border-brand/15 bg-brand/[0.05] p-5 transition hover:border-brand/35 hover:bg-brand/[0.07]"
-      : "rounded-[28px] border border-slate-200 bg-white p-5 transition hover:border-brand/20 hover:shadow-sm";
-
-  const content = (
-    <>
-      <div className="space-y-2">
-        <h3 className="text-base font-bold text-slate-900">{props.title}</h3>
-        <p className="text-sm leading-6 text-slate-500">{props.description}</p>
-      </div>
-      <span className="mt-5 inline-flex text-sm font-semibold text-brand">{props.cta}</span>
-    </>
-  );
-
-  if (props.href) {
-    return (
-      <Link href={props.href} className={className}>
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <button type="button" onClick={props.onClick} className={`${className} text-start`}>
-      {content}
-    </button>
-  );
-}
 
 export function MarketplaceShell({ language }: MarketplaceShellProps) {
   const { t } = useTranslation();
@@ -486,47 +456,6 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
             </form>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            {recentViewedListings[0] ? (
-              <NextActionCard
-                title={t("home.nextAction.continueTitle")}
-                description={t("home.nextAction.continueDescription")}
-                cta={t("home.sections.recentlyViewed")}
-                href={`/${resolvedLanguage}/listing/${recentViewedListings[0].id}`}
-                tone="brand"
-              />
-            ) : savedSearchSeed ? (
-              <NextActionCard
-                title={t("home.nextAction.savedTitle")}
-                description={t("home.nextAction.savedDescription")}
-                cta={t("home.sections.savedSearches")}
-                onClick={() => openSearch({ query: savedSearchSeed.query, city: savedSearchSeed.city, categorySlug: savedSearchSeed.categorySlug })}
-              />
-            ) : isSellerFocused ? (
-              <NextActionCard
-                title={t("home.nextAction.sellerTitle")}
-                description={t("home.nextAction.sellerDescription")}
-                cta={t("home.owner.manageAction")}
-                href={addListingHref}
-                tone="brand"
-              />
-            ) : (
-              <NextActionCard
-                title={t("home.nextAction.nearbyTitle")}
-                description={t("home.nextAction.nearbyDescription")}
-                cta={selectedCityLabel}
-                onClick={() => openSearch({ city: selectedCityLabel })}
-              />
-            )}
-
-            <NextActionCard
-              title={t("home.nextAction.mapTitle")}
-              description={t("home.nextAction.mapDescription")}
-              cta={t("home.nextAction.mapCta")}
-              href={`/${resolvedLanguage}/map`}
-              tone="brand"
-            />
-          </div>
         </div>
       </Card>
 
