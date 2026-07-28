@@ -493,7 +493,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
 
   return (
     <RequireAuth language={resolvedLanguage}>
-      <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-8">
+      <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-8 pb-24 md:pb-8">
         {/* Mobile back button */}
         <button
           type="button"
@@ -865,6 +865,86 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
           </div>
         ) : null}
       </main>
+      {/* Sticky mobile action bar */}
+      {listing ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-sm md:hidden">
+          {isOwner ? (
+            <>
+              <Link
+                href={`/${resolvedLanguage}/my-ads`}
+                className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand text-sm font-semibold text-white active:opacity-90"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                  <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                  <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                </svg>
+                {t("marketplace.detail.editAction")}
+              </Link>
+              <button
+                type="button"
+                onClick={() => void onRefreshListing()}
+                disabled={isRefreshing}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600 disabled:opacity-50 active:bg-slate-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`}>
+                  <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
+                </svg>
+                {t("marketplace.detail.updateAction")}
+              </button>
+            </>
+          ) : (
+            <>
+              {contactPermissions.canCall ? (
+                <a
+                  href={`tel:${advertiserPhone}`}
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand text-sm font-semibold text-white active:opacity-90"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                    <path fillRule="evenodd" d="M2 3.5A1.5 1.5 0 0 1 3.5 2h1.148a1.5 1.5 0 0 1 1.465 1.175l.716 3.223a1.5 1.5 0 0 1-1.052 1.767l-.933.267c-.41.117-.643.555-.48.95a11.542 11.542 0 0 0 6.254 6.254c.395.163.833-.07.95-.48l.267-.933a1.5 1.5 0 0 1 1.767-1.052l3.223.716A1.5 1.5 0 0 1 18 16.352V17.5a1.5 1.5 0 0 1-1.5 1.5H15c-1.149 0-2.263-.15-3.326-.43A13.022 13.022 0 0 1 2.43 8.326 13.019 13.019 0 0 1 2 5V3.5Z" clipRule="evenodd" />
+                  </svg>
+                  {t("marketplace.detail.call")}
+                </a>
+              ) : null}
+              {contactPermissions.canChat ? (
+                <a
+                  href={`https://wa.me/${advertiserPhone.replace(/[^\d]/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-semibold text-emerald-700 active:bg-emerald-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                    <path d="M3.505 2.365A41.369 41.369 0 0 1 9 2c1.863 0 3.697.124 5.495.365 1.247.167 2.318.946 2.85 2.052l.253.53a11.52 11.52 0 0 1 .582 5.98l-.043.304a2.75 2.75 0 0 1-1.526 2.05 .75.75 0 0 0-.428.662v1.576a.75.75 0 0 1-1.06.68l-3.498-1.748a.75.75 0 0 0-.375-.082 10.023 10.023 0 0 1-3.75-.465.75.75 0 0 0-.576.073l-1.998 1.15a.75.75 0 0 1-1.062-.678V12.04a2.75 2.75 0 0 1-1.7-2.23 11.52 11.52 0 0 1 .582-5.98l.253-.529c.532-1.106 1.603-1.885 2.85-2.052Z" />
+                  </svg>
+                  {t("marketplace.detail.chat")}
+                </a>
+              ) : null}
+              {!contactPermissions.canCall && !contactPermissions.canChat && listing.ownerId ? (
+                <Link
+                  href={`/${resolvedLanguage}/chat?listingId=${listing.id}&sellerId=${listing.ownerId}`}
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand text-sm font-semibold text-white active:opacity-90"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                    <path fillRule="evenodd" d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 4.014 1 5.426v5.148c0 1.413.993 2.67 2.43 2.902 1.168.188 2.352.327 3.55.414.28.02.521.18.642.413l1.713 3.293a.75.75 0 0 0 1.33 0l1.713-3.293a.639.639 0 0 1 .642-.413 44.196 44.196 0 0 0 3.55-.414c1.437-.232 2.43-1.49 2.43-2.902V5.426c0-1.413-.993-2.67-2.43-2.902A44.197 44.197 0 0 0 10 2ZM5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm6-1a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm2 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                  </svg>
+                  {t("sellerProfile.message")}
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={onToggleFavorite}
+                className={`inline-flex h-11 w-11 flex-none items-center justify-center rounded-xl border text-sm font-semibold ${
+                  isFavorite ? "border-rose-200 bg-rose-50 text-rose-600" : "border-slate-200 bg-slate-50 text-slate-600"
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isFavorite ? 0 : 1.5} className="h-5 w-5">
+                  <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-2.184C4.032 12.18 2.25 9.875 2.25 7a4.5 4.5 0 0 1 8.25-2.5A4.5 4.5 0 0 1 18.75 7c0 2.875-1.783 5.18-3.635 6.936a22.049 22.049 0 0 1-3.744 2.866l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
+
       {isImagePreviewOpen && listingImages.length > 0 ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 p-4">
           <button
