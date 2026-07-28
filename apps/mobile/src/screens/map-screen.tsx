@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import * as Location from "expo-location";
 import WebView from "react-native-webview";
 import { useTranslation } from "react-i18next";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -122,26 +121,62 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
     setPhase("locating");
     setErrorMessage(null);
 
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      setPhase("permission-denied");
-      return;
-    }
+    let lat: number;
+    let lng: number;
 
-    let position: Location.LocationObject;
-    try {
-      position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    } catch {
+    if (Platform.OS === "web") {
+      // Browser Geolocation API
       try {
-        position = await Location.getLastKnownPositionAsync() ?? await Location.getCurrentPositionAsync({});
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error("Geolocation not supported"));
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 10000,
+          });
+        });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
       } catch (err) {
-        setErrorMessage(err instanceof Error ? err.message : t("mapScreen.errorLoading"));
+        const code = (err as GeolocationPositionError)?.code;
+        if (code === 1) {
+          setPhase("permission-denied");
+        } else {
+          setErrorMessage(err instanceof Error ? err.message : t("home.mapScreen.errorLoading"));
+          setPhase("error");
+        }
+        return;
+      }
+    } else {
+      // Native: expo-location (lazy import to avoid web crash)
+      try {
+        const Location = await import("expo-location");
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setPhase("permission-denied");
+          return;
+        }
+        let position: Awaited<ReturnType<typeof Location.getCurrentPositionAsync>>;
+        try {
+          position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        } catch {
+          const last = await Location.getLastKnownPositionAsync();
+          if (last) {
+            position = last;
+          } else {
+            position = await Location.getCurrentPositionAsync({});
+          }
+        }
+        lat = position.coords.latitude;
+        lng = position.coords.longitude;
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : t("home.mapScreen.errorLoading"));
         setPhase("error");
         return;
       }
     }
-
-    const { latitude: lat, longitude: lng } = position.coords;
     setUserLocation({ lat, lng });
     setPhase("loading");
 
@@ -151,7 +186,7 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
       setHtmlContent(buildLeafletHtml(nearby, lat, lng, isRtl));
       setPhase("ready");
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : t("mapScreen.errorLoading"));
+      setErrorMessage(err instanceof Error ? err.message : t("home.mapScreen.errorLoading"));
       setPhase("error");
     }
   }, [isRtl, t]);
