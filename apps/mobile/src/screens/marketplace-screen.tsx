@@ -377,46 +377,19 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
         onOpenStory={handleOpenStory}
       />
 
-      {/* Quick action tabs — visible immediately at top */}
-      <View style={[styles.quickTabsRow, isRtl ? styles.quickTabsRowRtl : undefined]}>
-        <Pressable
-          style={[styles.quickTab, styles.quickTabAuth]}
-          onPress={() => {
-            if (previewState === "guest" || !snapshot.user) {
-              onOpenAuth?.();
-            } else {
-              onOpenMyAds();
-            }
-          }}
-        >
-          <MobileIcon name="person" size={20} color="#0f766e" />
-          <Text style={[styles.quickTabLabel, styles.quickTabAuthLabel]}>
-            {previewState === "guest" || !snapshot.user ? t("home.quickTabs.login") : t("home.quickTabs.myAccount")}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.quickTab, styles.quickTabMap]}
-          onPress={() => {
-            if (onOpenMap) {
-              onOpenMap();
-            } else {
-              onOpenSearch("");
-            }
-          }}
-        >
-          <MobileIcon name="map" size={20} color="#1d4ed8" />
-          <Text style={[styles.quickTabLabel, styles.quickTabMapLabel]}>{t("home.quickTabs.mapSearch")}</Text>
-        </Pressable>
-      </View>
-
       <View style={styles.heroCard}>
-        <Text style={[styles.pageTitle, { textAlign }]}>{t("home.hero.title")}</Text>
         <Text style={[styles.pageSubtitle, { textAlign }]}>{primaryAssistantCopy}</Text>
 
         <View style={[styles.searchShell, isRtl ? styles.searchShellRtl : undefined]}>
           <MobileIcon name="search" size={18} color="#64748b" />
-          <TextInput style={[styles.searchInput, { textAlign }]} value={search} onChangeText={setSearch} placeholder={t("home.hero.searchPlaceholder")} />
+          <TextInput
+            style={[styles.searchInput, { textAlign }]}
+            value={search}
+            onChangeText={setSearch}
+            placeholder={t("home.hero.searchPlaceholder")}
+            returnKeyType="search"
+            onSubmitEditing={() => onOpenSearch(search)}
+          />
           <Pressable
             onPress={() => {
               if (onOpenMap) onOpenMap();
@@ -437,26 +410,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
               </Pressable>
             );
           })}
-        </View>
-
-        <View style={[styles.heroActions, isRtl ? styles.heroActionsRtl : undefined]}>
-          <Pressable
-            style={styles.primaryAction}
-            onPress={() => {
-              void persistSearch(RECENT_SEARCHES_STORAGE_KEY).finally(() => onOpenSearch(search));
-            }}
-          >
-            <Text style={styles.primaryActionLabel}>{t("home.hero.searchAction")}</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.secondaryAction, search.trim().length === 0 ? styles.secondaryActionDisabled : undefined]}
-            disabled={search.trim().length === 0}
-            onPress={() => {
-              void persistSearch(SAVED_SEARCHES_STORAGE_KEY);
-            }}
-          >
-            <Text style={styles.secondaryActionLabel}>{t("home.hero.saveSearch")}</Text>
-          </Pressable>
         </View>
 
         <View style={[styles.signalChips, isRtl ? styles.signalChipsRtl : undefined]}>
@@ -659,13 +612,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#64748b"
   },
-  pageTitle: {
-    marginTop: 6,
-    fontSize: 28,
-    lineHeight: 36,
-    fontWeight: "900",
-    color: "#0f172a"
-  },
   pageSubtitle: {
     marginTop: 8,
     fontSize: 14,
@@ -723,45 +669,6 @@ const styles = StyleSheet.create({
   cityChipLabelActive: {
     color: "#ffffff"
   },
-  heroActions: {
-    marginTop: 14,
-    flexDirection: "row",
-    gap: 10
-  },
-  heroActionsRtl: {
-    flexDirection: "row-reverse"
-  },
-  primaryAction: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-    backgroundColor: "#0f766e",
-    paddingVertical: 14
-  },
-  primaryActionLabel: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#ffffff"
-  },
-  secondaryAction: {
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 16,
-    paddingVertical: 14
-  },
-  secondaryActionDisabled: {
-    opacity: 0.45
-  },
-  secondaryActionLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#334155"
-  },
   signalChips: {
     marginTop: 12,
     flexDirection: "row",
@@ -816,43 +723,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: "#64748b"
-  },
-  quickTabsRow: {
-    flexDirection: "row",
-    gap: 10
-  },
-  quickTabsRowRtl: {
-    flexDirection: "row-reverse"
-  },
-  quickTab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 22,
-    paddingVertical: 16,
-    paddingHorizontal: 14
-  },
-  quickTabAuth: {
-    backgroundColor: "#f0fdfa",
-    borderWidth: 1.5,
-    borderColor: "#99f6e4"
-  },
-  quickTabMap: {
-    backgroundColor: "#eff6ff",
-    borderWidth: 1.5,
-    borderColor: "#bfdbfe"
-  },
-  quickTabLabel: {
-    fontSize: 14,
-    fontWeight: "800"
-  },
-  quickTabAuthLabel: {
-    color: "#0f766e"
-  },
-  quickTabMapLabel: {
-    color: "#1d4ed8"
   },
   errorBox: {
     borderRadius: 22,
