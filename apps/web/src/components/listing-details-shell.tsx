@@ -22,6 +22,7 @@ import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { RequireAuth } from "../auth/guards";
 import { getWebListingsRepository } from "../lib/listings-repository";
+import { getWebSupabaseClient } from "../lib/supabase-client";
 import { resolveListingPriceLabel } from "../lib/listing-price-label";
 import { getWebSellersRepository } from "../lib/sellers-repository";
 import { ListingCard } from "./listing-card";
@@ -129,6 +130,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMarkingAsSold, setIsMarkingAsSold] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const mediaCarouselRef = useRef<HTMLDivElement | null>(null);
   const previewCarouselRef = useRef<HTMLDivElement | null>(null);
 
@@ -465,6 +467,30 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
     }
   };
 
+  const onRefreshListing = async () => {
+    if (!listing || !snapshot.user?.id || listing.ownerId !== snapshot.user.id || isRefreshing) {
+      return;
+    }
+
+    setIsRefreshing(true);
+    setActionMessage(null);
+    try {
+      const supabase = getWebSupabaseClient();
+      const { error: refreshError } = await supabase
+        .from("listings")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", listing.id)
+        .eq("owner_id", snapshot.user.id);
+      if (refreshError) throw refreshError;
+      setListing((current) => (current ? { ...current, updatedAt: new Date().toISOString() } : current));
+      setActionMessage(t("marketplace.detail.updatedSuccess"));
+    } catch (refreshError) {
+      setActionMessage(refreshError instanceof Error ? refreshError.message : t("marketplace.detail.updateFailed"));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <RequireAuth language={resolvedLanguage}>
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-8">
@@ -547,37 +573,95 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                 </div>
 
                 {/* Actions row — now inside the gallery card */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {isOwner ? (
                     <>
+                      {/* Primary: Edit */}
                       <Link
                         href={`/${resolvedLanguage}/my-ads`}
-                        className="inline-flex h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white"
+                        className="inline-flex h-10 items-center gap-1.5 justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90"
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                          <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                          <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                        </svg>
                         {t("marketplace.detail.editAction")}
                       </Link>
+
+                      {/* Primary: Mark as sold */}
                       <button
                         type="button"
                         onClick={() => void onMarkAsSold()}
                         disabled={isMarkingAsSold || listing.status === "sold"}
-                        className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 disabled:opacity-60"
+                        className="inline-flex h-10 items-center gap-1.5 justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 disabled:opacity-50"
                       >
-                        {isMarkingAsSold ? t("common.loading") : t("marketplace.detail.markAsSoldAction")}
+                        {isMarkingAsSold ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 animate-spin">
+                            <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
+                          </svg>
+                        ) : listing.status === "sold" ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                            <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                        <span className={listing.status === "sold" ? "line-through opacity-70" : ""}>
+                          {isMarkingAsSold ? t("common.loading") : t("marketplace.detail.markAsSoldAction")}
+                        </span>
                       </button>
+
+                      {/* Separator */}
+                      <span className="h-6 w-px bg-slate-200" aria-hidden="true" />
+
+                      {/* Secondary: Refresh/bump */}
+                      <button
+                        type="button"
+                        onClick={() => void onRefreshListing()}
+                        disabled={isRefreshing}
+                        title={t("marketplace.detail.updateAction")}
+                        className="inline-flex h-10 items-center gap-1.5 justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`}>
+                          <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
+                        </svg>
+                        {t("marketplace.detail.updateAction")}
+                      </button>
+
+                      {/* Secondary: Share */}
                       <button
                         type="button"
                         onClick={() => void onShareListing()}
-                        className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700"
+                        className="inline-flex h-10 items-center gap-1.5 justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                          <path d="M13 4.5a2.5 2.5 0 1 1 .702 1.737L6.97 9.604a2.518 2.518 0 0 1 0 .792l6.733 3.367a2.5 2.5 0 1 1-.671 1.341l-6.733-3.367a2.5 2.5 0 1 1 0-3.474l6.733-3.366A2.52 2.52 0 0 1 13 4.5Z" />
+                        </svg>
                         {t("marketplace.detail.share")}
                       </button>
+
+                      {/* Separator */}
+                      <span className="h-6 w-px bg-slate-200" aria-hidden="true" />
+
+                      {/* Danger: Delete (icon-only) */}
                       <button
                         type="button"
                         onClick={() => void onDeleteListing()}
                         disabled={isDeleting}
-                        className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 px-4 text-sm font-semibold text-rose-700 disabled:opacity-60"
+                        title={isDeleting ? t("common.loading") : t("marketplace.detail.deleteAction")}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                       >
-                        {isDeleting ? t("common.loading") : t("marketplace.detail.deleteAction")}
+                        {isDeleting ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 animate-spin">
+                            <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                            <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+                          </svg>
+                        )}
                       </button>
                     </>
                   ) : (
