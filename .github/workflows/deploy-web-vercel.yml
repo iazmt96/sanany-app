@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - iazmt96-phase-1-sanany-monorepo
     paths:
       - "apps/web/**"
       - "packages/**"
