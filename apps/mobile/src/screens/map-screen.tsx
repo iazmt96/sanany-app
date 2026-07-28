@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import WebView from "react-native-webview";
 import { useTranslation } from "react-i18next";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -8,6 +7,7 @@ import { type Direction } from "@sanany/utils";
 import type { MapListing } from "@sanany/api";
 import { getNearbyListings } from "@sanany/api";
 import { getMobileSupabaseClient } from "../lib/supabase-client";
+import { MapWebView } from "../components/map-webview";
 
 type Props = {
   direction: Direction;
@@ -195,9 +195,9 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
     void loadData();
   }, [loadData]);
 
-  const handleWebViewMessage = (event: { nativeEvent: { data: string } }) => {
+  const handleMapMessage = (data: string) => {
     try {
-      const msg = JSON.parse(event.nativeEvent.data) as MapMessage;
+      const msg = JSON.parse(data) as MapMessage;
       if (msg.type === "openListing") {
         onOpenListing(msg.listingId);
       }
@@ -205,23 +205,6 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
       // ignore malformed messages
     }
   };
-
-  // On web (Expo Web), listen for postMessage from the iframe
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-    const handler = (event: MessageEvent) => {
-      try {
-        const msg = JSON.parse(typeof event.data === "string" ? event.data : JSON.stringify(event.data)) as MapMessage;
-        if (msg.type === "openListing") {
-          onOpenListing(msg.listingId);
-        }
-      } catch {
-        // ignore
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [onOpenListing]);
 
   return (
     <View style={styles.container}>
@@ -263,14 +246,10 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
         </View>
       ) : htmlContent ? (
         <View style={styles.mapWrapper}>
-          <WebView
-            source={{ html: htmlContent }}
+          <MapWebView
+            html={htmlContent}
             style={styles.webview}
-            onMessage={handleWebViewMessage}
-            javaScriptEnabled
-            domStorageEnabled
-            allowsInlineMediaPlayback
-            mediaPlaybackRequiresUserAction={false}
+            onMessage={handleMapMessage}
           />
           {userLocation && (
             <View style={styles.radiusBadge}>
