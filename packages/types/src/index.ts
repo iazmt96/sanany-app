@@ -492,3 +492,88 @@ export type SendConversationMessageInput = {
   body?: string;
   imageUrl?: string;
 };
+
+// ─── Stories ─────────────────────────────────────────────────────────────────
+
+export const STORY_MEDIA_TYPES = ["image", "video", "text"] as const;
+export type StoryMediaType = (typeof STORY_MEDIA_TYPES)[number];
+
+export type StoryMedia = {
+  id: string;
+  storyId: string;
+  mediaType: StoryMediaType;
+  mediaUrl: string | null;
+  textContent: string | null;
+  caption: string | null;
+  ordinal: number;
+  durationMs: number;
+};
+
+export type StoryAttachedListing = {
+  id: string;
+  storyId: string;
+  listingId: string;
+  ordinal: number;
+  listing: MarketplaceListing | null;
+};
+
+export type Story = {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  sellerUsername: string | null;
+  sellerAvatarUrl: string | null;
+  expiresAt: string;
+  viewCount: number;
+  createdAt: string;
+  media: StoryMedia[];
+  attachedListings: StoryAttachedListing[];
+  isViewed: boolean;
+};
+
+export type FollowedSellerStories = {
+  sellerId: string;
+  sellerName: string;
+  sellerUsername: string | null;
+  sellerAvatarUrl: string | null;
+  stories: Story[];
+  hasUnviewed: boolean;
+};
+
+export type StoryHighlight = {
+  id: string;
+  sellerId: string;
+  title: string;
+  coverUrl: string | null;
+  ordinal: number;
+  createdAt: string;
+  storyCount: number;
+  previewMedia: StoryMedia | null;
+};
+
+export type CreateStoryMediaInput = {
+  mediaType: StoryMediaType;
+  mediaUrl?: string;
+  textContent?: string;
+  caption?: string;
+  ordinal?: number;
+  durationMs?: number;
+};
+
+export type CreateStoryInput = {
+  sellerId: string;
+  media: CreateStoryMediaInput[];
+  attachedListingIds?: string[];
+  highlightIds?: string[];
+};
+
+export type CreateHighlightInput = {
+  sellerId: string;
+  title: string;
+  coverUrl?: string;
+};
+
+export type AddToHighlightInput = {
+  highlightId: string;
+  storyId: string;
+};

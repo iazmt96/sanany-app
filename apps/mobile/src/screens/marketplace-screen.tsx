@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,15 +14,17 @@ import {
   upsertStoredSearch,
   type StoredSearch
 } from "@sanany/shared";
-import type { ListingsQuery, MarketplaceCategoryNode, MarketplaceListing, SellerProfile } from "@sanany/types";
+import type { FollowedSellerStories, ListingsQuery, MarketplaceCategoryNode, MarketplaceListing, SellerProfile, Story } from "@sanany/types";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { MobileIcon } from "../components/mobile-icons";
 import { MobileListingTile } from "../components/mobile-listing-tile";
 import { MobileSectionHeader } from "../components/mobile-section-header";
+import { StoriesRow, StoryCreator, StoryViewer } from "../components/stories";
 import { getMobileCategoriesRepository } from "../lib/categories-repository";
 import { getMobileListingsRepository } from "../lib/listings-repository";
 import { getMobileSellersRepository } from "../lib/sellers-repository";
+import { getMobileStoriesRepository } from "../lib/stories-repository";
 
 type MarketplaceScreenProps = {
   direction: Direction;
@@ -123,6 +125,14 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [recentViewIds, setRecentViewIds] = useState<string[]>([]);
   const [ownerSummary, setOwnerSummary] = useState<OwnerSummary | null>(null);
+
+  // ── Stories state ──────────────────────────────────────────────────────────
+  const storiesRepository = useMemo(() => getMobileStoriesRepository(), []);
+  const [followedStories, setFollowedStories] = useState<FollowedSellerStories[]>([]);
+  const [viewerStories, setViewerStories] = useState<Story[]>([]);
+  const [storyViewerVisible, setStoryViewerVisible] = useState(false);
+  const [storyCreatorVisible, setStoryCreatorVisible] = useState(false);
+  const [myListings, setMyListings] = useState<MarketplaceListing[]>([]);
 
   const selectedCityLabel = t(`siteLayout.cities.${selectedCity}`);
 
@@ -251,6 +261,66 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
     };
   }, [listingsRepository, previewState, snapshot.user?.id]);
 
+  // ── Stories: load followed sellers' stories ────────────────────────────────
+  useEffect(() => {
+    if (!snapshot.user?.id || previewState === "guest") {
+      setFollowedStories([]);
+      return;
+    }
+    let active = true;
+    const userId = snapshot.user.id;
+    storiesRepository.getFollowedSellersStories(userId).then((result) => {
+      if (active) setFollowedStories(result);
+    }).catch(() => { /* non-blocking */ });
+    return () => { active = false; };
+  }, [snapshot.user?.id, previewState, storiesRepository]);
+
+  // ── Stories: load owner's listings for story creator ──────────────────────
+  useEffect(() => {
+    if (!snapshot.user?.id || !storyCreatorVisible) return;
+    let active = true;
+    const ownerId = snapshot.user.id;
+    listingsRepository
+      .listByOwner(ownerId, { search: "", status: "available", sort: "newest", page: 1, pageSize: 50 })
+      .then((r) => { if (active) setMyListings(r.items); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [snapshot.user?.id, storyCreatorVisible, listingsRepository]);
+
+  const handleOpenStory = useCallback((sellerId: string, stories: Story[]) => {
+    setViewerStories(stories);
+    setStoryViewerVisible(true);
+  }, []);
+
+  const handleMarkViewed = useCallback((storyId: string) => {
+    if (!snapshot.user?.id) return;
+    void storiesRepository.markStoryViewed(storyId, snapshot.user.id);
+  }, [snapshot.user?.id, storiesRepository]);
+
+  const handlePublishStory = useCallback(async (params: {
+    mediaType: "image" | "video" | "text";
+    mediaUri?: string;
+    textContent?: string;
+    caption?: string;
+    attachedListingIds: string[];
+  }) => {
+    if (!snapshot.user?.id) return;
+    const userId = snapshot.user.id;
+    await storiesRepository.createStory({
+      sellerId: userId,
+      media: [{
+        mediaType: params.mediaType,
+        mediaUrl: params.mediaUri,
+        textContent: params.textContent,
+        caption: params.caption
+      }],
+      attachedListingIds: params.attachedListingIds
+    });
+    // Refresh stories row
+    const updated = await storiesRepository.getFollowedSellersStories(userId);
+    setFollowedStories(updated);
+  }, [snapshot.user?.id, storiesRepository]);
+
   const sellerActivityCount = (ownerSummary?.active ?? 0) + (ownerSummary?.drafts ?? 0) + (ownerSummary?.reserved ?? 0);
   const buyerSignalCount = recentSearches.length + savedSearches.length + recentViewIds.length + favoriteIds.length;
   const isSellerFocused = sellerActivityCount > Math.max(2, buyerSignalCount) && previewState !== "guest";
@@ -349,6 +419,15 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
           ))}
         </View>
       </View>
+
+      {/* Stories row — below search, above categories */}
+      <StoriesRow
+        direction={direction}
+        followedStories={followedStories}
+        currentUserId={snapshot.user?.id ?? null}
+        onAddStory={() => setStoryCreatorVisible(true)}
+        onOpenStory={handleOpenStory}
+      />
 
       <View style={styles.nextActionsGrid}>
         {recentViewedListings[0] ? (
@@ -499,6 +578,28 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
           <Text style={[styles.emptyHint, { textAlign }]}>{t("home.empty.description")}</Text>
         </View>
       ) : null}
+
+      {/* Story Viewer */}
+      <StoryViewer
+        visible={storyViewerVisible}
+        stories={viewerStories}
+        direction={direction}
+        onClose={() => setStoryViewerVisible(false)}
+        onMarkViewed={handleMarkViewed}
+        onOpenListing={(listing) => {
+          setStoryViewerVisible(false);
+          onOpenListing(listing);
+        }}
+      />
+
+      {/* Story Creator */}
+      <StoryCreator
+        visible={storyCreatorVisible}
+        direction={direction}
+        myListings={myListings}
+        onClose={() => setStoryCreatorVisible(false)}
+        onPublish={handlePublishStory}
+      />
     </ScrollView>
   );
 }

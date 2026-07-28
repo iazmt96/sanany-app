@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { isAuthenticated } from "@sanany/auth";
@@ -17,14 +17,16 @@ import {
   upsertStoredSearch,
   type StoredSearch
 } from "@sanany/shared";
-import type { ListingsQuery, MarketplaceCategoryNode, MarketplaceListing, SellerProfile } from "@sanany/types";
+import type { FollowedSellerStories, ListingsQuery, MarketplaceCategoryNode, MarketplaceListing, SellerProfile } from "@sanany/types";
 import { Card } from "@sanany/ui";
 import { defaultLanguage, isSupportedLanguage } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { getWebCategoriesRepository } from "../lib/categories-repository";
 import { getWebListingsRepository } from "../lib/listings-repository";
 import { getWebSellersRepository } from "../lib/sellers-repository";
+import { getWebStoriesRepository } from "../lib/stories-repository";
 import { ListingCard } from "./listing-card";
+import { StoriesCarousel } from "./stories-carousel";
 
 type MarketplaceShellProps = {
   language: string;
@@ -162,6 +164,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
   const listingsRepository = useMemo(() => getWebListingsRepository(), []);
   const sellersRepository = useMemo(() => getWebSellersRepository(), []);
   const categoriesRepository = useMemo(() => getWebCategoriesRepository(), []);
+  const storiesRepository = useMemo(() => getWebStoriesRepository(), []);
   const resolvedLanguage = isSupportedLanguage(language) ? language : defaultLanguage;
   const addListingHref = isAuthenticated(snapshot) ? `/${resolvedLanguage}/my-ads` : `/${resolvedLanguage}/auth`;
 
@@ -179,6 +182,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [recentViewIds, setRecentViewIds] = useState<string[]>([]);
   const [ownerSummary, setOwnerSummary] = useState<OwnerSummary | null>(null);
+  const [followedStories, setFollowedStories] = useState<FollowedSellerStories[]>([]);
 
   const selectedCityLabel = t(`siteLayout.cities.${selectedCity}`);
 
@@ -304,6 +308,24 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
     };
   }, [listingsRepository, previewState, snapshot.user?.id]);
 
+  // ── Stories ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!snapshot.user?.id || previewState === "guest") {
+      setFollowedStories([]);
+      return;
+    }
+    let active = true;
+    const userId = snapshot.user.id;
+    storiesRepository.getFollowedSellersStories(userId).then((data) => {
+      if (active) setFollowedStories(data);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [snapshot.user?.id, previewState, storiesRepository]);
+
+  const handleMarkViewed = useCallback((storyId: string) => {
+    if (!snapshot.user?.id) return;
+    void storiesRepository.markStoryViewed(storyId, snapshot.user.id);
+  }, [snapshot.user?.id, storiesRepository]);
   const sellerActivityCount = (ownerSummary?.active ?? 0) + (ownerSummary?.drafts ?? 0) + (ownerSummary?.reserved ?? 0);
   const buyerSignalCount = recentSearches.length + savedSearches.length + recentViewIds.length + favoriteIds.length;
   const isSellerFocused = sellerActivityCount > Math.max(2, buyerSignalCount) && previewState !== "guest";
@@ -494,6 +516,20 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
           </div>
         </div>
       </Card>
+
+      {/* Stories carousel — below search, above sections */}
+      {(followedStories.length > 0 || snapshot.user?.id) ? (
+        <Card className="overflow-hidden border-slate-100 p-4">
+          <StoriesCarousel
+            followedStories={followedStories}
+            currentUserId={snapshot.user?.id ?? null}
+            currentUserName={snapshot.user ? (snapshot.user as { displayName?: string }).displayName ?? "أنا" : undefined}
+            onAddStory={() => router.push(`/${resolvedLanguage}/my-ads`)}
+            onMarkViewed={handleMarkViewed}
+            onOpenListing={(listingId) => router.push(`/${resolvedLanguage}/listing/${listingId}`)}
+          />
+        </Card>
+      ) : null}
 
       {previewState === "error" || error ? (
         <Card className="space-y-3 border-red-200 p-5">

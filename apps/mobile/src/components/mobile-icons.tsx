@@ -36,7 +36,9 @@ type MobileIconName =
   | "edit"
   | "star"
   | "heart"
-  | "verified";
+  | "verified"
+  | "close"
+  | "tag";
 
 type MobileIconProps = {
   name: MobileIconName;
@@ -81,7 +83,9 @@ const iconMap: Record<MobileIconName, { inactive: keyof typeof Ionicons.glyphMap
   edit: { inactive: "pencil-outline", active: "pencil" },
   star: { inactive: "star-outline", active: "star" },
   heart: { inactive: "heart-outline", active: "heart" },
-  verified: { inactive: "checkmark-circle-outline", active: "checkmark-circle" }
+  verified: { inactive: "checkmark-circle-outline", active: "checkmark-circle" },
+  close: { inactive: "close-outline", active: "close" },
+  tag: { inactive: "pricetag-outline", active: "pricetag" }
 };
 
 export function MobileIcon({ name, color, size = 20, focused = false }: MobileIconProps) {
