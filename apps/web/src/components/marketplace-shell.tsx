@@ -48,6 +48,15 @@ const EXPERIENCE_ICONS: Record<MarketplaceCategoryNode["experienceKey"], string>
   jobs: "💼",
   services: "🛠️"
 };
+const EXPERIENCE_PRIORITY: Record<string, number> = {
+  vehicles: 1,
+  real_estate: 2,
+  electronics: 3,
+  general: 4,
+  livestock: 5,
+  services: 6,
+  jobs: 7,
+};
 const ROTATING_PLACEHOLDERS = ["آيفون 15 مستعمل بحالة ممتازة", "شقة في حي العليا بالرياض", "سيارة هوندا سيفيك 2022", "كنب غرفة جلوس", "لاب توب للدراسة"];
 
 function normalizeText(value: string): string {
@@ -390,8 +399,12 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
       ) : null}
 
       <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f0fdf9_55%,#f8fbfd_100%)] p-6 sm:p-8">
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-5">
+        <div className="mb-6 hidden text-center xl:block">
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand/60">{t("home.hero.eyebrow")}</p>
+          <h1 className="mt-2 text-2xl font-bold text-slate-800">{t("home.hero.title")}</h1>
+          <p className="mt-1.5 text-sm text-slate-500">{t("home.hero.subtitle")}</p>
+        </div>
+        <div className="mx-auto w-full max-w-2xl space-y-5">
             <form onSubmit={onSubmitSearch} className="space-y-3 rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
               {/* Search input — full width always */}
               <label className="block space-y-1">
@@ -426,7 +439,10 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                   title={t("home.nextAction.mapCta")}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 text-base transition hover:bg-teal-100"
                 >
-                  🗺️
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-teal-600" aria-hidden="true">
+                    <path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z" />
+                    <circle cx="12" cy="9" r="2.5" />
+                  </svg>
                 </Link>
               </div>
               <button type="submit" className="h-11 w-full rounded-2xl bg-brand text-sm font-semibold text-white transition hover:bg-brand-dark">
@@ -459,7 +475,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
 
             {categories.length > 0 ? (
               <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {categories.map((cat) => (
+                {[...categories].sort((a, b) => (EXPERIENCE_PRIORITY[a.experienceKey] ?? 99) - (EXPERIENCE_PRIORITY[b.experienceKey] ?? 99)).map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
@@ -472,8 +488,6 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                 ))}
               </div>
             ) : null}
-          </div>
-
         </div>
       </Card>
 
