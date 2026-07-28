@@ -722,3 +722,51 @@ export function createListingsRepository(client: SupabaseClient): ListingsReposi
     }
   };
 }
+
+export type MapListing = Pick<MarketplaceListing, "id" | "title" | "price" | "imageUrl" | "latitude" | "longitude" | "locationName" | "status">;
+
+export async function getNearbyListings(
+  client: SupabaseClient,
+  lat: number,
+  lng: number,
+  radiusKm = 50
+): Promise<MapListing[]> {
+  // Bounding box approximation: 1° lat ≈ 111 km
+  const delta = radiusKm / 111;
+  const { data, error } = await client
+    .from("listings")
+    .select("id,title,price,image_url,latitude,longitude,location_name,status")
+    .eq("status", "available")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .gte("latitude", lat - delta)
+    .lte("latitude", lat + delta)
+    .gte("longitude", lng - delta)
+    .lte("longitude", lng + delta)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    throw error;
+  }
+
+  return ((data ?? []) as Array<{
+    id: string;
+    title: string;
+    price: number;
+    image_url: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    location_name: string | null;
+    status: MarketplaceListing["status"];
+  }>).map((row) => ({
+    id: row.id,
+    title: row.title,
+    price: row.price,
+    imageUrl: row.image_url,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    locationName: row.location_name,
+    status: row.status
+  }));
+}

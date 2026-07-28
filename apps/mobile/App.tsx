@@ -25,6 +25,7 @@ import { ProfileScreen } from "./src/screens/profile-screen";
 import { SearchScreen } from "./src/screens/search-screen";
 import { SellerProfileScreen } from "./src/screens/seller-profile-screen";
 import { VerificationScreen } from "./src/screens/verification-screen";
+import { MapScreen } from "./src/screens/map-screen";
 import { mobileI18n } from "./src/i18n/mobile-i18n";
 
 function AppContent() {
@@ -47,6 +48,7 @@ function AppContent() {
   const [myAdsPreviewState, setMyAdsPreviewState] = useState<CommissionReviewPreviewState | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [homeSearchQuery, setHomeSearchQuery] = useState("");
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const sceneFade = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -200,7 +202,24 @@ function AppContent() {
               ) : (
                 <Animated.View style={[styles.scenesWrap, { opacity: sceneFade }]}>
                   <View style={[styles.scene, activeTab === "explore" ? styles.sceneActive : styles.sceneHidden]}>
-                    {isSearchOpen ? (
+                    {isMapOpen ? (
+                      <MapScreen
+                        direction={direction}
+                        onBack={() => setIsMapOpen(false)}
+                        onOpenListing={(listingId) => {
+                          setIsMapOpen(false);
+                          // fetch listing by id and open details
+                          import("@sanany/api").then(({ createListingsRepository }) => {
+                            import("./src/lib/supabase-client").then(({ getMobileSupabaseClient }) => {
+                              const repo = createListingsRepository(getMobileSupabaseClient());
+                              void repo.getById(listingId).then((listing) => {
+                                if (listing) setSelectedListing(listing);
+                              });
+                            });
+                          });
+                        }}
+                      />
+                    ) : isSearchOpen ? (
                       <SearchScreen
                         direction={direction}
                         initialSearch={homeSearchQuery}
@@ -214,6 +233,7 @@ function AppContent() {
                         onOpenListing={setSelectedListing}
                         onOpenMyAds={() => setActiveTab("myAds")}
                         onOpenAuth={() => setActiveTab("profile")}
+                        onOpenMap={() => setIsMapOpen(true)}
                         onOpenSearch={(initialSearch) => {
                           setHomeSearchQuery(initialSearch ?? "");
                           setIsSearchOpen(true);

@@ -208,6 +208,20 @@
       myAccount: "My Account",
       mapSearch: "Map Search"
     },
+    mapScreen: {
+      title: "Nearby Listings",
+      locating: "Finding your location...",
+      loading: "Loading listings...",
+      permissionDenied: "Location access denied",
+      permissionDeniedHint: "Please allow location access in your device settings",
+      noListings: "No listings near you right now",
+      errorLoading: "Error loading listings",
+      retry: "Retry",
+      priceLabel: "SAR {{price}}",
+      openListing: "Open Listing",
+      radius: "Search radius: {{km}} km",
+      back: "Back"
+    },
     seeAll: "See all",
     verifiedBadge: "Verified account",
     seller: {

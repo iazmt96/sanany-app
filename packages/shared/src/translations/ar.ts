@@ -208,6 +208,20 @@
       myAccount: "حسابي",
       mapSearch: "بحث بالخريطة"
     },
+    mapScreen: {
+      title: "الإعلانات القريبة",
+      locating: "جاري تحديد موقعك...",
+      loading: "جاري تحميل الإعلانات...",
+      permissionDenied: "لم يتم السماح بالوصول إلى الموقع",
+      permissionDeniedHint: "يرجى السماح للتطبيق بالوصول إلى موقعك من إعدادات الجهاز",
+      noListings: "لا توجد إعلانات قريبة منك الآن",
+      errorLoading: "حدث خطأ أثناء تحميل الإعلانات",
+      retry: "إعادة المحاولة",
+      priceLabel: "ر.س {{price}}",
+      openListing: "فتح الإعلان",
+      radius: "نطاق البحث: {{km}} كم",
+      back: "رجوع"
+    },
     seeAll: "عرض الكل",
     verifiedBadge: "حساب موثق",
     seller: {
