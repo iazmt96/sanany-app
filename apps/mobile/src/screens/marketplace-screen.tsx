@@ -269,12 +269,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
   }, [favoriteListings, listings, nearbyListings, recentSearches, recentViewedListings, savedSearches]);
   const primarySavedSearch = savedSearches[0] ?? recentSearches[0] ?? null;
 
-  const primaryTitle =
-    previewState === "guest"
-      ? t("home.hero.welcomeGuest")
-      : isSellerFocused
-        ? t("home.hero.welcomeSeller")
-        : t("home.hero.welcomeBack");
   const primaryAssistantCopy = recentViewedListings.length > 0
     ? t("home.hero.assistantContinue")
     : savedSearches.length > 0
@@ -303,8 +297,6 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.heroCard}>
-        <Text style={[styles.eyebrow, { textAlign }]}>{t("home.hero.eyebrow")}</Text>
-        <Text style={[styles.welcomeText, { textAlign }]}>{primaryTitle}</Text>
         <Text style={[styles.pageTitle, { textAlign }]}>{t("home.hero.title")}</Text>
         <Text style={[styles.pageSubtitle, { textAlign }]}>{primaryAssistantCopy}</Text>
 
