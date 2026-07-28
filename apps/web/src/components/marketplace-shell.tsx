@@ -544,26 +544,6 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
         </Card>
       ) : null}
 
-      {isSellerFocused && ownerSummary ? (
-        <div className="space-y-4">
-          <SectionHeader title={t("home.sections.sellerWorkspace")} description={t("home.sectionDescriptions.sellerWorkspace")} actionLabel={t("home.owner.manageAction")} actionHref={addListingHref} />
-          <div className="grid gap-3 md:grid-cols-3">
-            <Card className="rounded-[28px] bg-emerald-50 p-5">
-              <p className="text-xs font-semibold text-emerald-700">{t("home.owner.active")}</p>
-              <p className="mt-3 text-3xl font-black text-slate-950">{ownerSummary.active}</p>
-            </Card>
-            <Card className="rounded-[28px] bg-amber-50 p-5">
-              <p className="text-xs font-semibold text-amber-700">{t("home.owner.drafts")}</p>
-              <p className="mt-3 text-3xl font-black text-slate-950">{ownerSummary.drafts}</p>
-            </Card>
-            <Card className="rounded-[28px] bg-sky-50 p-5">
-              <p className="text-xs font-semibold text-sky-700">{t("home.owner.reserved")}</p>
-              <p className="mt-3 text-3xl font-black text-slate-950">{ownerSummary.reserved}</p>
-            </Card>
-          </div>
-        </div>
-      ) : null}
-
       {savedSearches.length > 0 ? (
         <div className="space-y-4">
           <SectionHeader title={t("home.sections.savedSearches")} description={t("home.sectionDescriptions.savedSearches")} />

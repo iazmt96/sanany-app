@@ -25,7 +25,7 @@ type ProfileShellProps = {
 type ProfileStatsState = {
   active: number;
   drafts: number;
-  sold: number;
+  reserved: number;
   favorites: number;
 };
 
@@ -76,7 +76,7 @@ export function ProfileShell({ language, tab = null, tapPaymentReturn = null }: 
   const [stats, setStats] = useState<ProfileStatsState>({
     active: 0,
     drafts: 0,
-    sold: 0,
+    reserved: 0,
     favorites: 0
   });
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -120,7 +120,7 @@ export function ProfileShell({ language, tab = null, tapPaymentReturn = null }: 
       setStats({
         active: activeResult.totalItems,
         drafts: draftsResult.totalItems,
-        sold: soldResult.totalItems,
+          reserved: soldResult.totalItems,
         favorites: parsedFavoriteIds.length
       });
     };
@@ -300,33 +300,31 @@ export function ProfileShell({ language, tab = null, tapPaymentReturn = null }: 
             </Card>
 
             <Card className="space-y-4">
-              <h2 className="text-lg font-semibold text-slate-900">{t("profile.dashboard.statsTitle")}</h2>
-              <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.activeAds")}</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">{stats.active}</p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <h2 className="text-xl font-black tracking-tight text-slate-950">{t("home.sections.sellerWorkspace")}</h2>
+                  <p className="text-sm leading-6 text-slate-500">{t("home.sectionDescriptions.sellerWorkspace")}</p>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.soldAds")}</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">{stats.sold}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.drafts")}</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">{stats.drafts}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.favorites")}</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">{stats.favorites}</p>
-                </div>
+                <Link href={adsTabHref} className="self-start whitespace-nowrap text-sm font-semibold text-brand hover:underline sm:self-auto">
+                  {t("home.owner.manageAction")}
+                </Link>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.profileViews")}</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-700">{t("profile.dashboard.futureReady")}</p>
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                <div className="rounded-[28px] bg-emerald-50 p-5">
+                  <p className="text-xs font-semibold text-emerald-700">{t("home.owner.active")}</p>
+                  <p className="mt-3 text-3xl font-black text-slate-950">{stats.active}</p>
                 </div>
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                  <p className="text-xs text-slate-500">{t("profile.dashboard.stats.trustScore")}</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-700">{t("profile.dashboard.futureReady")}</p>
+                <div className="rounded-[28px] bg-amber-50 p-5">
+                  <p className="text-xs font-semibold text-amber-700">{t("home.owner.drafts")}</p>
+                  <p className="mt-3 text-3xl font-black text-slate-950">{stats.drafts}</p>
+                </div>
+                <div className="rounded-[28px] bg-sky-50 p-5">
+                  <p className="text-xs font-semibold text-sky-700">{t("home.owner.reserved")}</p>
+                  <p className="mt-3 text-3xl font-black text-slate-950">{stats.reserved}</p>
+                </div>
+                <div className="rounded-[28px] bg-violet-50 p-5">
+                  <p className="text-xs font-semibold text-violet-700">{t("profile.dashboard.stats.favorites")}</p>
+                  <p className="mt-3 text-3xl font-black text-slate-950">{stats.favorites}</p>
                 </div>
               </div>
             </Card>
