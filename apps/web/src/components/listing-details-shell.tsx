@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { MarketplaceListing, SellerProfile } from "@sanany/types";
+import type { ListingSalePayment, MarketplaceCommissionSettings, MarketplaceListing, SellerProfile } from "@sanany/types";
 import {
   FAVORITES_STORAGE_KEY,
   LISTING_VIEWS_STORAGE_KEY,
@@ -15,6 +15,7 @@ import {
   getRenderableListingImageUrls,
   hasStoredId,
   parseStoredIdList,
+  shouldShowSaleCompletionAction,
   toggleStoredId
 } from "@sanany/shared";
 import { Badge, Card } from "@sanany/ui";
@@ -26,6 +27,7 @@ import { getWebSupabaseClient } from "../lib/supabase-client";
 import { resolveListingPriceLabel } from "../lib/listing-price-label";
 import { getWebSellersRepository } from "../lib/sellers-repository";
 import { ListingCard } from "./listing-card";
+import { MyAdsSaleCompletion } from "./my-ads-sale-completion";
 
 type ListingDetailsShellProps = {
   language: string;
@@ -131,6 +133,9 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMarkingAsSold, setIsMarkingAsSold] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCommissionFlowOpen, setIsCommissionFlowOpen] = useState(false);
+  const [salePayment, setSalePayment] = useState<ListingSalePayment | null>(null);
+  const [commissionSettings, setCommissionSettings] = useState<MarketplaceCommissionSettings | null>(null);
   const mediaCarouselRef = useRef<HTMLDivElement | null>(null);
   const previewCarouselRef = useRef<HTMLDivElement | null>(null);
 
@@ -213,6 +218,22 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
     setSelectedImageIndex(0);
     setPreviewImageIndex(0);
   }, [listing?.id]);
+
+  useEffect(() => {
+    if (!listing?.id || !snapshot.user?.id || listing.ownerId !== snapshot.user.id) {
+      return;
+    }
+    let active = true;
+    void Promise.all([
+      listingsRepository.getCommissionSettings(),
+      listingsRepository.listSalePaymentsBySeller(snapshot.user.id)
+    ]).then(([settings, payments]) => {
+      if (!active) return;
+      setCommissionSettings(settings);
+      setSalePayment(payments.find((p) => p.listingId === listing.id) ?? null);
+    }).catch(() => { /* non-critical */ });
+    return () => { active = false; };
+  }, [listing?.id, listing?.ownerId, snapshot.user?.id, listingsRepository]);
 
   const updateCarouselIndex = (element: HTMLDivElement, setIndex: (value: number) => void) => {
     if (listingImages.length <= 1) {
@@ -602,6 +623,21 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                         {t("marketplace.detail.updateAction")}
                       </button>
 
+                      {/* Secondary: Commission transfer */}
+                      {listing && shouldShowSaleCompletionAction(listing, salePayment ? [salePayment] : []) && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCommissionFlowOpen(true)}
+                          className="inline-flex h-9 items-center gap-1.5 justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                            <path d="M10.75 10.818v2.614A3.13 3.13 0 0 0 11.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 0 0-1.138-.432ZM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 0 0-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.33.576Z" />
+                            <path fillRule="evenodd" d="M9.99 1.012a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM4.99 10c0-2.986 2.236-5.498 5.25-5.93V3.07a.75.75 0 0 1 1.5 0v1.04a7.463 7.463 0 0 1 1.603.607.75.75 0 0 1-.7 1.33 5.963 5.963 0 0 0-1.403-.516v2.72c1.65.437 3.25 1.355 3.25 3.249 0 1.894-1.6 2.812-3.25 3.249V15.93a.75.75 0 0 1-1.5 0v-1.181a7.463 7.463 0 0 1-2.205-.83.75.75 0 0 1 .784-1.276c.47.29.996.5 1.421.603V10.82c-1.65-.437-3.25-1.355-3.25-3.25V7.5a.75.75 0 0 1 1.5 0v.07c.348-.044.7-.044 1.047 0a3.86 3.86 0 0 1 .453.081V5.427c-.508.122-.963.315-1.353.578C5.38 6.425 4.99 7.148 4.99 8.07v.07c0 .87.367 1.573 1.008 2.03.641.458 1.506.73 2.492.838v-2.72C6.84 7.851 4.99 6.933 4.99 5c0-1.894 1.6-2.812 3.25-3.249V1.07a.75.75 0 0 1 1.5 0v.679C10.827 1.924 11.4 2.148 11.9 2.45a.75.75 0 0 1-.8 1.272A5.963 5.963 0 0 0 9.74 3.25v2.484c1.6.437 3.25 1.355 3.25 3.249v.07c0 1.894-1.6 2.812-3.25 3.249v2.484c.548-.131 1.019-.345 1.36-.567.641-.458 1.14-1.161 1.14-2.219v-.07a.75.75 0 0 1 1.5 0v.07c0 1.612-.758 2.812-1.887 3.592-.514.36-1.098.617-1.713.75v.681a.75.75 0 0 1-1.5 0v-.618a5.96 5.96 0 0 1-1.603-.607.75.75 0 0 1 .7-1.33c.43.228.912.388 1.403.516v-2.72C7.59 12.563 4.99 11.645 4.99 10Z" clipRule="evenodd" />
+                          </svg>
+                          {t("marketplace.detail.transferCommissionAction")}
+                        </button>
+                      )}
+
                       {/* Secondary: Share */}
                       <button
                         type="button"
@@ -891,6 +927,18 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                 </svg>
                 {t("marketplace.detail.updateAction")}
               </button>
+              {listing && shouldShowSaleCompletionAction(listing, salePayment ? [salePayment] : []) && (
+                <button
+                  type="button"
+                  onClick={() => setIsCommissionFlowOpen(true)}
+                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 active:bg-emerald-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                    <path fillRule="evenodd" d="M9.99 1.012a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM4.99 10c0-2.986 2.236-5.498 5.25-5.93V3.07a.75.75 0 0 1 1.5 0v1.04a7.463 7.463 0 0 1 1.603.607.75.75 0 0 1-.7 1.33 5.963 5.963 0 0 0-1.403-.516v2.72c1.65.437 3.25 1.355 3.25 3.249 0 1.894-1.6 2.812-3.25 3.249V15.93a.75.75 0 0 1-1.5 0v-1.181a7.463 7.463 0 0 1-2.205-.83.75.75 0 0 1 .784-1.276c.47.29.996.5 1.421.603V10.82c-1.65-.437-3.25-1.355-3.25-3.25V7.5a.75.75 0 0 1 1.5 0v.07c.348-.044.7-.044 1.047 0a3.86 3.86 0 0 1 .453.081V5.427c-.508.122-.963.315-1.353.578C5.38 6.425 4.99 7.148 4.99 8.07v.07c0 .87.367 1.573 1.008 2.03.641.458 1.506.73 2.492.838v-2.72C6.84 7.851 4.99 6.933 4.99 5c0-1.894 1.6-2.812 3.25-3.249V1.07a.75.75 0 0 1 1.5 0v.679C10.827 1.924 11.4 2.148 11.9 2.45a.75.75 0 0 1-.8 1.272A5.963 5.963 0 0 0 9.74 3.25v2.484c1.6.437 3.25 1.355 3.25 3.249v.07c0 1.894-1.6 2.812-3.25 3.249v2.484c.548-.131 1.019-.345 1.36-.567.641-.458 1.14-1.161 1.14-2.219v-.07a.75.75 0 0 1 1.5 0v.07c0 1.612-.758 2.812-1.887 3.592-.514.36-1.098.617-1.713.75v.681a.75.75 0 0 1-1.5 0v-.618a5.96 5.96 0 0 1-1.603-.607.75.75 0 0 1 .7-1.33c.43.228.912.388 1.403.516v-2.72C7.59 12.563 4.99 11.645 4.99 10Z" clipRule="evenodd" />
+                  </svg>
+                  {t("marketplace.detail.transferCommissionAction")}
+                </button>
+              )}
             </>
           ) : (
             <>
@@ -944,6 +992,19 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
           )}
         </div>
       ) : null}
+
+      {listing && snapshot.user?.id && isOwner && (
+        <MyAdsSaleCompletion
+          isOpen={isCommissionFlowOpen}
+          language={resolvedLanguage}
+          listing={listing}
+          sellerId={snapshot.user.id}
+          settings={commissionSettings}
+          payment={salePayment}
+          onClose={() => setIsCommissionFlowOpen(false)}
+          onPaymentUpdated={(updated) => setSalePayment(updated)}
+        />
+      )}
 
       {isImagePreviewOpen && listingImages.length > 0 ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 p-4">
