@@ -390,7 +390,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
       ) : null}
 
       <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f0fdf9_55%,#f8fbfd_100%)] p-6 sm:p-8">
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
             <form onSubmit={onSubmitSearch} className="space-y-3 rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
               {/* Search input — full width always */}
