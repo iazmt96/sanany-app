@@ -247,12 +247,6 @@ export function MyAdsSaleSheet({
           <ScrollView contentContainerStyle={styles.content}>
             {listing ? (
               <>
-                <View style={styles.summaryCard}>
-                  <Text style={[styles.summaryLabel, { textAlign: isRtl ? "right" : "left" }]}>{t("myAds.saleFlow.listedPrice")}</Text>
-                  <Text style={[styles.summaryTitle, { textAlign: isRtl ? "right" : "left" }]}>{listing.title}</Text>
-                  <Text style={[styles.summaryValue, { textAlign: isRtl ? "right" : "left" }]}>{formatCurrencySar(listing.price, language)}</Text>
-                </View>
-
                 <View style={styles.fieldBlock}>
                   <Text style={[styles.fieldLabel, { textAlign: isRtl ? "right" : "left" }]}>{t("myAds.saleFlow.saleSourceLabel")}</Text>
                   <View style={[styles.saleSourceGrid, isRtl ? styles.headerRtl : undefined]}>
@@ -445,27 +439,11 @@ const styles = StyleSheet.create({
     padding: 18,
     paddingBottom: 22
   },
-  summaryCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    padding: 16
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: "#64748b"
-  },
   summaryTitle: {
     marginTop: 6,
     fontSize: 16,
     fontWeight: "800",
     color: "#0f172a"
-  },
-  summaryValue: {
-    marginTop: 6,
-    fontSize: 17,
-    fontWeight: "800",
-    color: "#0f766e"
   },
   fieldBlock: {
     gap: 8
