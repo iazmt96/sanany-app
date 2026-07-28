@@ -48,6 +48,7 @@ const EXPERIENCE_ICONS: Record<MarketplaceCategoryNode["experienceKey"], string>
   jobs: "💼",
   services: "🛠️"
 };
+const ROTATING_PLACEHOLDERS = ["آيفون 15 مستعمل بحالة ممتازة", "شقة في حي العليا بالرياض", "سيارة هوندا سيفيك 2022", "كنب غرفة جلوس", "لاب توب للدراسة"];
 
 function normalizeText(value: string): string {
   return value.trim().toLowerCase();
@@ -140,6 +141,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
 
   const [searchText, setSearchText] = useState("");
   const [selectedCity, setSelectedCity] = useState<CityKey>("riyadh");
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewState, setPreviewState] = useState<HomePreviewState>("default");
@@ -155,6 +157,13 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
   const [followedStories, setFollowedStories] = useState<FollowedSellerStories[]>([]);
 
   const selectedCityLabel = t(`siteLayout.cities.${selectedCity}`);
+  const rotatingPlaceholder = searchText.trim().length === 0 ? ROTATING_PLACEHOLDERS[placeholderIdx] : "";
+
+  useEffect(() => {
+    if (searchText.trim().length > 0) return;
+    const id = setInterval(() => setPlaceholderIdx((i) => (i + 1) % ROTATING_PLACEHOLDERS.length), 3000);
+    return () => clearInterval(id);
+  }, [searchText]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -380,55 +389,47 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
         </div>
       ) : null}
 
-      <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)] p-6 sm:p-8">
+      <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f0fdf9_55%,#f8fbfd_100%)] p-6 sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
             <form onSubmit={onSubmitSearch} className="space-y-4 rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="grid gap-3 lg:grid-cols-[1fr_190px_auto]">
+              <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
                 <label className="block space-y-1">
                   <span className="text-xs font-semibold text-slate-500">{t("siteLayout.header.searchLabel")}</span>
                   <input
                     ref={searchInputRef}
                     value={searchText}
                     onChange={(event) => setSearchText(event.target.value)}
-                    placeholder={t("home.hero.searchPlaceholder")}
+                    placeholder={rotatingPlaceholder || t("home.hero.searchPlaceholder")}
                     className="h-12 w-full rounded-2xl border border-slate-300 px-4 text-sm outline-none ring-brand/20 transition focus:border-brand focus:ring"
                   />
                 </label>
-                <label className="block space-y-1">
-                  <span className="text-xs font-semibold text-slate-500">{t("siteLayout.header.cityLabel")}</span>
-                  <select
-                    value={selectedCity}
-                    onChange={(event) => setSelectedCity(event.target.value as CityKey)}
-                    className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm outline-none ring-brand/20 transition focus:border-brand focus:ring"
+                <div className="flex items-end gap-2">
+                  <label className="block space-y-1">
+                    <span className="text-xs font-semibold text-slate-500">{t("siteLayout.header.cityLabel")}</span>
+                    <select
+                      value={selectedCity}
+                      onChange={(event) => setSelectedCity(event.target.value as CityKey)}
+                      className="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm outline-none ring-brand/20 transition focus:border-brand focus:ring"
+                    >
+                      {CITY_KEYS.map((cityKey) => (
+                        <option key={cityKey} value={cityKey}>
+                          {t(`siteLayout.cities.${cityKey}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Link
+                    href={`/${resolvedLanguage}/map`}
+                    title={t("home.nextAction.mapCta")}
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 text-lg transition hover:bg-teal-100"
                   >
-                    {CITY_KEYS.map((cityKey) => (
-                      <option key={cityKey} value={cityKey}>
-                        {t(`siteLayout.cities.${cityKey}`)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="grid grid-cols-2 gap-2 self-end lg:grid-cols-1">
-                  <button type="submit" className="h-12 rounded-2xl bg-brand px-4 text-sm font-semibold text-white transition hover:bg-brand-dark">
-                    {t("home.hero.searchAction")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={searchText.trim().length === 0}
-                    onClick={() => persistSearch(SAVED_SEARCHES_STORAGE_KEY)}
-                    className="h-12 rounded-2xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-brand/35 hover:text-brand disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {t("home.hero.saveSearch")}
-                  </button>
+                    🗺️
+                  </Link>
                 </div>
-                <Link
-                  href={`/${resolvedLanguage}/map`}
-                  className="col-span-full flex items-center justify-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-700 transition hover:bg-teal-100 lg:col-span-1"
-                >
-                  <span>🗺️</span>
-                  <span>{t("home.nextAction.mapCta")}</span>
-                </Link>
+                <button type="submit" className="h-12 self-end rounded-2xl bg-brand px-6 text-sm font-semibold text-white transition hover:bg-brand-dark">
+                  {t("home.hero.searchAction")}
+                </button>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -454,6 +455,22 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                 ))}
               </div>
             </form>
+
+            {categories.length > 0 ? (
+              <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => openSearch({ categorySlug: resolveCategorySearchTarget(cat).slug })}
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-brand/30 hover:text-brand"
+                  >
+                    <span>{EXPERIENCE_ICONS[cat.experienceKey]}</span>
+                    <span>{resolvedLanguage === "ar" ? cat.nameAr : cat.nameEn}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
         </div>
