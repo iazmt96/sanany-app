@@ -572,14 +572,14 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                   )}
                 </div>
 
-                {/* Actions row — now inside the gallery card */}
+                {/* Actions row — owner controls */}
                 <div className="flex flex-wrap items-center gap-2">
                   {isOwner ? (
                     <>
                       {/* Primary: Edit */}
                       <Link
                         href={`/${resolvedLanguage}/my-ads`}
-                        className="inline-flex h-10 items-center gap-1.5 justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90"
+                        className="inline-flex h-9 items-center gap-1.5 justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90 transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
                           <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
@@ -588,41 +588,13 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                         {t("marketplace.detail.editAction")}
                       </Link>
 
-                      {/* Primary: Mark as sold */}
-                      <button
-                        type="button"
-                        onClick={() => void onMarkAsSold()}
-                        disabled={isMarkingAsSold || listing.status === "sold"}
-                        className="inline-flex h-10 items-center gap-1.5 justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 disabled:opacity-50"
-                      >
-                        {isMarkingAsSold ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 animate-spin">
-                            <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
-                          </svg>
-                        ) : listing.status === "sold" ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
-                          </svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
-                            <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        <span className={listing.status === "sold" ? "line-through opacity-70" : ""}>
-                          {isMarkingAsSold ? t("common.loading") : t("marketplace.detail.markAsSoldAction")}
-                        </span>
-                      </button>
-
-                      {/* Separator */}
-                      <span className="h-6 w-px bg-slate-200" aria-hidden="true" />
-
                       {/* Secondary: Refresh/bump */}
                       <button
                         type="button"
                         onClick={() => void onRefreshListing()}
                         disabled={isRefreshing}
                         title={t("marketplace.detail.updateAction")}
-                        className="inline-flex h-10 items-center gap-1.5 justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        className="inline-flex h-9 items-center gap-1.5 justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50 transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`}>
                           <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
@@ -634,7 +606,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                       <button
                         type="button"
                         onClick={() => void onShareListing()}
-                        className="inline-flex h-10 items-center gap-1.5 justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        className="inline-flex h-9 items-center gap-1.5 justify-center rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
                           <path d="M13 4.5a2.5 2.5 0 1 1 .702 1.737L6.97 9.604a2.518 2.518 0 0 1 0 .792l6.733 3.367a2.5 2.5 0 1 1-.671 1.341l-6.733-3.367a2.5 2.5 0 1 1 0-3.474l6.733-3.366A2.52 2.52 0 0 1 13 4.5Z" />
@@ -642,16 +614,16 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                         {t("marketplace.detail.share")}
                       </button>
 
-                      {/* Separator */}
-                      <span className="h-6 w-px bg-slate-200" aria-hidden="true" />
+                      {/* Spacer pushes delete to end */}
+                      <span className="flex-1" aria-hidden="true" />
 
-                      {/* Danger: Delete (icon-only) */}
+                      {/* Danger: Delete (icon-only, pushed to end) */}
                       <button
                         type="button"
                         onClick={() => void onDeleteListing()}
                         disabled={isDeleting}
                         title={isDeleting ? t("common.loading") : t("marketplace.detail.deleteAction")}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 disabled:opacity-50 transition-colors"
                       >
                         {isDeleting ? (
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 animate-spin">
