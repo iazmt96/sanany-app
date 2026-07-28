@@ -394,6 +394,19 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
 
   return (
     <section dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="space-y-8">
+      {(followedStories.length > 0 || snapshot.user?.id) ? (
+        <Card className="overflow-hidden border-slate-100 p-4">
+          <StoriesCarousel
+            followedStories={followedStories}
+            currentUserId={snapshot.user?.id ?? null}
+            currentUserName={snapshot.user ? (snapshot.user as { displayName?: string }).displayName ?? "أنا" : undefined}
+            onAddStory={() => router.push(`/${resolvedLanguage}/my-ads`)}
+            onMarkViewed={handleMarkViewed}
+            onOpenListing={(listingId) => router.push(`/${resolvedLanguage}/listing/${listingId}`)}
+          />
+        </Card>
+      ) : null}
+
       <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)] p-6 sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
@@ -516,20 +529,6 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
           </div>
         </div>
       </Card>
-
-      {/* Stories carousel — below search, above sections */}
-      {(followedStories.length > 0 || snapshot.user?.id) ? (
-        <Card className="overflow-hidden border-slate-100 p-4">
-          <StoriesCarousel
-            followedStories={followedStories}
-            currentUserId={snapshot.user?.id ?? null}
-            currentUserName={snapshot.user ? (snapshot.user as { displayName?: string }).displayName ?? "أنا" : undefined}
-            onAddStory={() => router.push(`/${resolvedLanguage}/my-ads`)}
-            onMarkViewed={handleMarkViewed}
-            onOpenListing={(listingId) => router.push(`/${resolvedLanguage}/listing/${listingId}`)}
-          />
-        </Card>
-      ) : null}
 
       {previewState === "error" || error ? (
         <Card className="space-y-3 border-red-200 p-5">
