@@ -906,32 +906,11 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
         <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-sm md:hidden">
           {isOwner ? (
             <>
-              <Link
-                href={`/${resolvedLanguage}/my-ads`}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand text-sm font-semibold text-white active:opacity-90"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
-                  <path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
-                  <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
-                </svg>
-                {t("marketplace.detail.editAction")}
-              </Link>
-              <button
-                type="button"
-                onClick={() => void onRefreshListing()}
-                disabled={isRefreshing}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600 disabled:opacity-50 active:bg-slate-100"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 shrink-0 ${isRefreshing ? "animate-spin" : ""}`}>
-                  <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
-                </svg>
-                {t("marketplace.detail.updateAction")}
-              </button>
-              {listing && shouldShowSaleCompletionAction(listing, salePayment ? [salePayment] : []) && (
+              {shouldShowSaleCompletionAction(listing, salePayment ? [salePayment] : []) && (
                 <button
                   type="button"
                   onClick={() => setIsCommissionFlowOpen(true)}
-                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 active:bg-emerald-100"
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 active:bg-emerald-100"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
                     <path fillRule="evenodd" d="M9.99 1.012a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM4.99 10c0-2.986 2.236-5.498 5.25-5.93V3.07a.75.75 0 0 1 1.5 0v1.04a7.463 7.463 0 0 1 1.603.607.75.75 0 0 1-.7 1.33 5.963 5.963 0 0 0-1.403-.516v2.72c1.65.437 3.25 1.355 3.25 3.249 0 1.894-1.6 2.812-3.25 3.249V15.93a.75.75 0 0 1-1.5 0v-1.181a7.463 7.463 0 0 1-2.205-.83.75.75 0 0 1 .784-1.276c.47.29.996.5 1.421.603V10.82c-1.65-.437-3.25-1.355-3.25-3.25V7.5a.75.75 0 0 1 1.5 0v.07c.348-.044.7-.044 1.047 0a3.86 3.86 0 0 1 .453.081V5.427c-.508.122-.963.315-1.353.578C5.38 6.425 4.99 7.148 4.99 8.07v.07c0 .87.367 1.573 1.008 2.03.641.458 1.506.73 2.492.838v-2.72C6.84 7.851 4.99 6.933 4.99 5c0-1.894 1.6-2.812 3.25-3.249V1.07a.75.75 0 0 1 1.5 0v.679C10.827 1.924 11.4 2.148 11.9 2.45a.75.75 0 0 1-.8 1.272A5.963 5.963 0 0 0 9.74 3.25v2.484c1.6.437 3.25 1.355 3.25 3.249v.07c0 1.894-1.6 2.812-3.25 3.249v2.484c.548-.131 1.019-.345 1.36-.567.641-.458 1.14-1.161 1.14-2.219v-.07a.75.75 0 0 1 1.5 0v.07c0 1.612-.758 2.812-1.887 3.592-.514.36-1.098.617-1.713.75v.681a.75.75 0 0 1-1.5 0v-.618a5.96 5.96 0 0 1-1.603-.607.75.75 0 0 1 .7-1.33c.43.228.912.388 1.403.516v-2.72C7.59 12.563 4.99 11.645 4.99 10Z" clipRule="evenodd" />
