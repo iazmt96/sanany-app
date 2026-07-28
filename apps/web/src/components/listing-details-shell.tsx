@@ -468,6 +468,18 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   return (
     <RequireAuth language={resolvedLanguage}>
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-8">
+        {/* Mobile back button */}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex w-fit items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-semibold text-brand hover:bg-brand/5 md:hidden"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 ${resolvedLanguage === "ar" ? "rotate-180" : ""}`}>
+            <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
+          </svg>
+          {t("marketplace.detail.back")}
+        </button>
+
         {isLoading ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
@@ -496,6 +508,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
           <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
             {listingStructuredData ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: listingStructuredData }} /> : null}
             <section className="space-y-5">
+              {/* Gallery + actions merged in one card */}
               <Card className="space-y-4">
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                   {primaryImage ? (
@@ -532,9 +545,8 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                     <div className="flex h-80 items-center justify-center text-sm text-slate-500">{t("marketplace.detail.noImage")}</div>
                   )}
                 </div>
-              </Card>
 
-              <Card className="space-y-3">
+                {/* Actions row — now inside the gallery card */}
                 <div className="flex flex-wrap gap-2">
                   {isOwner ? (
                     <>
@@ -628,8 +640,14 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                   <Badge variant={listing.status}>{t(`marketplace.status.${listing.status}`)}</Badge>
                 </div>
 
-                <div className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(availabilityState)}`}>
-                  {t(`marketplace.detail.availability.${availabilityState}`)}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(availabilityState)}`}>
+                    {t(`marketplace.detail.availability.${availabilityState}`)}
+                  </div>
+                  {/* Price visible on mobile (hidden on lg where sidebar shows it) */}
+                  <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-bold text-slate-900 lg:hidden">
+                    {listingPriceLabel}
+                  </div>
                 </div>
 
                 <p className="text-sm text-slate-500">{t("marketplace.postedAt", { value: formatRelativeTime(listing.createdAt, resolvedLanguage) })}</p>
@@ -642,11 +660,14 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                 <section className="space-y-2">
                   <h3 className="text-base font-semibold text-slate-900">{t("marketplace.detail.specificationsTitle")}</h3>
                   {specificationRows.length > 0 ? (
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="overflow-hidden rounded-xl border border-slate-200">
                       {specificationRows.map((row, index) => (
-                        <div key={`${row.label}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-                          <p className="font-semibold text-slate-700">{row.label}</p>
-                          <p className="text-slate-600">{row.value}</p>
+                        <div
+                          key={`${row.label}-${index}`}
+                          className={`flex items-center justify-between gap-4 px-4 py-3 text-sm ${index < specificationRows.length - 1 ? "border-b border-slate-100" : ""}`}
+                        >
+                          <span className="font-semibold text-slate-900">{row.label}</span>
+                          <span className="text-slate-600">{row.value}</span>
                         </div>
                       ))}
                     </div>
