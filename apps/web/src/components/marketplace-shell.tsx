@@ -410,13 +410,6 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
       <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)] p-6 sm:p-8">
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <h1 className="max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-[2.5rem]">{t("home.hero.title")}</h1>
-              </div>
-              <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">{primaryAssistantCopy}</p>
-            </div>
-
             <form onSubmit={onSubmitSearch} className="space-y-4 rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
               <div className="grid gap-3 lg:grid-cols-[1fr_190px_auto]">
                 <label className="block space-y-1">
