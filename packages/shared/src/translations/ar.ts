@@ -202,7 +202,13 @@
       sellerTitle: "راجع مساحة البيع",
       sellerDescription: "إعلاناتك ومسوداتك هي الأولوية الآن.",
       categoriesTitle: "ابدأ من قسم مناسب",
-      categoriesDescription: "عندما لا تكون متأكدًا من المصطلح، ابدأ من القسم."
+      categoriesDescription: "عندما لا تكون متأكدًا من المصطلح، ابدأ من القسم.",
+      mapTitle: "استكشف الخريطة",
+      mapDescription: "شاهد الإعلانات القريبة منك على الخريطة مباشرة.",
+      mapCta: "فتح الخريطة"
+    },
+    stories: {
+      sectionLabel: "آخر القصص"
     },
     quickTabs: {
       login: "تسجيل الدخول",

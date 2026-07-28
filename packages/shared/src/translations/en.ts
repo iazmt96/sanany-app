@@ -202,7 +202,13 @@
       sellerTitle: "Review your selling workspace",
       sellerDescription: "Your listings and drafts are the priority now.",
       categoriesTitle: "Start from a smart category",
-      categoriesDescription: "When the keyword is unclear, start from the type."
+      categoriesDescription: "When the keyword is unclear, start from the type.",
+      mapTitle: "Explore the map",
+      mapDescription: "See nearby listings plotted on a map.",
+      mapCta: "Open map"
+    },
+    stories: {
+      sectionLabel: "Stories"
     },
     quickTabs: {
       login: "Sign In",

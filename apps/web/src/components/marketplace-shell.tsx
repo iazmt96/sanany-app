@@ -395,16 +395,19 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
   return (
     <section dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="space-y-8">
       {(followedStories.length > 0 || snapshot.user?.id) ? (
-        <Card className="overflow-hidden border-slate-100 p-4">
-          <StoriesCarousel
-            followedStories={followedStories}
-            currentUserId={snapshot.user?.id ?? null}
-            currentUserName={snapshot.user ? (snapshot.user as { displayName?: string }).displayName ?? "أنا" : undefined}
-            onAddStory={() => router.push(`/${resolvedLanguage}/my-ads`)}
-            onMarkViewed={handleMarkViewed}
-            onOpenListing={(listingId) => router.push(`/${resolvedLanguage}/listing/${listingId}`)}
-          />
-        </Card>
+        <div className="space-y-2">
+          <p className="px-1 text-xs font-bold uppercase tracking-widest text-slate-400">{t("home.stories.sectionLabel")}</p>
+          <Card className="overflow-hidden border-slate-100 p-4">
+            <StoriesCarousel
+              followedStories={followedStories}
+              currentUserId={snapshot.user?.id ?? null}
+              currentUserName={snapshot.user ? (snapshot.user as { displayName?: string }).displayName ?? "أنا" : undefined}
+              onAddStory={() => router.push(`/${resolvedLanguage}/my-ads`)}
+              onMarkViewed={handleMarkViewed}
+              onOpenListing={(listingId) => router.push(`/${resolvedLanguage}/listing/${listingId}`)}
+            />
+          </Card>
+        </div>
       ) : null}
 
       <Card className="overflow-hidden border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)] p-6 sm:p-8">
@@ -449,6 +452,13 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                     {t("home.hero.saveSearch")}
                   </button>
                 </div>
+                <Link
+                  href={`/${resolvedLanguage}/map`}
+                  className="col-span-full flex items-center justify-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-700 transition hover:bg-teal-100 lg:col-span-1"
+                >
+                  <span>🗺️</span>
+                  <span>{t("home.nextAction.mapCta")}</span>
+                </Link>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -510,14 +520,11 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
             )}
 
             <NextActionCard
-              title={isSellerFocused ? t("home.nextAction.categoriesTitle") : t("home.nextAction.nearbyTitle")}
-              description={isSellerFocused ? t("home.nextAction.categoriesDescription") : t("home.nextAction.nearbyDescription")}
-              cta={isSellerFocused ? t("home.sections.categories") : t("home.sections.nearby")}
-              onClick={() =>
-                isSellerFocused
-                  ? router.push(`/${resolvedLanguage}/categories`)
-                  : openSearch({ city: selectedCityLabel })
-              }
+              title={t("home.nextAction.mapTitle")}
+              description={t("home.nextAction.mapDescription")}
+              cta={t("home.nextAction.mapCta")}
+              href={`/${resolvedLanguage}/map`}
+              tone="brand"
             />
           </div>
         </div>
