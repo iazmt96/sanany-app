@@ -160,7 +160,8 @@
       nearby: "نتائج هادئة ومركزة حول {{city}}."
     },
     categories: {
-      childCount: "مسارات"
+      childCount: "مسارات",
+      allIn: "كل"
     },
     owner: {
       active: "نشط",

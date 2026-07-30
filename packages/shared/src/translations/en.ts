@@ -160,7 +160,8 @@
       nearby: "Calm and focused opportunities around {{city}}."
     },
     categories: {
-      childCount: "paths"
+      childCount: "paths",
+      allIn: "All"
     },
     owner: {
       active: "Active",
