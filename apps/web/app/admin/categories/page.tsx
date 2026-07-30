@@ -153,15 +153,15 @@ export default async function AdminCategoriesPage({ searchParams }: CategoriesPa
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">القسم الرئيسي</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">القسم الأب</label>
               <select
                 name="parentId"
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
               >
-                <option value="">قسم رئيسي (بدون أب)</option>
-                {data.rootOptions.map((root) => (
-                  <option key={root.id} value={root.id}>
-                    {language === "ar" ? root.labelAr : root.labelEn}
+                <option value="">— بدون أب (قسم رئيسي) —</option>
+                {data.allOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {"　".repeat(opt.depth)}{opt.depth > 0 ? "└ " : ""}{language === "ar" ? opt.labelAr : opt.labelEn}
                   </option>
                 ))}
               </select>
@@ -221,7 +221,7 @@ export default async function AdminCategoriesPage({ searchParams }: CategoriesPa
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">الاسم</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">القسم الرئيسي</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">القسم الأب</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">نوع العرض</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">الإعلانات</th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">الحقول</th>
@@ -344,12 +344,14 @@ export default async function AdminCategoriesPage({ searchParams }: CategoriesPa
                                     defaultValue={row.parentId ?? ""}
                                     className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   >
-                                    <option value="">— بدون أب —</option>
-                                    {data.rootOptions.map((root) => (
-                                      <option key={root.id} value={root.id}>
-                                        {language === "ar" ? root.labelAr : root.labelEn}
-                                      </option>
-                                    ))}
+                                    <option value="">— بدون أب (قسم رئيسي) —</option>
+                                    {data.allOptions
+                                      .filter((opt) => opt.id !== row.id)
+                                      .map((opt) => (
+                                        <option key={opt.id} value={opt.id}>
+                                          {"　".repeat(opt.depth)}{opt.depth > 0 ? "└ " : ""}{language === "ar" ? opt.labelAr : opt.labelEn}
+                                        </option>
+                                      ))}
                                   </select>
                                 </div>
                                 <div>

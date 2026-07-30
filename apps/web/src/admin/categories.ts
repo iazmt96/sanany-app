@@ -26,10 +26,20 @@ export type AdminCategoryRow = {
   sortOrder: number;
 };
 
+export type AdminCategoryOption = {
+  id: string;
+  slug: string;
+  labelAr: string;
+  labelEn: string;
+  parentId: string | null;
+  depth: number;
+};
+
 export type AdminCategoriesPageData = {
   overview: AdminCategoryOverview[];
   rows: AdminCategoryRow[];
   rootOptions: Array<{ id: string; slug: string; labelAr: string; labelEn: string }>;
+  allOptions: AdminCategoryOption[];
   totalItems: number;
   totalPages: number;
   totalListings: number;
@@ -135,6 +145,35 @@ async function countListingsForCategory(adminClient: ReturnType<typeof requireSe
   return count ?? 0;
 }
 
+function buildDepthOptions(categories: CategoryRow[]): AdminCategoryOption[] {
+  const map = new Map(categories.map((c) => [c.id, c]));
+
+  function getDepth(id: string, visited = new Set<string>()): number {
+    if (visited.has(id)) return 0; // guard against circular refs
+    const cat = map.get(id);
+    if (!cat || cat.parent_id === null) return 0;
+    visited.add(id);
+    return 1 + getDepth(cat.parent_id, visited);
+  }
+
+  // Sort: roots first, then by sort_order, then by name
+  const sorted = [...categories].sort((a, b) => {
+    const depthA = getDepth(a.id);
+    const depthB = getDepth(b.id);
+    if (depthA !== depthB) return depthA - depthB;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name_ar.localeCompare(b.name_ar, "ar");
+  });
+
+  return sorted.map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    labelAr: c.name_ar,
+    labelEn: c.name_en,
+    parentId: c.parent_id,
+    depth: getDepth(c.id)
+  }));
+}
+
 export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters): Promise<AdminCategoriesPageData> {
   const supabase = await createClient();
   const page = normalizePage(filters.page);
@@ -154,6 +193,7 @@ export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters
       overview: [],
       rows: [],
       rootOptions: [],
+      allOptions: [],
       totalItems: 0,
       totalPages: 1,
       totalListings: 0,
@@ -230,6 +270,9 @@ export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters
   const from = (safePage - 1) * pageSize;
   const to = from + pageSize;
 
+  // Build depth-aware options for parent dropdowns — supports unlimited nesting
+  const allOptions = buildDepthOptions(categories);
+
   return {
     overview,
     rows: filteredRows.slice(from, to),
@@ -239,6 +282,7 @@ export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters
       labelAr: root.name_ar,
       labelEn: root.name_en
     })),
+    allOptions,
     totalItems,
     totalPages,
     totalListings: overview.reduce((sum, item) => sum + item.listingCount, 0),
