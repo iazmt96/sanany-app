@@ -1,427 +1,409 @@
-﻿import Link from "next/link";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { hasAdminPermission, resources } from "@sanany/shared";
-import { getAdminAuthContext } from "../../../src/admin/auth";
-import { createAdminCategory, deleteAdminCategory, getAdminCategoriesPageData, parseOfferTypeFormValue, updateAdminCategory } from "../../../src/admin/categories";
+import Link from "next/link";
 import { resolveAdminLanguage } from "../../../src/admin/locale";
-import { AdminForbidden } from "../../../src/components/admin/admin-forbidden";
+import { getAdminAuthContext } from "../../../src/admin/auth";
+import {
+  getAdminCategoriesPageData,
+  createAdminCategory,
+  updateAdminCategory,
+  deleteAdminCategory,
+  parseOfferTypeFormValue
+} from "../../../src/admin/categories";
+import { redirect } from "next/navigation";
+import type { ListingOfferType } from "@sanany/types";
 
-type AdminCategoriesPageProps = {
-  searchParams: Promise<{
-    result?: string;
-    error?: string;
-  }>;
+type CategoriesPageProps = {
+  searchParams: Promise<{ group?: string; page?: string }>;
 };
 
-function parseIntegerValue(value: FormDataEntryValue | null): number {
-  if (typeof value !== "string") return 0;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
+const OFFER_TYPE_LABELS: Record<ListingOfferType, { ar: string; en: string; color: string }> = {
+  sell: { ar: "بيع", en: "Sell", color: "bg-blue-100 text-blue-700" },
+  rent: { ar: "إيجار", en: "Rent", color: "bg-purple-100 text-purple-700" },
+  service: { ar: "خدمة", en: "Service", color: "bg-green-100 text-green-700" },
+  request: { ar: "مطلوب", en: "Request", color: "bg-orange-100 text-orange-700" }
+};
 
-async function createCategoryAction(formData: FormData) {
+async function handleCreate(formData: FormData) {
   "use server";
-
-  const auth = await getAdminAuthContext();
-  if (auth.status !== "authorized" || !hasAdminPermission(auth.role, "categories.manage")) {
-    redirect("/admin/categories?result=forbidden");
-  }
-
-  const parentId = String(formData.get("parentId") ?? "");
-  const nameAr = String(formData.get("nameAr") ?? "");
-  const nameEn = String(formData.get("nameEn") ?? "");
+  const nameAr = String(formData.get("nameAr") ?? "").trim();
+  const nameEn = String(formData.get("nameEn") ?? "").trim();
+  const parentId = String(formData.get("parentId") ?? "").trim() || null;
   const offerType = parseOfferTypeFormValue(formData.get("offerType"));
-  const slug = String(formData.get("slug") ?? "");
-  const sortOrder = parseIntegerValue(formData.get("sortOrder"));
+  const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10);
 
-  try {
-    await createAdminCategory({
-      parentId: parentId.length > 0 ? parentId : null,
-      slug,
-      nameAr,
-      nameEn,
-      offerType,
-      sortOrder
-    });
-  } catch {
-    redirect("/admin/categories?result=create-error");
-  }
-
-  revalidatePath("/admin/categories");
-  redirect("/admin/categories?result=created");
+  await createAdminCategory({ parentId, nameAr, nameEn, offerType, sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0 });
+  redirect("/admin/categories");
 }
 
-async function updateCategoryAction(formData: FormData) {
+async function handleUpdate(formData: FormData) {
   "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim();
+  const nameAr = String(formData.get("nameAr") ?? "").trim();
+  const nameEn = String(formData.get("nameEn") ?? "").trim();
+  const offerType = parseOfferTypeFormValue(formData.get("offerType"));
+  const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10);
+  const isActive = formData.get("isActive") === "true";
+  const parentId = String(formData.get("parentId") ?? "").trim() || null;
 
-  const auth = await getAdminAuthContext();
-  if (auth.status !== "authorized" || !hasAdminPermission(auth.role, "categories.manage")) {
-    redirect("/admin/categories?result=forbidden");
-  }
-
-  const categoryId = String(formData.get("categoryId") ?? "");
-  if (!categoryId) redirect("/admin/categories?result=update-error");
-
-  try {
-    await updateAdminCategory({
-      id: categoryId,
-      parentId: String(formData.get("parentId") ?? "") || null,
-      slug: String(formData.get("slug") ?? ""),
-      nameAr: String(formData.get("nameAr") ?? ""),
-      nameEn: String(formData.get("nameEn") ?? ""),
-      offerType: parseOfferTypeFormValue(formData.get("offerType")),
-      sortOrder: parseIntegerValue(formData.get("sortOrder")),
-      isActive: String(formData.get("isActive") ?? "") === "true"
-    });
-  } catch {
-    redirect("/admin/categories?result=update-error");
-  }
-
-  revalidatePath("/admin/categories");
-  redirect("/admin/categories?result=updated");
+  if (!id) return;
+  await updateAdminCategory({ id, slug, nameAr, nameEn, offerType, sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0, isActive, parentId });
+  redirect("/admin/categories");
 }
 
-async function deleteCategoryAction(formData: FormData) {
+async function handleDelete(formData: FormData) {
   "use server";
-
-  const auth = await getAdminAuthContext();
-  if (auth.status !== "authorized" || !hasAdminPermission(auth.role, "categories.manage")) {
-    redirect("/admin/categories?result=forbidden");
-  }
-
-  const categoryId = String(formData.get("categoryId") ?? "");
-  if (!categoryId) redirect("/admin/categories?result=delete-error");
-
-  try {
-    await deleteAdminCategory(categoryId);
-  } catch {
-    redirect("/admin/categories?result=delete-error");
-  }
-
-  revalidatePath("/admin/categories");
-  redirect("/admin/categories?result=deleted");
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  await deleteAdminCategory(id);
+  redirect("/admin/categories");
 }
 
-const offerTypeLabels: Record<string, string> = {
-  sell: "ط¨ظٹط¹",
-  rent: "ط¥ظٹط¬ط§ط±",
-  service: "ط®ط¯ظ…ط©",
-  request: "ط·ظ„ط¨"
-};
-
-const offerTypeBadgeColors: Record<string, string> = {
-  sell: "bg-emerald-100 text-emerald-800",
-  rent: "bg-blue-100 text-blue-800",
-  service: "bg-purple-100 text-purple-800",
-  request: "bg-amber-100 text-amber-800"
-};
-
-export default async function AdminCategoriesPage({ searchParams }: AdminCategoriesPageProps) {
+export default async function AdminCategoriesPage({ searchParams }: CategoriesPageProps) {
   const params = await searchParams;
   const language = await resolveAdminLanguage();
-  const dictionary = resources[language].translation;
   const auth = await getAdminAuthContext();
 
-  if (auth.status !== "authorized" || !hasAdminPermission(auth.role, "categories.manage")) {
-    return <AdminForbidden language={language} />;
+  if (auth.status !== "authorized") {
+    redirect("/admin/login");
   }
 
-  const data = await getAdminCategoriesPageData({ group: null, page: null, pageSize: 1000 });
+  const data = await getAdminCategoriesPageData({
+    group: params.group ?? null,
+    page: params.page ?? null,
+    pageSize: 1000
+  });
+
+  const offerTypeOptions: Array<{ value: string; labelAr: string; labelEn: string }> = [
+    { value: "", labelAr: "عام (بدون نوع)", labelEn: "General (no type)" },
+    { value: "sell", labelAr: "بيع", labelEn: "Sell" },
+    { value: "rent", labelAr: "إيجار", labelEn: "Rent" },
+    { value: "service", labelAr: "خدمة", labelEn: "Service" },
+    { value: "request", labelAr: "مطلوب", labelEn: "Request" }
+  ];
+
+  const activeGroup = data.rootOptions.find((root) => root.slug === params.group) ?? null;
 
   return (
-    <section className="space-y-6" dir="rtl">
-      {/* Status messages */}
-      {params.result === "created" && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-          âœ“ طھظ… ط¥ط¶ط§ظپط© ط§ظ„ظپط¦ط© ط¨ظ†ط¬ط§ط­
-        </div>
-      )}
-      {params.result === "updated" && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-          âœ“ طھظ… طھط­ط¯ظٹط« ط§ظ„ظپط¦ط© ط¨ظ†ط¬ط§ط­
-        </div>
-      )}
-      {params.result === "deleted" && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-          âœ“ طھظ… ط­ط°ظپ ط§ظ„ظپط¦ط©
-        </div>
-      )}
-      {(params.result === "forbidden" || params.result === "create-error" || params.result === "update-error" || params.result === "delete-error") && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
-          âœ• ط­ط¯ط« ط®ط·ط£طŒ ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط¬ط¯ط¯ط§ظ‹
-        </div>
-      )}
-
-      {/* Header + stats */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">ط¥ط¯ط§ط±ط© ط§ظ„ظپط¦ط§طھ</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {data.overview.length} ظپط¦ط© ط±ط¦ظٹط³ظٹط© آ· {data.totalItems} ظپط¦ط© ظپط±ط¹ظٹط© آ· {data.totalListings.toLocaleString("ar-SA")} ط¥ط¹ظ„ط§ظ†
-          </p>
+    <section dir="rtl" className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <div className="flex items-center justify-between max-w-6xl mx-auto">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">إدارة الأقسام</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              {data.overview.length} قسم رئيسي &middot; {data.totalItems} فئة فرعية &middot; {data.totalListings.toLocaleString("ar-SA")} إعلان
+            </p>
+          </div>
+          <Link
+            href="/admin/dashboard"
+            className="text-sm text-slate-500 hover:text-slate-700"
+          >
+            &larr; لوحة التحكم
+          </Link>
         </div>
       </div>
 
-      {/* Add subcategory form */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">ط¥ط¶ط§ظپط© ظپط¦ط© ظپط±ط¹ظٹط©</h2>
-        <form action={createCategoryAction} className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-600">ط§ظ„ظپط¦ط© ط§ظ„ط±ط¦ظٹط³ظٹط© *</span>
-              <select
-                name="parentId"
-                required
-                className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
-              >
-                <option value="">ط§ط®طھط± ط§ظ„ظپط¦ط© ط§ظ„ط±ط¦ظٹط³ظٹط©</option>
-                {data.rootOptions.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.labelAr}
-                  </option>
-                ))}
-              </select>
-            </label>
+      <div className="max-w-6xl mx-auto px-6 py-6 space-y-6">
+        {/* Error */}
+        {data.errorCode && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+            خطأ في تحميل البيانات — الكود: {data.errorCode}
+          </div>
+        )}
 
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-600">ط§ظ„ط§ط³ظ… ط¨ط§ظ„ط¹ط±ط¨ظٹ *</span>
+        {/* Group filter tabs */}
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/categories"
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${!params.group ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+          >
+            الكل
+          </Link>
+          {data.rootOptions.map((root) => (
+            <Link
+              key={root.id}
+              href={`/admin/categories?group=${root.slug}`}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${params.group === root.slug ? "bg-slate-800 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+            >
+              {language === "ar" ? root.labelAr : root.labelEn}
+            </Link>
+          ))}
+        </div>
+
+        {/* Add new category form */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <h2 className="text-base font-semibold text-slate-800 mb-4">+ إضافة فئة جديدة</h2>
+          <form action={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">الاسم بالعربية *</label>
               <input
                 name="nameAr"
                 required
-                placeholder="ظ…ط«ط§ظ„: ط³ظٹط§ط±ط§طھ ط³ظٹط¯ط§ظ†"
-                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
+                placeholder="مثال: سيارات للبيع"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
               />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-600">ط§ظ„ط§ط³ظ… ط¨ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹ *</span>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">الاسم بالإنجليزية *</label>
               <input
                 name="nameEn"
                 required
-                placeholder="e.g. Sedans"
-                className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
-                dir="ltr"
+                placeholder="e.g. Cars for Sale"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
               />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-600">ظ†ظˆط¹ ط§ظ„ط¥ط¹ظ„ط§ظ†ط§طھ</span>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">القسم الرئيسي</label>
+              <select
+                name="parentId"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
+              >
+                <option value="">قسم رئيسي (بدون أب)</option>
+                {data.rootOptions.map((root) => (
+                  <option key={root.id} value={root.id}>
+                    {language === "ar" ? root.labelAr : root.labelEn}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">نوع العرض</label>
               <select
                 name="offerType"
-                className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
               >
-                <option value="">ط§ظ„ظƒظ„</option>
-                <option value="sell">ط¨ظٹط¹</option>
-                <option value="rent">ط¥ظٹط¬ط§ط±</option>
-                <option value="service">ط®ط¯ظ…ط©</option>
-                <option value="request">ط·ظ„ط¨</option>
+                {offerTypeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {language === "ar" ? opt.labelAr : opt.labelEn}
+                  </option>
+                ))}
               </select>
-            </label>
-          </div>
-
-          {/* Advanced settings */}
-          <details className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <summary className="cursor-pointer text-xs font-semibold text-slate-500 hover:text-slate-700">
-              âڑ™ ط¥ط¹ط¯ط§ط¯ط§طھ ظ…طھظ‚ط¯ظ…ط© (ط§ط®طھظٹط§ط±ظٹ)
-            </summary>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1">
-                <span className="text-xs font-semibold text-slate-600">ط±ظ…ط² ط§ظ„ظپط¦ط© (Slug)</span>
-                <input
-                  name="slug"
-                  placeholder="ظٹظڈظˆظ„ظژظ‘ط¯ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ظ…ظ† ط§ظ„ط§ط³ظ… ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹ"
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
-                  dir="ltr"
-                />
-                <p className="text-xs text-slate-400">ط§طھط±ظƒظ‡ ظپط§ط±ط؛ط§ظ‹ ظ„ظ„طھظˆظ„ظٹط¯ ط§ظ„طھظ„ظ‚ط§ط¦ظٹ</p>
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-semibold text-slate-600">طھط±طھظٹط¨ ط§ظ„ط¹ط±ط¶</span>
-                <input
-                  name="sortOrder"
-                  type="number"
-                  min={0}
-                  defaultValue={0}
-                  className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
-                />
-              </label>
             </div>
-          </details>
-
-          <button
-            type="submit"
-            className="h-10 rounded-lg bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-dark"
-          >
-            + ط¥ط¶ط§ظپط© ط§ظ„ظپط¦ط©
-          </button>
-        </form>
-      </div>
-
-      {/* Tree view â€” all subcategories grouped by root */}
-      {data.errorCode ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 text-center">
-          طھط¹ط°ظ‘ط± طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ
+            <input type="hidden" name="sortOrder" value="0" />
+            <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
+              <button
+                type="submit"
+                className="px-5 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition-colors"
+              >
+                إضافة الفئة
+              </button>
+            </div>
+          </form>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {data.overview.map((root) => {
-            const children = data.rows.filter((row) => row.mainCategoryLabelAr === root.labelAr);
-            return (
-              <div key={root.slug} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                {/* Root category header */}
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-bold text-slate-900">{root.labelAr}</span>
-                    <span className="text-xs text-slate-400">{root.labelEn}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
-                    <span>{children.length} ظپط¦ط© ظپط±ط¹ظٹط©</span>
-                    <span>{root.listingCount.toLocaleString("ar-SA")} ط¥ط¹ظ„ط§ظ†</span>
-                  </div>
-                </div>
 
-                {/* Subcategory rows */}
-                {children.length === 0 ? (
-                  <p className="px-5 py-4 text-sm text-slate-400">ظ„ط§ طھظˆط¬ط¯ ظپط¦ط§طھ ظپط±ط¹ظٹط© ط¨ط¹ط¯</p>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {children.map((row) => (
-                      <div key={row.id} className="px-5 py-3">
-                        {/* Row summary */}
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            <span className={`inline-block h-2 w-2 rounded-full ${row.isActive ? "bg-emerald-500" : "bg-slate-300"}`} />
-                            <span className="font-medium text-slate-900">{row.labelAr}</span>
-                            <span className="text-xs text-slate-400" dir="ltr">{row.labelEn}</span>
-                            {row.offerType && (
-                              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${offerTypeBadgeColors[row.offerType] ?? "bg-slate-100 text-slate-700"}`}>
-                                {offerTypeLabels[row.offerType] ?? row.offerType}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-slate-500">
-                            <span>{row.listingCount.toLocaleString("ar-SA")} ط¥ط¹ظ„ط§ظ†</span>
-                            <span>{row.fieldsCount} ط­ظ‚ظ„</span>
-                            <Link href={`/admin/categories/${row.id}`} className="font-semibold text-indigo-600 hover:underline">
-                              ط­ظ‚ظˆظ„
-                            </Link>
-                            <Link href={`/admin/listings?q=${encodeURIComponent(row.labelAr)}`} className="font-semibold text-brand hover:underline">
-                              ط¥ط¹ظ„ط§ظ†ط§طھ
-                            </Link>
-                          </div>
-                        </div>
+        {/* Root categories overview */}
+        {data.overview.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {data.overview.map((item) => (
+              <Link
+                key={item.id}
+                href={`/admin/categories?group=${item.slug}`}
+                className={`bg-white rounded-xl border p-3 text-center hover:shadow-sm transition-all ${activeGroup?.id === item.id ? "border-slate-800 ring-1 ring-slate-800" : "border-slate-200"}`}
+              >
+                <p className="text-sm font-semibold text-slate-800 truncate">
+                  {language === "ar" ? item.labelAr : item.labelEn}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">{item.subcategoryCount} فئة فرعية</p>
+                <p className="text-xs text-slate-400">{item.listingCount.toLocaleString("ar-SA")} إعلان</p>
+              </Link>
+            ))}
+          </div>
+        )}
 
-                        {/* Inline edit form */}
-                        <details className="mt-2">
-                          <summary className="cursor-pointer text-xs font-semibold text-slate-400 hover:text-slate-600">
-                            طھط¹ط¯ظٹظ„
+        {/* Rows table */}
+        {data.rows.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">
+            لا توجد فئات فرعية بعد
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">الاسم</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">القسم الرئيسي</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">نوع العرض</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">الإعلانات</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">الحقول</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">الحالة</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {data.rows.map((row) => {
+                  const offerLabel = row.offerType ? OFFER_TYPE_LABELS[row.offerType] : null;
+                  return (
+                    <tr key={row.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-slate-800">{row.labelAr}</p>
+                        <p className="text-xs text-slate-400">{row.labelEn}</p>
+                        <p className="text-xs text-slate-300 font-mono mt-0.5">{row.slug}</p>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {language === "ar" ? row.mainCategoryLabelAr : row.mainCategoryLabelEn}
+                      </td>
+                      <td className="px-4 py-3">
+                        {offerLabel ? (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${offerLabel.color}`}>
+                            {language === "ar" ? offerLabel.ar : offerLabel.en}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {row.listingCount > 0 ? (
+                          <Link
+                            href={`/admin/listings?category=${row.slug}`}
+                            className="text-blue-600 hover:underline font-medium"
+                          >
+                            {row.listingCount.toLocaleString("ar-SA")}
+                          </Link>
+                        ) : (
+                          <span className="text-slate-300">0</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {row.fieldsCount > 0 ? (
+                          <Link
+                            href={`/admin/categories/${row.id}`}
+                            className="text-indigo-600 hover:underline font-medium"
+                          >
+                            {row.fieldsCount}
+                          </Link>
+                        ) : (
+                          <span className="text-slate-300">0</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {row.isActive ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                            نشط
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">
+                            معطّل
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <details className="relative">
+                          <summary className="cursor-pointer text-xs text-slate-400 hover:text-slate-600 list-none select-none">
+                            ⋮ تعديل
                           </summary>
-                          <form action={updateCategoryAction} className="mt-3 space-y-3 rounded-xl bg-slate-50 p-3">
-                            <input type="hidden" name="categoryId" value={row.id} />
-                            <input type="hidden" name="parentId" value={row.parentId ?? ""} />
-                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                              <label className="space-y-1">
-                                <span className="text-xs font-semibold text-slate-600">ط§ظ„ط§ط³ظ… ط¨ط§ظ„ط¹ط±ط¨ظٹ</span>
-                                <input
-                                  name="nameAr"
-                                  defaultValue={row.labelAr}
-                                  required
-                                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
-                                />
-                              </label>
-                              <label className="space-y-1">
-                                <span className="text-xs font-semibold text-slate-600">ط§ظ„ط§ط³ظ… ط¨ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹ</span>
-                                <input
-                                  name="nameEn"
-                                  defaultValue={row.labelEn}
-                                  required
-                                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
-                                  dir="ltr"
-                                />
-                              </label>
-                              <label className="space-y-1">
-                                <span className="text-xs font-semibold text-slate-600">ظ†ظˆط¹ ط§ظ„ط¥ط¹ظ„ط§ظ†ط§طھ</span>
-                                <select
-                                  name="offerType"
-                                  defaultValue={row.offerType ?? ""}
-                                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
-                                >
-                                  <option value="">ط§ظ„ظƒظ„</option>
-                                  <option value="sell">ط¨ظٹط¹</option>
-                                  <option value="rent">ط¥ظٹط¬ط§ط±</option>
-                                  <option value="service">ط®ط¯ظ…ط©</option>
-                                  <option value="request">ط·ظ„ط¨</option>
-                                </select>
-                              </label>
-                              <label className="space-y-1">
-                                <span className="text-xs font-semibold text-slate-600">ط§ظ„ط­ط§ظ„ط©</span>
-                                <select
-                                  name="isActive"
-                                  defaultValue={row.isActive ? "true" : "false"}
-                                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none ring-brand/30 focus:border-brand focus:ring"
-                                >
-                                  <option value="true">ظ†ط´ط·ط©</option>
-                                  <option value="false">ظ…ظˆظ‚ظˆظپط©</option>
-                                </select>
-                              </label>
-                            </div>
-                            <details className="rounded-lg border border-slate-200 bg-white p-2">
-                              <summary className="cursor-pointer text-xs font-semibold text-slate-400">
-                                âڑ™ ط¥ط¹ط¯ط§ط¯ط§طھ ظ…طھظ‚ط¯ظ…ط©
-                              </summary>
-                              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                                <label className="space-y-1">
-                                  <span className="text-xs font-semibold text-slate-600">ط±ظ…ط² ط§ظ„ظپط¦ط© (Slug)</span>
+                          <div className="mt-2 p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3 min-w-72">
+                            <form action={handleUpdate} className="space-y-2">
+                              <input type="hidden" name="id" value={row.id} />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">الاسم بالعربية</label>
+                                  <input
+                                    name="nameAr"
+                                    defaultValue={row.labelAr}
+                                    required
+                                    className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">الاسم بالإنجليزية</label>
+                                  <input
+                                    name="nameEn"
+                                    defaultValue={row.labelEn}
+                                    required
+                                    className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">Slug</label>
                                   <input
                                     name="slug"
                                     defaultValue={row.slug}
                                     required
-                                    className="h-8 w-full rounded-lg border border-slate-300 px-2 text-xs outline-none ring-brand/30 focus:border-brand focus:ring"
                                     dir="ltr"
+                                    className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded font-mono focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
-                                </label>
-                                <label className="space-y-1">
-                                  <span className="text-xs font-semibold text-slate-600">طھط±طھظٹط¨ ط§ظ„ط¹ط±ط¶</span>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">الترتيب</label>
                                   <input
                                     name="sortOrder"
                                     type="number"
-                                    min={0}
                                     defaultValue={row.sortOrder}
-                                    className="h-8 w-full rounded-lg border border-slate-300 px-2 text-xs outline-none ring-brand/30 focus:border-brand focus:ring"
+                                    min={0}
+                                    className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
-                                </label>
+                                </div>
                               </div>
-                            </details>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="submit"
-                                className="h-8 rounded-lg bg-brand px-4 text-xs font-semibold text-white hover:bg-brand-dark"
-                              >
-                                ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ
-                              </button>
-                              <form action={deleteCategoryAction} className="inline">
-                                <input type="hidden" name="categoryId" value={row.id} />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">القسم الرئيسي</label>
+                                  <select
+                                    name="parentId"
+                                    defaultValue={row.parentId ?? ""}
+                                    className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  >
+                                    <option value="">— بدون أب —</option>
+                                    {data.rootOptions.map((root) => (
+                                      <option key={root.id} value={root.id}>
+                                        {language === "ar" ? root.labelAr : root.labelEn}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-slate-500 mb-1">نوع العرض</label>
+                                  <select
+                                    name="offerType"
+                                    defaultValue={row.offerType ?? ""}
+                                    className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  >
+                                    {offerTypeOptions.map((opt) => (
+                                      <option key={opt.value} value={opt.value}>
+                                        {language === "ar" ? opt.labelAr : opt.labelEn}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  name="isActive"
+                                  defaultValue={row.isActive ? "true" : "false"}
+                                  className="px-2 py-1.5 text-xs border border-slate-300 rounded bg-white focus:outline-none"
+                                >
+                                  <option value="true">نشط</option>
+                                  <option value="false">معطّل</option>
+                                </select>
                                 <button
                                   type="submit"
-                                  className="h-8 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                  className="flex-1 px-3 py-1.5 bg-slate-800 text-white text-xs rounded hover:bg-slate-700 transition-colors"
                                 >
-                                  حذف
+                                  حفظ التعديلات
                                 </button>
-                              </form>
-                            </div>
-                          </form>
+                              </div>
+                            </form>
+                            <form action={handleDelete}>
+                              <input type="hidden" name="id" value={row.id} />
+                              <button
+                                type="submit"
+                                className="w-full px-3 py-1.5 bg-red-50 text-red-600 text-xs border border-red-200 rounded hover:bg-red-100 transition-colors"
+                              >
+                                حذف الفئة
+                              </button>
+                            </form>
+                          </div>
                         </details>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
-
