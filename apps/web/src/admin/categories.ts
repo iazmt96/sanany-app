@@ -41,6 +41,7 @@ export type AdminCategoriesPageData = {
 export type AdminCategoriesFilters = {
   group?: string | null;
   page?: string | null;
+  pageSize?: number;
 };
 
 type CategoryRow = {
@@ -71,7 +72,7 @@ type AdminCategoryMutationInput = {
 
 type CreateAdminCategoryInput = {
   parentId: string | null;
-  slug: string;
+  slug?: string;
   nameAr: string;
   nameEn: string;
   offerType: ListingOfferType | null;
@@ -137,7 +138,7 @@ async function countListingsForCategory(adminClient: ReturnType<typeof requireSe
 export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters): Promise<AdminCategoriesPageData> {
   const supabase = await createClient();
   const page = normalizePage(filters.page);
-  const pageSize = 12;
+  const pageSize = filters.pageSize ?? 12;
 
   const [categoriesResult, fieldsResult] = await Promise.all([
     supabase
@@ -249,11 +250,12 @@ export async function getAdminCategoriesPageData(filters: AdminCategoriesFilters
 
 export async function createAdminCategory(input: CreateAdminCategoryInput): Promise<void> {
   const adminClient = requireServiceRoleClient();
-  const slug = normalizeSlug(requireText(input.slug, "slug"));
   const nameAr = requireText(input.nameAr, "nameAr");
   const nameEn = requireText(input.nameEn, "nameEn");
+  // Auto-generate slug from nameEn if not provided
+  const slug = normalizeSlug(input.slug?.trim() ? input.slug : nameEn);
   if (!slug) {
-    throw new Error("Invalid slug value.");
+    throw new Error("Could not generate a slug. Please provide an English name or a custom slug.");
   }
 
   const payload = {
