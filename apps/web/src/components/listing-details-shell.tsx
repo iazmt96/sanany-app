@@ -792,45 +792,55 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
             <aside className="space-y-4">
               <Card className="sticky top-24 space-y-4">
 
-                <section className="space-y-2">
+                <section className="space-y-3">
                   <h3 className="text-sm font-semibold text-slate-900">{t("marketplace.detail.advertiserTitle")}</h3>
-                  <div className="rounded-lg border border-slate-200 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{seller?.displayName ?? t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() })}</p>
-                        <p className="text-xs text-slate-500">{t("marketplace.detail.advertiserRole")}</p>
-                        {seller ? (
-                          <p className="mt-2 text-xs text-amber-600">
-                            {seller.ratingAverage.toFixed(1)} ★ ({t("sellerProfile.ratingCount", { count: seller.ratingCount })})
-                          </p>
-                        ) : null}
-                        {listing.ownerId ? (
-                          <Link href={`/${resolvedLanguage}/seller/${listing.ownerId}`} className="mt-2 inline-flex text-xs font-semibold text-brand hover:underline">
-                            {t("sellerProfile.pageTitle")}
-                          </Link>
-                        ) : null}
-                      </div>
-                      {!isOwner ? (
-                        <div className="flex items-center gap-2">
-                          {contactPermissions.canCall ? (
-                            <a href={`tel:${advertiserPhone}`} className="inline-flex h-9 items-center justify-center rounded-lg border border-brand/30 bg-brand/5 px-3 text-xs font-semibold text-brand">
-                              {t("marketplace.detail.call")}
-                            </a>
-                          ) : null}
-                          {contactPermissions.canChat ? (
-                            <a
-                              href={`https://wa.me/${advertiserPhone.replace(/[^\d]/g, "")}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex h-9 items-center justify-center rounded-lg border border-brand/30 bg-brand/5 px-3 text-xs font-semibold text-brand"
-                            >
-                              {t("marketplace.detail.chat")}
-                            </a>
-                          ) : null}
-                        </div>
+                  <Link
+                    href={listing.ownerId ? `/${resolvedLanguage}/seller/${listing.ownerId}` : "#"}
+                    className="flex items-center gap-3 rounded-2xl bg-[#f8fbfd] p-3 transition hover:bg-teal-50/60"
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-50">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0f766e" className="h-6 w-6">
+                        <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-900">{seller?.displayName ?? t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() })}</p>
+                      <p className="text-xs text-slate-500">{t("marketplace.detail.advertiserRole")}</p>
+                      {seller ? (
+                        <p className="mt-0.5 text-xs text-amber-600">
+                          {seller.ratingAverage.toFixed(1)} ★ ({t("sellerProfile.ratingCount", { count: seller.ratingCount })})
+                        </p>
                       ) : null}
                     </div>
-                  </div>
+                    {!isOwner ? (
+                      <div className="flex shrink-0 items-center gap-2">
+                        {contactPermissions.canCall ? (
+                          <a
+                            href={`tel:${advertiserPhone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-brand transition hover:bg-teal-100"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                              <path fillRule="evenodd" d="M2 3.5A1.5 1.5 0 0 1 3.5 2h1.148a1.5 1.5 0 0 1 1.465 1.175l.716 3.223a1.5 1.5 0 0 1-1.052 1.767l-.933.267c-.41.117-.643.555-.48.95a11.542 11.542 0 0 0 6.254 6.254c.395.163.833-.07.95-.48l.267-.933a1.5 1.5 0 0 1 1.767-1.052l3.223.716A1.5 1.5 0 0 1 18 16.352V17.5a1.5 1.5 0 0 1-1.5 1.5H15c-1.149 0-2.263-.15-3.326-.43A13.022 13.022 0 0 1 2.43 8.326 13.019 13.019 0 0 1 2 5V3.5Z" clipRule="evenodd" />
+                            </svg>
+                          </a>
+                        ) : null}
+                        {contactPermissions.canChat ? (
+                          <a
+                            href={`https://wa.me/${advertiserPhone.replace(/[^\d]/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-brand transition hover:bg-teal-100"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                              <path d="M3.505 2.365A41.369 41.369 0 0 1 9 2c1.863 0 3.697.124 5.495.365 1.247.167 2.318.946 2.85 2.052l.253.53a11.52 11.52 0 0 1 .582 5.98l-.043.304a2.75 2.75 0 0 1-1.526 2.05.75.75 0 0 0-.428.662v1.576a.75.75 0 0 1-1.06.68l-3.498-1.748a.75.75 0 0 0-.375-.082 10.023 10.023 0 0 1-3.75-.465.75.75 0 0 0-.576.073l-1.998 1.15a.75.75 0 0 1-1.062-.678V12.04a2.75 2.75 0 0 1-1.7-2.23 11.52 11.52 0 0 1 .582-5.98l.253-.529c.532-1.106 1.603-1.885 2.85-2.052Z" />
+                            </svg>
+                          </a>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </Link>
                 </section>
 
                 {!seller?.isOwner && seller ? (
