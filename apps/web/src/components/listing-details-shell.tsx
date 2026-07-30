@@ -515,18 +515,6 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
   return (
     <RequireAuth language={resolvedLanguage}>
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-8 pb-24 md:pb-8">
-        {/* Mobile back button */}
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="flex w-fit items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-semibold text-brand hover:bg-brand/5 md:hidden"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`h-4 w-4 ${resolvedLanguage === "ar" ? "rotate-180" : ""}`}>
-            <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
-          </svg>
-          {t("marketplace.detail.back")}
-        </button>
-
         {isLoading ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
