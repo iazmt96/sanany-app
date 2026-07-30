@@ -400,55 +400,43 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
       ) : null}
 
       {categories.length > 0 ? (
-        <div className="space-y-2">
-          {/* ── شريط الأقسام الرئيسية ── */}
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div>
+          {/* ── تابس الأقسام الرئيسية (tab-bar + underline indicator) ── */}
+          <div className="flex overflow-x-auto border-b border-slate-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {[...categories]
               .sort((a, b) => (EXPERIENCE_PRIORITY[a.experienceKey] ?? 99) - (EXPERIENCE_PRIORITY[b.experienceKey] ?? 99))
               .map((cat) => {
-                const isExpanded = expandedCategoryId === cat.id;
-                const hasChildren = cat.children.length > 0;
+                const isActive = expandedCategoryId === cat.id;
                 return (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => {
-                      if (hasChildren) {
+                      if (cat.children.length > 0) {
                         setExpandedCategoryId((prev) => (prev === cat.id ? null : cat.id));
                       } else {
                         openSearch({ categorySlug: resolveCategorySearchTarget(cat).slug });
                       }
                     }}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold shadow-sm transition-all ${
-                      isExpanded
-                        ? "border-brand bg-brand text-white"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-brand/30 hover:text-brand"
+                    className={`-mb-px shrink-0 border-b-2 px-4 py-2.5 text-sm font-semibold transition-all ${
+                      isActive
+                        ? "border-brand text-brand"
+                        : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
                     }`}
                   >
-                    <span>{EXPERIENCE_ICONS[cat.experienceKey]}</span>
-                    <span>{resolvedLanguage === "ar" ? cat.nameAr : cat.nameEn}</span>
-                    {hasChildren && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        className={`h-3 w-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                      >
-                        <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
-                      </svg>
-                    )}
+                    {resolvedLanguage === "ar" ? cat.nameAr : cat.nameEn}
                   </button>
                 );
               })}
           </div>
 
-          {/* ── شريط الأقسام الفرعية (ينبثق عند اختيار قسم) ── */}
+          {/* ── بطاقات الأقسام الفرعية (rounded-2xl card style) ── */}
           {(() => {
             const expanded = expandedCategoryId ? categories.find((c) => c.id === expandedCategoryId) : null;
             if (!expanded || expanded.children.length === 0) return null;
             return (
               <div
-                className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="flex gap-2.5 overflow-x-auto py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 style={{ animation: "fadeSlideDown 0.15s ease-out both" }}
               >
                 <button
@@ -457,9 +445,9 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                     openSearch({ categorySlug: resolveCategorySearchTarget(expanded).slug });
                     setExpandedCategoryId(null);
                   }}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-brand/30 bg-brand/5 px-4 py-2 text-xs font-semibold text-brand shadow-sm transition hover:bg-brand hover:text-white"
+                  className="flex shrink-0 items-center justify-center rounded-2xl border border-brand bg-brand px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:opacity-90"
                 >
-                  {t("home.categories.allIn")} {resolvedLanguage === "ar" ? expanded.nameAr : expanded.nameEn}
+                  {t("home.categories.allIn")}
                 </button>
                 {expanded.children.map((sub) => (
                   <button
@@ -469,7 +457,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
                       openSearch({ categorySlug: resolveCategorySearchTarget(sub).slug });
                       setExpandedCategoryId(null);
                     }}
-                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-brand/30 hover:text-brand"
+                    className="flex shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-brand/30 hover:text-brand"
                   >
                     {resolvedLanguage === "ar" ? sub.nameAr : sub.nameEn}
                   </button>
