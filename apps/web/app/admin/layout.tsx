@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const direction = getDirection(language);
 
   if (auth.status === "unauthenticated") {
-    redirect(`/${language}/auth?next=/admin/dashboard`);
+    redirect("/admin/login");
   }
 
   if (auth.status === "forbidden") {
