@@ -772,16 +772,6 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                   <h3 className="text-base font-semibold text-slate-900">{t("marketplace.detail.locationTitle")}</h3>
                   <p className="text-sm text-slate-700">{listing.locationName ?? t("marketplace.detail.approximateLocation")}</p>
                   <p className="text-xs text-slate-500">{t("marketplace.detail.locationPrivacyHint")}</p>
-                  {listing.locationName ? (
-                    <a
-                      href={`https://www.google.com/maps?q=${encodeURIComponent(listing.locationName)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex text-sm font-semibold text-brand hover:underline"
-                    >
-                      {t("marketplace.detail.openInMaps")}
-                    </a>
-                  ) : null}
                   <a
                     href={`https://www.google.com/maps?q=${encodeURIComponent(listing.locationName ?? `${mapLatitude},${mapLongitude}`)}`}
                     target="_blank"
