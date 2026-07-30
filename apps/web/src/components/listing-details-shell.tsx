@@ -244,8 +244,23 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
     if (slideWidth <= 0) {
       return;
     }
-    const nextIndex = Math.max(0, Math.min(listingImages.length - 1, Math.round(element.scrollLeft / slideWidth)));
+    // Normalize scrollLeft for RTL layouts:
+    // Firefox RTL: scrollLeft is negative → take absolute value
+    // Chrome/Edge RTL: scrollLeft counts from the right end → flip it
+    let scrollPos = element.scrollLeft;
+    if (scrollPos < 0) {
+      scrollPos = Math.abs(scrollPos);
+    } else if (getComputedStyle(element).direction === "rtl") {
+      scrollPos = element.scrollWidth - element.clientWidth - scrollPos;
+    }
+    const nextIndex = Math.max(0, Math.min(listingImages.length - 1, Math.round(scrollPos / slideWidth)));
     setIndex(nextIndex);
+  };
+
+  const scrollToImage = (index: number) => {
+    if (!mediaCarouselRef.current) return;
+    const slide = mediaCarouselRef.current.children[index] as HTMLElement | undefined;
+    slide?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
   };
 
   const openImagePreview = () => {
@@ -566,11 +581,14 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                         <Badge variant={listing.status}>{t(`marketplace.status.${listing.status}`)}</Badge>
                       </div>
                       {listingImages.length > 1 ? (
-                        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-center justify-center gap-2">
+                        <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-2">
                           {listingImages.map((_, index) => (
-                            <span
+                            <button
                               key={`${listing.id}-dot-${index}`}
-                              className={`rounded-full transition-all ${selectedImageIndex === index ? "h-1.5 w-5 bg-white" : "h-1.5 w-1.5 bg-white/55"}`}
+                              type="button"
+                              aria-label={`${index + 1}`}
+                              onClick={(e) => { e.stopPropagation(); scrollToImage(index); setSelectedImageIndex(index); }}
+                              className={`rounded-full transition-all ${selectedImageIndex === index ? "h-1.5 w-5 bg-white" : "h-1.5 w-1.5 bg-white/55 hover:bg-white/80"}`}
                             />
                           ))}
                         </div>
