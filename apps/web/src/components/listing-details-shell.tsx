@@ -769,9 +769,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                 </section>
 
                 <section className="space-y-2">
-                  <h3 className="text-base font-semibold text-slate-900">{t("marketplace.detail.locationTitle")}</h3>
                   <p className="text-sm text-slate-700">{listing.locationName ?? t("marketplace.detail.approximateLocation")}</p>
-                  <p className="text-xs text-slate-500">{t("marketplace.detail.locationPrivacyHint")}</p>
                   <a
                     href={`https://www.google.com/maps?q=${encodeURIComponent(listing.locationName ?? `${mapLatitude},${mapLongitude}`)}`}
                     target="_blank"
@@ -805,16 +803,6 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
 
             <aside className="space-y-4">
               <Card className="sticky top-24 space-y-4">
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <div className="flex flex-wrap items-center gap-2 text-lg font-bold text-slate-900">
-                    <span>{listingPriceLabel}</span>
-                    {listing.status === "sold" ? (
-                      <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                        {t("marketplace.status.sold")}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
 
                 <section className="space-y-2">
                   <h3 className="text-sm font-semibold text-slate-900">{t("marketplace.detail.advertiserTitle")}</h3>
