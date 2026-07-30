@@ -148,7 +148,8 @@
       savedSearches: "Saved searches",
       personalized: "Recommended for your current intent",
       recentlyViewed: "Continue where you left off",
-      nearby: "Nearby opportunities"
+      nearby: "Nearby opportunities",
+      latestListings: "Latest listings"
     },
     sectionDescriptions: {
       nextForYou: "The single most sensible thing to do next based on your recent signals.",
@@ -157,7 +158,8 @@
       savedSearches: "Fast return paths instead of restarting every search.",
       personalized: "Opportunities closer to what matters now, not everything in the market.",
       recentlyViewed: "Go straight back to the options you were already comparing.",
-      nearby: "Calm and focused opportunities around {{city}}."
+      nearby: "Calm and focused opportunities around {{city}}.",
+      latestListings: "The most recently published listings on SANANY, newest first."
     },
     categories: {
       childCount: "paths",

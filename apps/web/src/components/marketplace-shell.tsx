@@ -333,6 +333,11 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
     return uniqueListings([...recentViewedListings, ...favoriteListings, ...nearbyListings, ...listings]).slice(0, 4);
   }, [favoriteListings, listings, nearbyListings, recentSearches, recentViewedListings, savedSearches]);
 
+  const latestListings = useMemo(
+    () => [...listings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 8),
+    [listings],
+  );
+
   const primaryAssistantCopy = recentViewedListings.length > 0
     ? t("home.hero.assistantContinue")
     : savedSearches.length > 0
@@ -558,6 +563,22 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
             {t("common.retry")}
           </button>
         </Card>
+      ) : null}
+
+      {latestListings.length > 0 ? (
+        <div className="space-y-4">
+          <SectionHeader title={t("home.sections.latestListings")} description={t("home.sectionDescriptions.latestListings")} actionLabel={t("home.seeAll")} actionHref={`/${resolvedLanguage}/search?sort=newest`} />
+          <div className={GRID_CLASS}>
+            {latestListings.map((listing) => (
+              <ListingCard
+                key={`latest-${listing.id}`}
+                listing={listing}
+                language={resolvedLanguage}
+                sellerProfile={listing.ownerId ? sellerProfilesByOwnerId.get(listing.ownerId) ?? null : null}
+              />
+            ))}
+          </div>
+        </div>
       ) : null}
 
       {savedSearches.length > 0 ? (

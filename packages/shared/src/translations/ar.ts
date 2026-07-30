@@ -148,7 +148,8 @@
       savedSearches: "عمليات البحث المحفوظة",
       personalized: "ترشيحات تناسب نيتك الحالية",
       recentlyViewed: "أكمل من حيث توقفت",
-      nearby: "فرص قريبة منك"
+      nearby: "فرص قريبة منك",
+      latestListings: "أحدث الإعلانات"
     },
     sectionDescriptions: {
       nextForYou: "أهم شيء منطقي لتفعله الآن بناءً على إشاراتك الأخيرة.",
@@ -157,7 +158,8 @@
       savedSearches: "مسارات رجوع سريعة بدل تكرار البحث من البداية.",
       personalized: "فرص أقرب لما يهمك الآن، لا لكل ما في السوق.",
       recentlyViewed: "عد مباشرة إلى الخيارات التي كنت تراجعها.",
-      nearby: "نتائج هادئة ومركزة حول {{city}}."
+      nearby: "نتائج هادئة ومركزة حول {{city}}.",
+      latestListings: "آخر ما نُشر في سنعني، مرتبة من الأحدث."
     },
     categories: {
       childCount: "مسارات",
