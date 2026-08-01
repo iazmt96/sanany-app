@@ -576,7 +576,7 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
             {detailMessages.map((message) => (
               <View key={message.id} style={[styles.bubbleWrap, message.from === "me" ? styles.bubbleWrapMe : styles.bubbleWrapOther]}>
                 <View style={[styles.bubble, message.from === "me" ? styles.bubbleMe : styles.bubbleOther]}>
-                  <Text style={[styles.bubbleText, { textAlign: message.from === "me" ? (isRtl ? "right" : "left") : isRtl ? "left" : "right" }]}>
+                  <Text style={[styles.bubbleText, message.from === "me" ? styles.bubbleTextMe : undefined, { textAlign: message.from === "me" ? (isRtl ? "right" : "left") : isRtl ? "left" : "right" }]}>
                     {message.text}
                   </Text>
                 </View>
@@ -678,8 +678,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   tabLabel: {
-    fontSize: 24,
-    fontWeight: "800",
+    fontSize: 14,
+    fontWeight: "700",
     color: "#374151"
   },
   tabLabelActive: {
@@ -706,7 +706,7 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse"
   },
   unreadLabel: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "700",
     color: "#374151"
   },
@@ -795,19 +795,19 @@ const styles = StyleSheet.create({
     flex: 1
   },
   threadName: {
-    fontSize: 26,
+    fontSize: 15,
     fontWeight: "700",
     color: "#111827"
   },
   threadListing: {
     marginTop: 2,
-    fontSize: 20,
+    fontSize: 13,
     fontWeight: "600",
     color: "#0f766e"
   },
   threadMessage: {
     marginTop: 2,
-    fontSize: 16,
+    fontSize: 13,
     color: "#6b7280"
   },
   imageWrap: {
@@ -828,13 +828,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff"
   },
   logoTitle: {
-    fontSize: 20,
+    fontSize: 13,
     fontWeight: "800",
     color: "#1f2937"
   },
   logoSubtitle: {
     marginTop: -2,
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: "700",
     color: "#1f2937"
   },
@@ -898,13 +898,13 @@ const styles = StyleSheet.create({
     flex: 1
   },
   detailName: {
-    fontSize: 26,
+    fontSize: 15,
     fontWeight: "700",
     color: "#1f2937"
   },
   detailListing: {
     marginTop: 2,
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: "600",
     color: "#0f766e"
   },
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
   },
   messagesArea: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f8fafc",
     paddingHorizontal: 12,
     paddingBottom: 8
   },
@@ -946,14 +946,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   bubbleMe: {
-    backgroundColor: "#ffffff"
+    backgroundColor: "#0f766e"
   },
   bubbleOther: {
-    backgroundColor: "#dceadf"
+    backgroundColor: "#f0fdfa",
+    borderWidth: 1,
+    borderColor: "#ccfbf1"
   },
   bubbleText: {
-    fontSize: 18,
+    fontSize: 15,
     color: "#1f2937"
+  },
+  bubbleTextMe: {
+    color: "#ffffff"
   },
   quickRepliesRow: {
     flexDirection: "row",
