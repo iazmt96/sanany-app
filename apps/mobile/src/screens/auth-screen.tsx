@@ -268,7 +268,9 @@ export function AuthScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Logo */}
-        <Image source={require("../../assets/sanany-logo.png")} style={[styles.logo, isRtl ? styles.logoRtl : undefined]} resizeMode="contain" />
+        <View style={[styles.logoRow, isRtl ? styles.logoRowRtl : undefined]}>
+          <Image source={require("../../assets/sanany-logo.png")} style={styles.logo} resizeMode="contain" />
+        </View>
 
         {/* Title */}
         <Text style={[styles.title, { textAlign }]}>
@@ -490,8 +492,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#ffffff" },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 22, paddingTop: 52, paddingBottom: 24, gap: 12 },
-  logo: { width: 130, height: 44, marginBottom: 14, alignSelf: "flex-start" },
-  logoRtl: { alignSelf: "flex-end" },
+  logoRow: { width: "100%", marginBottom: 14, alignItems: "flex-start" },
+  logoRowRtl: { alignItems: "flex-end" },
+  logo: { width: 130, height: 44 },
   title: { fontSize: 26, fontWeight: "800", color: TEXT_MAIN, letterSpacing: -0.5, marginBottom: 4 },
   subtitle: { fontSize: 14, color: TEXT_MUTED, lineHeight: 22, marginBottom: 10 },
   rowRtl: { flexDirection: "row-reverse" },

@@ -81,12 +81,15 @@ type StoriesRowProps = {
   onOpenStory(sellerId: string, stories: Story[]): void;
 };
 
-export function StoriesRow({ followedStories, currentUserId, onAddStory, onOpenStory }: StoriesRowProps) {
+export function StoriesRow({ direction, followedStories, currentUserId, onAddStory, onOpenStory }: StoriesRowProps) {
   const { t } = useTranslation();
+  const isRtl = direction === "rtl";
 
   const renderEmpty = () => (
-    <View style={styles.emptyStoriesState}>
-      <Text style={styles.emptyStoriesText}>{t("stories.noStoriesDescription")}</Text>
+    <View style={[styles.emptyStoriesState, isRtl ? styles.emptyStoriesStateRtl : undefined]}>
+      <Text style={[styles.emptyStoriesText, isRtl ? styles.emptyStoriesTextRtl : undefined]} numberOfLines={2}>
+        {t("stories.noStoriesDescription")}
+      </Text>
     </View>
   );
 
@@ -97,7 +100,7 @@ export function StoriesRow({ followedStories, currentUserId, onAddStory, onOpenS
         keyExtractor={(item) => item.sellerId}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.storiesRowContent}
+        contentContainerStyle={[styles.storiesRowContent, isRtl ? styles.storiesRowContentRtl : undefined]}
         ListHeaderComponent={
           currentUserId ? (
             <StoryRing
@@ -615,7 +618,7 @@ export function HighlightsRow({ highlights, onOpenHighlight }: HighlightsRowProp
 
 const styles = StyleSheet.create({
   // Ring
-  ringWrapper: { alignItems: "center", marginHorizontal: 6 },
+  ringWrapper: { width: 76, alignItems: "center", marginHorizontal: 6 },
   ring: { padding: 3, justifyContent: "center", alignItems: "center" },
   avatar: {},
   avatarPlaceholder: {
@@ -638,13 +641,16 @@ const styles = StyleSheet.create({
     borderColor: "white"
   },
   addBadgeText: { color: "white", fontSize: 12, fontWeight: "700", lineHeight: 14 },
-  ringLabel: { fontSize: 11, color: "#475569", marginTop: 4, maxWidth: 68, textAlign: "center" },
+  ringLabel: { fontSize: 11, lineHeight: 14, color: "#475569", marginTop: 4, maxWidth: 68, minHeight: 14, textAlign: "center" },
 
   // Stories row
   storiesRowContainer: { backgroundColor: "white", paddingVertical: 12 },
   storiesRowContent: { paddingHorizontal: 12, alignItems: "center" },
+  storiesRowContentRtl: { flexDirection: "row-reverse", width: "100%", justifyContent: "flex-start" },
   emptyStoriesState: { paddingHorizontal: 16 },
-  emptyStoriesText: { fontSize: 13, color: "#94a3b8", maxWidth: 240 },
+  emptyStoriesStateRtl: { alignItems: "flex-end" },
+  emptyStoriesText: { fontSize: 13, lineHeight: 19, color: "#94a3b8", maxWidth: 240 },
+  emptyStoriesTextRtl: { textAlign: "right" },
 
   // Viewer
   viewerContainer: { flex: 1, backgroundColor: "black" },

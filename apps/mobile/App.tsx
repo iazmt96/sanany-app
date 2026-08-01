@@ -2,7 +2,7 @@ import "./global.css";
 import { StatusBar } from "expo-status-bar";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { useEffect, useRef, useState } from "react";
-import { Animated, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Animated, Linking, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { isAuthenticated } from "@sanany/auth";
 import type { MarketplaceListing } from "@sanany/types";
 import type { CommissionReviewPreviewState } from "@sanany/shared";
@@ -39,11 +39,13 @@ function AppContent() {
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
   const [commissionListingId, setCommissionListingId] = useState<string | null>(null);
+  const [tapPaymentReturn, setTapPaymentReturn] = useState<{ tapId: string; listingId: string } | null>(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editingListing, setEditingListing] = useState<MarketplaceListing | null>(null);
   const [chatIntentListing, setChatIntentListing] = useState<MarketplaceListing | null>(null);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [isChatThreadOpen, setIsChatThreadOpen] = useState(false);
   const [isHomePreview, setIsHomePreview] = useState(false);
   const [homePreviewState, setHomePreviewState] = useState<"loading" | "error" | "empty" | "guest" | undefined>(undefined);
   const [myAdsPreviewState, setMyAdsPreviewState] = useState<CommissionReviewPreviewState | null>(null);
@@ -78,6 +80,34 @@ function AppContent() {
     if (typeof window === "undefined" || !window.location) {
       return;
     }
+    const applyIncomingUrl = (rawUrl: string) => {
+      let url: URL;
+      try {
+        url = new URL(rawUrl);
+      } catch {
+        return false;
+      }
+
+      const params = url.searchParams;
+      const tapId = params.get("tap_id") ?? params.get("tapId");
+      const tapListingId = params.get("listingId");
+      if (params.get("tapCheckout") === "1" && tapListingId) {
+        setIsHomePreview(false);
+        setMyAdsPreviewState(null);
+        setCommissionListingId(tapListingId);
+        setTapPaymentReturn(tapId ? { tapId, listingId: tapListingId } : null);
+        setActiveTab("myAds");
+        setIsSplashVisible(false);
+        return true;
+      }
+
+      return false;
+    };
+
+    if (applyIncomingUrl(window.location.href)) {
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("previewScreen") === "splash") {
       setIsSplashVisible(true);
@@ -115,6 +145,51 @@ function AppContent() {
     }
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    const applyIncomingUrl = (rawUrl: string) => {
+      let url: URL;
+      try {
+        url = new URL(rawUrl);
+      } catch {
+        return;
+      }
+
+      const params = url.searchParams;
+      const tapId = params.get("tap_id") ?? params.get("tapId");
+      const tapListingId = params.get("listingId");
+      if (params.get("tapCheckout") !== "1" || !tapListingId) {
+        return;
+      }
+      if (!active) {
+        return;
+      }
+
+      setIsHomePreview(false);
+      setMyAdsPreviewState(null);
+      setCommissionListingId(tapListingId);
+      setTapPaymentReturn(tapId ? { tapId, listingId: tapListingId } : null);
+      setActiveTab("myAds");
+      setIsSplashVisible(false);
+    };
+
+    void Linking.getInitialURL().then((url) => {
+      if (url) {
+        applyIncomingUrl(url);
+      }
+    });
+
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      applyIncomingUrl(url);
+    });
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+
   if ((isSplashVisible || snapshot.status === "loading" || profileStatus === "loading") && !isHomePreview && !myAdsPreviewState) {
     return (
       <View style={styles.splashContainer}>
@@ -131,10 +206,10 @@ function AppContent() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <View style={[styles.container, isMapOpen ? styles.containerMapOpen : undefined]}>
         {isHomePreview || myAdsPreviewState || (isAuthenticated(snapshot) && profileStatus !== "loading" && profileStatus !== "anonymous") ? (
           <>
-            <View style={styles.contentCard}>
+            <View style={[styles.contentCard, isMapOpen ? styles.contentCardMapOpen : undefined]}>
               {selectedListing && editingListing ? (
                 <EditListingScreen
                   direction={direction}
@@ -261,6 +336,7 @@ function AppContent() {
                       openListingIntent={chatIntentListing}
                       onIntentHandled={() => setChatIntentListing(null)}
                       onUnreadCountChange={setChatUnreadCount}
+                      onThreadOpenChange={setIsChatThreadOpen}
                     />
                   </View>
                   <View style={[styles.scene, activeTab === "more" ? styles.sceneActive : styles.sceneHidden]}>
@@ -278,6 +354,8 @@ function AppContent() {
                       direction={direction}
                       previewState={myAdsPreviewState}
                       commissionListingId={commissionListingId}
+                      tapPaymentReturn={tapPaymentReturn}
+                      onTapPaymentHandled={() => setTapPaymentReturn(null)}
                       onCommissionListingHandled={() => setCommissionListingId(null)}
                       onExploreMarketplace={() => setActiveTab("explore")}
                       onOpenListing={setSelectedListing}
@@ -301,7 +379,7 @@ function AppContent() {
                 </Animated.View>
               )}
             </View>
-            {selectedListing || selectedSellerId || isVerificationOpen || isEditProfileOpen || editingListing ? null : (
+            {selectedListing || selectedSellerId || isVerificationOpen || isEditProfileOpen || editingListing || isMapOpen || (activeTab === "chat" && isChatThreadOpen) ? null : (
               <MobileNavigation
                 direction={direction}
                 activeTab={activeTab}
@@ -312,6 +390,7 @@ function AppContent() {
                   setIsVerificationOpen(false);
                   setIsEditProfileOpen(false);
                   setEditingListing(null);
+                  setIsChatThreadOpen(false);
                   setIsSearchOpen(false);
                   if (tab !== "chat") {
                     setChatIntentListing(null);
@@ -357,11 +436,21 @@ const styles = StyleSheet.create({
     paddingBottom: mobileLayout.shellPaddingBottom,
     gap: mobileLayout.compactGap
   },
+  containerMapOpen: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    gap: 0
+  },
   contentCard: {
     flex: 1,
     overflow: "hidden",
     borderRadius: mobileRadius.lg,
     backgroundColor: "#f8fbfd"
+  },
+  contentCardMapOpen: {
+    borderRadius: 0,
+    backgroundColor: "#f8fafc"
   },
   scenesWrap: {
     flex: 1

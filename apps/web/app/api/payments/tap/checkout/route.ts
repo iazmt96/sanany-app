@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { createTapCharge } from "../../../../../src/lib/tap";
-import { createClient } from "../../../../../utils/supabase/server";
+import { resolveRequestUser } from "../../../../../src/lib/request-user";
 
 type CheckoutRequestBody = {
   listingId?: string;
   amount?: number;
   language?: string;
+  callbackUrl?: string;
 };
 
 function normalizeLanguage(value: string | undefined): "ar" | "en" {
@@ -37,6 +38,44 @@ function resolveSiteOrigin(request: Request): string {
   return new URL(request.url).origin;
 }
 
+function isLoopbackHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function resolveRedirectUrl(request: Request, language: "ar" | "en", listingId: string, callbackUrl: string | undefined): string {
+  const fallbackUrl = new URL(`${resolveSiteOrigin(request)}/${language}/my-ads?listingId=${encodeURIComponent(listingId)}&tapCheckout=1`);
+  const rawCallback = callbackUrl?.trim();
+  if (!rawCallback) {
+    return fallbackUrl.toString();
+  }
+
+  try {
+    const candidateUrl = new URL(rawCallback);
+    if (candidateUrl.protocol === "sanany:") {
+      candidateUrl.searchParams.set("listingId", listingId);
+      candidateUrl.searchParams.set("tapCheckout", "1");
+      return candidateUrl.toString();
+    }
+
+    const requestOrigin = new URL(request.url).origin;
+    const configuredSiteOrigin = process.env.SANANY_SITE_URL?.trim() ? new URL(process.env.SANANY_SITE_URL.trim()).origin : null;
+    const isAllowedOrigin =
+      candidateUrl.origin === requestOrigin ||
+      candidateUrl.origin === configuredSiteOrigin ||
+      (isLoopbackHost(candidateUrl.hostname) && isLoopbackHost(fallbackUrl.hostname));
+
+    if (!isAllowedOrigin) {
+      return fallbackUrl.toString();
+    }
+
+    candidateUrl.searchParams.set("listingId", listingId);
+    candidateUrl.searchParams.set("tapCheckout", "1");
+    return candidateUrl.toString();
+  } catch {
+    return fallbackUrl.toString();
+  }
+}
+
 export async function POST(request: Request) {
   let body: CheckoutRequestBody;
   try {
@@ -54,18 +93,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Amount must be greater than zero." }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
+  const { user, error: userError } = await resolveRequestUser(request);
   if (userError || !user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   const language = normalizeLanguage(typeof body.language === "string" ? body.language : undefined);
-  const origin = resolveSiteOrigin(request);
-  const redirectUrl = `${origin}/${language}/my-ads?listingId=${encodeURIComponent(listingId)}&tapCheckout=1`;
+  const redirectUrl = resolveRedirectUrl(request, language, listingId, typeof body.callbackUrl === "string" ? body.callbackUrl : undefined);
   const firstName =
     (typeof user.user_metadata?.display_name === "string" && user.user_metadata.display_name.trim().length > 0
       ? user.user_metadata.display_name.trim()

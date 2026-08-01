@@ -39,3 +39,14 @@ export function getMobileSupabaseEnv() {
     phoneOtpChannel
   };
 }
+
+export function getMobileSiteUrl() {
+  const siteUrl = process.env.EXPO_PUBLIC_SITE_URL;
+  if (!siteUrl || !siteUrl.trim()) {
+    throw new Error(
+      "Missing required mobile environment variable: EXPO_PUBLIC_SITE_URL. Define it in apps/mobile/.env and point it to the SANANY web app origin for Tap checkout."
+    );
+  }
+
+  return siteUrl.replace(/\/+$/, "");
+}

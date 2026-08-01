@@ -8,6 +8,7 @@ import type { MapListing } from "@sanany/api";
 import { getNearbyListings } from "@sanany/api";
 import { getMobileSupabaseClient } from "../lib/supabase-client";
 import { MapWebView } from "../components/map-webview";
+import { mobileRadius, mobileShadow, mobileSpacing } from "../theme/mobile-theme";
 
 type Props = {
   direction: Direction;
@@ -21,7 +22,19 @@ type MapMessage =
 
 const RADIUS_KM = 50;
 
-function buildLeafletHtml(listings: MapListing[], userLat: number, userLng: number, isRtl: boolean): string {
+type MapLabels = {
+  currentLocation: string;
+  openListing: string;
+  priceLabel: string;
+};
+
+function buildLeafletHtml(
+  listings: MapListing[],
+  userLat: number,
+  userLng: number,
+  isRtl: boolean,
+  labels: MapLabels
+): string {
   const pins = listings
     .filter((l) => l.latitude !== null && l.longitude !== null)
     .map((l) => ({
@@ -35,6 +48,7 @@ function buildLeafletHtml(listings: MapListing[], userLat: number, userLng: numb
 
   const pinsJson = JSON.stringify(pins);
   const fontDir = isRtl ? "rtl" : "ltr";
+  const labelsJson = JSON.stringify(labels);
 
   return `<!DOCTYPE html>
 <html>
@@ -45,11 +59,13 @@ function buildLeafletHtml(listings: MapListing[], userLat: number, userLng: numb
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
   html, body, #map { height: 100%; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; direction: ${fontDir}; }
-  .listing-popup { min-width: 160px; max-width: 220px; direction: ${fontDir}; }
-  .listing-popup img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 6px; }
-  .listing-popup .title { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: #1e293b; word-break: break-word; }
-  .listing-popup .price { font-size: 13px; font-weight: 700; color: #0f766e; margin-bottom: 8px; }
-  .listing-popup .open-btn { display: block; width: 100%; padding: 7px; background: #0f766e; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
+  .leaflet-popup-content-wrapper { border-radius: 14px; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12); }
+  .leaflet-popup-content { margin: 10px 10px 12px; }
+  .listing-popup { min-width: 148px; max-width: 200px; direction: ${fontDir}; }
+  .listing-popup img { width: 100%; height: 88px; object-fit: cover; border-radius: 8px; margin-bottom: 4px; }
+  .listing-popup .title { font-size: 12px; font-weight: 600; margin-bottom: 2px; color: #1e293b; word-break: break-word; line-height: 1.4; }
+  .listing-popup .price { font-size: 12px; font-weight: 700; color: #0f766e; margin-bottom: 6px; }
+  .listing-popup .open-btn { display: block; width: 100%; padding: 6px; background: #0f766e; color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; }
   .listing-popup .open-btn:active { background: #0d6460; }
   .user-pin { background: #1d4ed8; border: 3px solid white; border-radius: 50%; width: 16px; height: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
 </style>
@@ -58,7 +74,8 @@ function buildLeafletHtml(listings: MapListing[], userLat: number, userLng: numb
 <div id="map"></div>
 <script>
   var pins = ${pinsJson};
-  var map = L.map('map', { zoomControl: true }).setView([${userLat}, ${userLng}], 12);
+  var labels = ${labelsJson};
+  var map = L.map('map', { zoomControl: false }).setView([${userLat}, ${userLng}], 12);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
@@ -67,7 +84,7 @@ function buildLeafletHtml(listings: MapListing[], userLat: number, userLng: numb
 
   // User location marker
   var userIcon = L.divIcon({ className: '', html: '<div class="user-pin"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
-  L.marker([${userLat}, ${userLng}], { icon: userIcon }).addTo(map).bindPopup('<b style="font-size:13px">📍 موقعك</b>');
+  L.marker([${userLat}, ${userLng}], { icon: userIcon }).addTo(map).bindPopup('<b style="font-size:12px">📍 ' + labels.currentLocation + '</b>');
 
   // Listing markers
   var greenIcon = L.icon({
@@ -106,11 +123,12 @@ function buildLeafletHtml(listings: MapListing[], userLat: number, userLng: numb
       container.appendChild(titleEl);
       var priceEl = document.createElement('div');
       priceEl.className = 'price';
-      priceEl.textContent = (typeof pin.price === 'number' ? pin.price.toLocaleString('ar-SA') : pin.price) + ' ر.س';
+      var formattedPrice = typeof pin.price === 'number' ? pin.price.toLocaleString('ar-SA') : pin.price;
+      priceEl.textContent = labels.priceLabel.replace('{{price}}', formattedPrice);
       container.appendChild(priceEl);
       var btn = document.createElement('button');
       btn.className = 'open-btn';
-      btn.textContent = 'فتح الإعلان';
+      btn.textContent = labels.openListing;
       btn.addEventListener('click', function() { sendToApp({ type: 'openListing', listingId: pin.id }); });
       container.appendChild(btn);
       return container;
@@ -133,6 +151,7 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
   const [listings, setListings] = useState<MapListing[]>([]);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mapResetKey, setMapResetKey] = useState(0);
 
   const loadData = useCallback(async () => {
     setPhase("locating");
@@ -200,7 +219,13 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
     try {
       const nearby = await getNearbyListings(clientRef.current, lat, lng, RADIUS_KM);
       setListings(nearby);
-      setHtmlContent(buildLeafletHtml(nearby, lat, lng, isRtl));
+      setHtmlContent(
+        buildLeafletHtml(nearby, lat, lng, isRtl, {
+          currentLocation: t("home.mapScreen.currentLocation"),
+          openListing: t("home.mapScreen.openListing"),
+          priceLabel: t("home.mapScreen.priceLabel", { price: "{{price}}" })
+        })
+      );
       setPhase("ready");
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : t("home.mapScreen.errorLoading"));
@@ -225,19 +250,14 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
 
   return (
     <View style={styles.container}>
-      {/* Top bar */}
-      <View style={[styles.topBar, isRtl ? styles.rowRtl : undefined]}>
-        <Pressable style={styles.backButton} onPress={onBack}>
-          <Ionicons name={isRtl ? "chevron-forward" : "chevron-back"} size={22} color="#1e293b" />
-        </Pressable>
-        <Text style={styles.title}>{t("home.mapScreen.title")}</Text>
-        {listings.length > 0 && phase === "ready" && (
-          <Text style={styles.countBadge}>{listings.length}</Text>
-        )}
-        {(phase === "locating" || phase === "loading") && <View style={styles.spacer} />}
-      </View>
+      <Pressable
+        style={[styles.backButtonOverlay, isRtl ? styles.backButtonOverlayRtl : styles.backButtonOverlayLtr]}
+        accessibilityLabel={t("home.mapScreen.back")}
+        onPress={onBack}
+      >
+        <Ionicons name={isRtl ? "chevron-forward" : "chevron-back"} size={22} color="#1e293b" />
+      </Pressable>
 
-      {/* Body */}
       {phase === "locating" || phase === "loading" ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#0f766e" />
@@ -263,16 +283,24 @@ export function MapScreen({ direction, onBack, onOpenListing }: Props) {
         </View>
       ) : htmlContent ? (
         <View style={styles.mapWrapper}>
+          <View style={[styles.topOverlays, isRtl ? styles.topOverlaysRtl : styles.topOverlaysLtr]}>
+            <Pressable
+              style={styles.locationButton}
+              accessibilityLabel={t("home.mapScreen.currentLocation")}
+              onPress={() => setMapResetKey((current) => current + 1)}
+            >
+              <Ionicons name="locate" size={18} color="#0f766e" />
+            </Pressable>
+            <View style={styles.resultsPill}>
+              <Text style={styles.resultsPillText}>{t("home.mapScreen.resultsCount", { count: listings.length })}</Text>
+            </View>
+          </View>
           <MapWebView
+            key={mapResetKey}
             html={htmlContent}
             style={styles.webview}
             onMessage={handleMapMessage}
           />
-          {userLocation && (
-            <View style={styles.radiusBadge}>
-              <Text style={styles.radiusBadgeText}>{t("home.mapScreen.radius", { km: RADIUS_KM })}</Text>
-            </View>
-          )}
         </View>
       ) : null}
     </View>
@@ -284,48 +312,66 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8fafc"
   },
-  topBar: {
+  backButtonOverlay: {
+    position: "absolute",
+    top: mobileSpacing.md,
+    zIndex: 3,
+    width: 40,
+    height: 40,
+    borderRadius: mobileRadius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.96)",
+    ...mobileShadow.floating
+  },
+  backButtonOverlayLtr: {
+    left: mobileSpacing.md
+  },
+  backButtonOverlayRtl: {
+    right: mobileSpacing.md
+  },
+  topOverlays: {
+    position: "absolute",
+    top: mobileSpacing.md,
+    zIndex: 3,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#ffffff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
-    gap: 8
+    gap: mobileSpacing.xs
   },
-  rowRtl: {
+  topOverlaysLtr: {
+    right: mobileSpacing.md
+  },
+  topOverlaysRtl: {
+    left: mobileSpacing.md,
     flexDirection: "row-reverse"
   },
-  backButton: {
-    padding: 6,
-    borderRadius: 999,
-    backgroundColor: "#f1f5f9"
+  locationButton: {
+    width: 40,
+    height: 40,
+    borderRadius: mobileRadius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.96)",
+    ...mobileShadow.floating
   },
-  title: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1e293b"
+  resultsPill: {
+    paddingHorizontal: mobileSpacing.sm,
+    paddingVertical: mobileSpacing.xs,
+    borderRadius: mobileRadius.pill,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    ...mobileShadow.floating
   },
-  countBadge: {
+  resultsPillText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#0f766e",
-    backgroundColor: "#ccfbf1",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999
-  },
-  spacer: {
-    width: 40
+    color: "#1e293b"
   },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    padding: 24
+    gap: mobileSpacing.sm,
+    padding: mobileSpacing.lg
   },
   emptyTitle: {
     fontSize: 16,
@@ -339,11 +385,11 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   retryButton: {
-    marginTop: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    marginTop: mobileSpacing.xs,
+    paddingHorizontal: mobileSpacing.lg,
+    paddingVertical: mobileSpacing.sm,
     backgroundColor: "#0f766e",
-    borderRadius: 12
+    borderRadius: mobileRadius.sm
   },
   retryLabel: {
     fontSize: 14,
@@ -356,19 +402,5 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1
-  },
-  radiusBadge: {
-    position: "absolute",
-    bottom: 16,
-    alignSelf: "center",
-    backgroundColor: "rgba(15,118,110,0.9)",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999
-  },
-  radiusBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#ffffff"
   }
 });

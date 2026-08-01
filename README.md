@@ -22,8 +22,8 @@ Phase 2 baseline for a production-oriented SANANY marketplace stack.
    2. Fill in real Supabase project values.
    3. For web and mobile, use `*_SUPABASE_PUBLISHABLE_KEY` as the primary key.
    4. To deliver OTP by WhatsApp, set `NEXT_PUBLIC_SUPABASE_PHONE_OTP_CHANNEL=whatsapp` and `EXPO_PUBLIC_SUPABASE_PHONE_OTP_CHANNEL=whatsapp`.
-   5. To enable commission checkout via Tap on web, set `TAP_SECRET_KEY` (server-side only) and `SANANY_SITE_URL` (public base URL for Tap return redirect).
-   6. Mobile currently prepares sale commission records, while Tap payment completion is enforced through the web dashboard flow.
+   5. To enable commission checkout via Tap, set `TAP_SECRET_KEY` (server-side only), `SANANY_SITE_URL` (public base URL for Tap return redirect on web), and `EXPO_PUBLIC_SITE_URL` in `apps/mobile/.env` (web app origin used by the mobile app to call the Tap checkout/verify API, e.g. `http://localhost:3000` locally or `https://sanany.com` in production).
+   6. Mobile now opens Tap checkout directly and verifies the payment when the app returns to the foreground.
 3. Run web:
    `npm run dev:web`
 4. Run mobile:

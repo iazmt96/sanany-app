@@ -499,16 +499,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f766e"
   },
   verificationAction: {
-    minHeight: 40,
+    minHeight: 44,
     borderRadius: mobileRadius.sm,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ecfdfa"
+    backgroundColor: "#0f766e"
   },
   verificationActionLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
-    color: "#0f766e"
+    color: "#ffffff"
   },
   statCell: {
     flex: 1,
@@ -519,13 +519,13 @@ const styles = StyleSheet.create({
     paddingVertical: mobileSpacing.xs
   },
   statValue: {
-    fontSize: 14,
+    fontSize: 20,
     fontWeight: "800",
     color: "#0f766e"
   },
   statLabel: {
-    marginTop: 2,
-    fontSize: 10,
+    marginTop: 3,
+    fontSize: 11,
     color: "#64748b"
   },
   tabsRow: {

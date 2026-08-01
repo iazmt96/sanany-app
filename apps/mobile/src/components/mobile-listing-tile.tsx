@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   },
   media: {
     position: "relative",
-    height: 120,
+    height: 140,
     backgroundColor: "#d9f3ef"
   },
   image: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   insightBadge: {
     borderRadius: 999,
-    backgroundColor: "rgba(15,23,42,0.72)",
+    backgroundColor: "rgba(15,118,110,0.92)",
     paddingHorizontal: mobileSpacing.xs,
     paddingVertical: mobileSpacing.xxs
   },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     paddingBottom: mobileSpacing.sm
   },
   price: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
     color: "#0f766e"
   },
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     minHeight: 38,
     fontSize: 13,
     fontWeight: "700",
-    lineHeight: 19,
+    lineHeight: 20,
     color: "#0f172a"
   },
   metaRow: {
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   sellerName: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     color: "#0f172a"
   },

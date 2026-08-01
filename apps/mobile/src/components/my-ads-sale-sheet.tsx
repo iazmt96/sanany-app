@@ -1,11 +1,12 @@
 import * as FileSystem from "expo-file-system";
-import { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AppState, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { ListingSaleInvoice, ListingSalePayment, MarketplaceCommissionSettings, MarketplaceListing } from "@sanany/types";
 import { calculateCommissionFromSaleAmount, DEFAULT_MARKETPLACE_PAYMENT_METHOD, formatCurrencySar, formatDateTimeFull } from "@sanany/shared";
 import { type Direction } from "@sanany/utils";
 import { getMobileListingsRepository } from "../lib/listings-repository";
+import { getMobileSiteUrl } from "../config/env";
 
 type MyAdsSaleSheetProps = {
   visible: boolean;
@@ -13,8 +14,14 @@ type MyAdsSaleSheetProps = {
   language: string;
   listing: MarketplaceListing | null;
   sellerId: string | null;
+  accessToken: string | null;
   settings: MarketplaceCommissionSettings | null;
   payment: ListingSalePayment | null;
+  tapPaymentReturn?: {
+    tapId: string;
+    listingId: string;
+  } | null;
+  onTapPaymentHandled?(): void;
   onClose(): void;
   onPaymentUpdated(payment: ListingSalePayment): void;
   preview?: {
@@ -48,8 +55,11 @@ export function MyAdsSaleSheet({
   language,
   listing,
   sellerId,
+  accessToken,
   settings,
   payment,
+  tapPaymentReturn = null,
+  onTapPaymentHandled,
   onClose,
   onPaymentUpdated,
   preview = null
@@ -66,6 +76,8 @@ export function MyAdsSaleSheet({
   const [uiState, setUiState] = useState<SaleUiState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<ListingSaleInvoice | null>(null);
+  const [pendingTapChargeId, setPendingTapChargeId] = useState<string | null>(null);
+  const handledTapPaymentRef = useRef<string | null>(null);
   const isRtl = direction === "rtl";
 
   useEffect(() => {
@@ -82,6 +94,7 @@ export function MyAdsSaleSheet({
     setIsWorking(false);
     setErrorMessage(null);
     setInvoice(preview?.invoice ?? null);
+    setPendingTapChargeId(null);
   }, [listing, payment, preview, visible]);
 
   useEffect(() => {
@@ -124,11 +137,152 @@ export function MyAdsSaleSheet({
     return nextPayment;
   };
 
+  const buildTapCallbackUrl = () => {
+    if (!listing) {
+      return null;
+    }
+
+    if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.delete("tap_id");
+      nextUrl.searchParams.delete("tapId");
+      nextUrl.searchParams.set("tapCheckout", "1");
+      nextUrl.searchParams.set("listingId", listing.id);
+      return nextUrl.toString();
+    }
+
+    return `sanany://payments/tap-return?tapCheckout=1&listingId=${encodeURIComponent(listing.id)}`;
+  };
+
+  const cleanTapQueryParams = () => {
+    if (typeof window === "undefined" || !window.location) {
+      return;
+    }
+
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.delete("tap_id");
+    nextUrl.searchParams.delete("tapId");
+    nextUrl.searchParams.delete("tapCheckout");
+    nextUrl.searchParams.delete("listingId");
+    window.history.replaceState({}, "", nextUrl.toString());
+  };
+
+  const verifyTapPayment = async (tapId: string) => {
+    if (preview || !listing || !sellerId) {
+      return;
+    }
+    if (!accessToken?.trim()) {
+      setUiState("failed");
+      setErrorMessage(t("myAds.saleFlow.tapAuthRequired"));
+      setPendingTapChargeId(null);
+      return;
+    }
+
+    setIsWorking(true);
+    setUiState("pending");
+    setErrorMessage(t("myAds.saleFlow.tapVerificationInProgress"));
+
+    try {
+      const response = await fetch(`${getMobileSiteUrl()}/api/payments/tap/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          listingId: listing.id,
+          tapId
+        })
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        outcome?: "paid" | "failed" | "cancelled" | "pending";
+        failureReason?: string | null;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? t("myAds.saleFlow.tapVerificationFailed"));
+      }
+
+      const outcome = payload.outcome ?? "pending";
+      const refreshedPayments = await repository.listSalePaymentsBySeller(sellerId);
+      const latestPayment = refreshedPayments.find((item) => item.listingId === listing.id) ?? null;
+      if (latestPayment) {
+        onPaymentUpdated(latestPayment);
+      }
+
+      if (outcome === "paid") {
+        const nextInvoice = await repository.getSaleInvoice(listing.id, sellerId);
+        setInvoice(nextInvoice);
+        setErrorMessage(null);
+        setUiState("success");
+        return;
+      }
+      if (outcome === "failed") {
+        setUiState("failed");
+        setErrorMessage(payload.failureReason ?? t("myAds.saleFlow.failedHint"));
+        return;
+      }
+      if (outcome === "cancelled") {
+        setUiState("cancelled");
+        setErrorMessage(null);
+        return;
+      }
+
+      setUiState("pending");
+      setErrorMessage(t("myAds.saleFlow.tapVerificationPending"));
+    } catch (error) {
+      setUiState("failed");
+      setErrorMessage(error instanceof Error ? error.message : t("myAds.saleFlow.tapVerificationFailed"));
+    } finally {
+      setIsWorking(false);
+      setPendingTapChargeId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (preview || !visible || !listing || !sellerId || !tapPaymentReturn) {
+      return;
+    }
+    if (tapPaymentReturn.listingId !== listing.id) {
+      return;
+    }
+    if (handledTapPaymentRef.current === tapPaymentReturn.tapId) {
+      return;
+    }
+
+    handledTapPaymentRef.current = tapPaymentReturn.tapId;
+    void verifyTapPayment(tapPaymentReturn.tapId).finally(() => {
+      cleanTapQueryParams();
+      onTapPaymentHandled?.();
+    });
+  }, [listing, onTapPaymentHandled, preview, sellerId, tapPaymentReturn, verifyTapPayment, visible]);
+
+  useEffect(() => {
+    if (!visible || !pendingTapChargeId || Platform.OS === "web") {
+      return;
+    }
+
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" && pendingTapChargeId) {
+        void verifyTapPayment(pendingTapChargeId);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [pendingTapChargeId, verifyTapPayment, visible]);
+
   const completePayment = async () => {
     if (preview) {
       return;
     }
     if (!listing || !sellerId || !settings) {
+      return;
+    }
+    if (!accessToken?.trim()) {
+      setErrorMessage(t("myAds.saleFlow.tapAuthRequired"));
       return;
     }
     if (!amount.trim()) {
@@ -166,8 +320,35 @@ export function MyAdsSaleSheet({
       } else {
         const nextPayment = await preparePayment();
         onPaymentUpdated(nextPayment);
-        setUiState("idle");
-        setErrorMessage(t("myAds.saleFlow.tapWebOnlyHint"));
+        setErrorMessage(t("myAds.saleFlow.redirectingToTap"));
+        const checkoutResponse = await fetch(`${getMobileSiteUrl()}/api/payments/tap/checkout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            listingId: listing.id,
+            amount: nextPayment.commissionAmount,
+            language,
+            callbackUrl: buildTapCallbackUrl()
+          })
+        });
+        const checkoutPayload = (await checkoutResponse.json().catch(() => ({}))) as {
+          error?: string;
+          tapChargeId?: string;
+          checkoutUrl?: string;
+        };
+        if (!checkoutResponse.ok || !checkoutPayload.checkoutUrl || !checkoutPayload.tapChargeId) {
+          throw new Error(checkoutPayload.error ?? t("myAds.saleFlow.tapVerificationFailed"));
+        }
+
+        setPendingTapChargeId(checkoutPayload.tapChargeId);
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+          window.location.assign(checkoutPayload.checkoutUrl);
+          return;
+        }
+        await Linking.openURL(checkoutPayload.checkoutUrl);
       }
     } catch (error) {
       setUiState("failed");
@@ -314,10 +495,6 @@ export function MyAdsSaleSheet({
                   <View style={styles.metricCard}>
                     <Text style={styles.metricLabel}>{t("myAds.saleFlow.totalToPay")}</Text>
                     <Text style={styles.metricValue}>{formatCurrencySar(calculation.totalToPayNow, language)}</Text>
-                  </View>
-                  <View style={styles.metricCard}>
-                    <Text style={styles.metricLabel}>{t("myAds.saleFlow.youWillReceive")}</Text>
-                    <Text style={styles.metricValue}>{formatCurrencySar(calculation.sellerNetAmount, language)}</Text>
                   </View>
                 </View>
 

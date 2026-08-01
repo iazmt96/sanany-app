@@ -19,6 +19,11 @@ type MyAdsScreenProps = {
   onOpenListing(listing: MarketplaceListing): void;
   previewState?: CommissionReviewPreviewState | null;
   commissionListingId?: string | null;
+  tapPaymentReturn?: {
+    tapId: string;
+    listingId: string;
+  } | null;
+  onTapPaymentHandled?(): void;
   onCommissionListingHandled?(): void;
 };
 
@@ -32,6 +37,8 @@ export function MyAdsScreen({
   onOpenListing,
   previewState = null,
   commissionListingId = null,
+  tapPaymentReturn = null,
+  onTapPaymentHandled,
   onCommissionListingHandled
 }: MyAdsScreenProps) {
   const { t, i18n } = useTranslation();
@@ -297,8 +304,11 @@ export function MyAdsScreen({
         language={i18n.language || "ar"}
         listing={selectedListing}
         sellerId={previewData?.sellerId ?? snapshot.user?.id ?? null}
+        accessToken={snapshot.session?.access_token ?? null}
         settings={commissionSettings}
         payment={selectedPayment}
+        tapPaymentReturn={tapPaymentReturn}
+        onTapPaymentHandled={onTapPaymentHandled}
         onClose={() => setSelectedListingId(null)}
         onPaymentUpdated={handlePaymentUpdated}
         preview={

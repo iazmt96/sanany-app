@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTapCharge, normalizeTapFailureReason, resolveTapOutcome } from "../../../../../src/lib/tap";
-import { createClient } from "../../../../../utils/supabase/server";
+import { createRequestSupabaseClient, resolveRequestUser } from "../../../../../src/lib/request-user";
 
 type VerifyRequestBody = {
   listingId?: string;
@@ -27,14 +27,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing listing id or Tap payment id." }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
+  const { user, error: userError } = await resolveRequestUser(request);
   if (userError || !user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
+
+  const supabase = await createRequestSupabaseClient(request);
 
   let tapStatus = "UNKNOWN";
   let outcome: PaymentOutcome = "pending";

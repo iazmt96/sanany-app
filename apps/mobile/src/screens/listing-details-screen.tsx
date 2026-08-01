@@ -27,6 +27,7 @@ import { MyAdsSaleSheet } from "../components/my-ads-sale-sheet";
 import { getMobileSupabaseEnv } from "../config/env";
 import { setPendingChatListingIntent } from "../lib/chat-intent-store";
 import { getMobileListingsRepository } from "../lib/listings-repository";
+import { getMobileSellersRepository } from "../lib/sellers-repository";
 import { resolveListingPriceLabel } from "../lib/listing-price-label";
 
 const CHAT_OPEN_INTENT_STORAGE_KEY = "sanany:chat-open-intent";
@@ -116,10 +117,11 @@ function resolveDetailErrorMessage(error: unknown, fallback: string): string {
 
 export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, onOpenListing, onOpenSellerProfile, onEditListing, onOpenCommission }: ListingDetailsScreenProps) {
   const { t, i18n } = useTranslation();
-  const { snapshot } = useAuth();
+  const { snapshot, accountProfile } = useAuth();
   const isRtl = direction === "rtl";
   const locale = (i18n.language || "ar").startsWith("ar") ? "ar" : "en";
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
+  const sellersRepository = useMemo(() => getMobileSellersRepository(), []);
   const listingImages = useMemo(() => {
     return getRenderableListingImageUrls(listing.imageUrl);
   }, [listing.imageUrl]);
@@ -134,7 +136,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const longitude = listing.longitude ?? 46.6753;
   const mapPreviewUrl = `https://static-maps.yandex.ru/1.x/?ll=${longitude},${latitude}&z=13&l=map&size=900,420&pt=${longitude},${latitude},pm2rdm`;
   const advertiserPhone = listing.ownerPhone?.trim() ?? "";
-  const advertiserName = t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() });
+  const fallbackAdvertiserName = t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() });
   const parsedCarSpecs = useMemo(() => parseCarSpecs(listing.description), [listing.description]);
   const [viewCount, setViewCount] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -147,6 +149,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   const [isCommissionLoading, setIsCommissionLoading] = useState(false);
   const [commissionSettings, setCommissionSettings] = useState<MarketplaceCommissionSettings | null>(null);
   const [commissionPayment, setCommissionPayment] = useState<ListingSalePayment | null>(null);
+  const [advertiserProfile, setAdvertiserProfile] = useState<{ displayName: string; username: string | null } | null>(null);
   const priceLabel = useMemo(() => resolveListingPriceLabel(listing, t), [listing, t]);
   const isListingOwner = canDeleteListing(snapshot.user?.id, listing.ownerId);
   const contactPermissions = canContactListingOwner({
@@ -156,11 +159,59 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
   });
   const canShowChatAction = contactPermissions.canChat;
   const canShowCallAction = contactPermissions.canCall;
+  const advertiserDisplayName = advertiserProfile?.displayName?.trim() || fallbackAdvertiserName;
+  const advertiserUsername = advertiserProfile?.username?.trim().replace(/^@+/, "") || null;
 
   useEffect(() => {
     setActiveImageIndex(0);
     setPreviewImageIndex(0);
   }, [listing.id, listing.imageUrl]);
+
+  useEffect(() => {
+    let active = true;
+    const ownerId = listing.ownerId;
+    if (!ownerId) {
+      setAdvertiserProfile(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    if (ownerId === snapshot.user?.id) {
+      const ownDisplayName = accountProfile?.displayName?.trim() || accountProfile?.username?.trim() || fallbackAdvertiserName;
+      const ownUsername = accountProfile?.username?.trim() || null;
+      setAdvertiserProfile({
+        displayName: ownDisplayName,
+        username: ownUsername
+      });
+      return () => {
+        active = false;
+      };
+    }
+
+    void sellersRepository
+      .getProfile(ownerId, snapshot.user?.id ?? null)
+      .then((profile) => {
+        if (!active || !profile) {
+          return;
+        }
+        const nextDisplayName = profile.displayName.trim() || profile.username?.trim() || fallbackAdvertiserName;
+        const nextUsername = profile.username?.trim() || null;
+        setAdvertiserProfile({
+          displayName: nextDisplayName,
+          username: nextUsername
+        });
+      })
+      .catch(() => {
+        if (active) {
+          setAdvertiserProfile(null);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [accountProfile?.displayName, accountProfile?.username, fallbackAdvertiserName, listing.ownerId, sellersRepository, snapshot.user?.id]);
 
   const handleImagePagerScrollEnd = (offsetX: number, width: number, onIndexChange: (index: number) => void) => {
     if (width <= 0 || listingImages.length <= 1) {
@@ -426,13 +477,6 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={[styles.topBar, isRtl ? styles.topBarRtl : undefined]}>
-        <Pressable style={[styles.backButton, isRtl ? styles.backButtonRtl : undefined]} onPress={onBack}>
-          <MobileIcon name="chevron" size={18} color="#334155" />
-          <Text style={styles.backButtonLabel}>{t("marketplace.detail.back")}</Text>
-        </Pressable>
-      </View>
-
       <View style={styles.media}>
         {listingImages.length > 0 ? (
           <Pressable
@@ -474,6 +518,14 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
           </View>
         )}
         <View style={[styles.overlayRow, isRtl ? styles.overlayRowRtl : undefined]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("marketplace.detail.back")}
+            style={styles.overlayBackButton}
+            onPress={onBack}
+          >
+            <MobileIcon name="chevron" size={18} color="#ffffff" />
+          </Pressable>
           <View style={styles.overlayPill}>
             <MobileIcon name="image" size={13} color="#ffffff" />
             <Text style={styles.overlayPillLabel}>{t("marketplace.detail.imagesCount", { count: listingImages.length || 1 })}</Text>
@@ -646,8 +698,10 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
                 <MobileIcon name="profile" size={24} color="#0f766e" focused />
               </View>
               <View style={styles.advertiserText}>
-                <Text style={[styles.advertiserName, { textAlign: isRtl ? "right" : "left" }]}>{advertiserName}</Text>
-                <Text style={[styles.advertiserRole, { textAlign: isRtl ? "right" : "left" }]}>{t("marketplace.detail.advertiserRole")}</Text>
+                <Text style={[styles.advertiserName, { textAlign: isRtl ? "right" : "left" }]}>{advertiserDisplayName}</Text>
+                <Text style={[styles.advertiserRole, { textAlign: isRtl ? "right" : "left" }]}>
+                  {advertiserUsername ? `@${advertiserUsername}` : t("marketplace.detail.advertiserRole")}
+                </Text>
               </View>
             </View>
             {canShowCallAction || canShowChatAction ? (
@@ -668,12 +722,6 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
         </View>
 
         <View style={styles.section}>
-          <View style={[styles.metaRow, isRtl ? styles.metaRowRtl : undefined]}>
-            <Text style={[styles.sectionTitle, { textAlign: isRtl ? "right" : "left" }]}>{t("marketplace.detail.locationTitle")}</Text>
-            <Pressable onPress={() => void openInMaps()}>
-              <Text style={styles.mapsLink}>{t("marketplace.detail.openInMaps")}</Text>
-            </Pressable>
-          </View>
           <Text style={[styles.sectionText, { textAlign: isRtl ? "right" : "left" }]}>{listing.locationName ?? t("marketplace.detail.approximateLocation")}</Text>
           <Pressable style={styles.mapPreviewCard} onPress={() => void openInMaps()}>
             <Image source={{ uri: mapPreviewUrl }} style={styles.mapPreviewImage} resizeMode="cover" />
@@ -729,6 +777,7 @@ export function ListingDetailsScreen({ direction, listing, onBack, onOpenChat, o
         language={i18n.language || "ar"}
         listing={listing}
         sellerId={snapshot.user?.id ?? null}
+        accessToken={snapshot.session?.access_token ?? null}
         settings={commissionSettings}
         payment={commissionPayment}
         onClose={() => setIsCommissionSheetOpen(false)}
@@ -742,29 +791,6 @@ const styles = StyleSheet.create({
   container: {
     gap: 12,
     paddingBottom: 12
-  },
-  topBar: {
-    flexDirection: "row"
-  },
-  topBarRtl: {
-    flexDirection: "row-reverse"
-  },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 12,
-    paddingVertical: 8
-  },
-  backButtonRtl: {
-    flexDirection: "row-reverse"
-  },
-  backButtonLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#334155"
   },
   media: {
     width: "100%",
@@ -807,6 +833,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#ffffff"
+  },
+  overlayBackButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(15, 23, 42, 0.52)"
   },
   mediaPressable: {
     flex: 1
@@ -1195,7 +1229,9 @@ const styles = StyleSheet.create({
     paddingTop: 8
   },
   similarRowRtl: {
-    flexDirection: "row-reverse"
+    flexDirection: "row-reverse",
+    minWidth: "100%",
+    justifyContent: "flex-end"
   },
   similarCardWrap: {
     width: 268
