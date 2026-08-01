@@ -3,11 +3,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
+import type { MessagingRepository } from "@sanany/api";
 import { getPrimaryListingImageUrl } from "@sanany/shared";
-import type { MarketplaceListing } from "@sanany/types";
+import type { ConversationSummary, MarketplaceListing } from "@sanany/types";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { consumePendingChatListingIntent } from "../lib/chat-intent-store";
+import { getMobileMessagingRepository } from "../lib/messaging-repository";
 import { getMobileSellersRepository } from "../lib/sellers-repository";
 
 type ChatScreenProps = {
@@ -22,6 +24,7 @@ type ChatFilter = "all" | "seller" | "buyer";
 
 type ChatThread = {
   id: string;
+  conversationId: string | null;
   kind: "seller" | "buyer";
   name: string;
   listingTitle: string;
@@ -221,6 +224,7 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
   const { t } = useTranslation();
   const { snapshot, accountProfile } = useAuth();
   const sellersRepository = useMemo(() => getMobileSellersRepository(), []);
+  const messagingRepo: MessagingRepository = useMemo(() => getMobileMessagingRepository(), []);
   const isRtl = direction === "rtl";
   const textAlign = isRtl ? "right" : "left";
   const [activeFilter, setActiveFilter] = useState<ChatFilter>("all");
@@ -229,6 +233,7 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
   const [threadMessages, setThreadMessages] = useState<Record<string, ChatMessage[]>>({});
   const [composerText, setComposerText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hiddenThreadIds, setHiddenThreadIds] = useState<string[]>([]);
@@ -236,6 +241,7 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
   const [forcedVisibleThreadId, setForcedVisibleThreadId] = useState<string | null>(null);
   const [storageListingIntent, setStorageListingIntent] = useState<MarketplaceListing | null>(null);
   const [runtimeListingIntent, setRuntimeListingIntent] = useState<MarketplaceListing | null>(() => consumePendingChatListingIntent());
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeListingIntent = openListingIntent ?? storageListingIntent ?? runtimeListingIntent;
 
@@ -392,6 +398,23 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
     setRuntimeListingIntent(null);
     onIntentHandled?.();
 
+    // Wire up real Supabase conversation when current user is the buyer
+    if (activeListingIntent.ownerId && activeListingIntent.ownerId !== snapshot.user?.id && snapshot.user?.id) {
+      const buyerId = snapshot.user.id;
+      const sellerId = activeListingIntent.ownerId;
+      void messagingRepo
+        .ensureConversation({ listingId: activeListingIntent.id, buyerId, sellerId })
+        .then((conv) => {
+          if (isCancelled) return;
+          const convId = conv.id;
+          setListingThreads((current) => current.map((thread) => (thread.id === intentThread.id ? { ...thread, conversationId: convId } : thread)));
+          setSelectedThread((current) => (current?.id === intentThread.id ? { ...current, conversationId: convId } : current));
+        })
+        .catch(() => {
+          // Thread remains visible as local-only when Supabase is unreachable
+        });
+    }
+
     if (!activeListingIntent.ownerId || activeListingIntent.ownerId === snapshot.user?.id) {
       const ownDisplayName = accountProfile?.displayName?.trim() || "";
       const ownUsername = accountProfile?.username?.trim() || "";
@@ -436,7 +459,7 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
     return () => {
       isCancelled = true;
     };
-  }, [activeListingIntent, accountProfile?.displayName, accountProfile?.username, onIntentHandled, sellersRepository, snapshot.user?.id, t]);
+  }, [activeListingIntent, accountProfile?.displayName, accountProfile?.username, messagingRepo, onIntentHandled, sellersRepository, snapshot.user?.id, t]);
 
   const threads = useMemo<ChatThread[]>(
     () =>
@@ -471,6 +494,63 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
     onThreadOpenChange?.(selectedThread !== null);
   }, [onThreadOpenChange, selectedThread]);
 
+  // Load real conversations from Supabase on mount / when userId changes
+  useEffect(() => {
+    const userId = snapshot.user?.id;
+    if (!userId) return;
+    void messagingRepo
+      .listConversations({ userId, page: 1, pageSize: 50 })
+      .then((result) => {
+        const realThreads = result.items.map((conv) => mapConversationSummaryToThread(conv, userId, t));
+        setListingThreads((current) => {
+          const realIds = new Set(realThreads.map((th) => th.id));
+          const localOnly = current.filter((th) => !realIds.has(th.id) && th.id !== "official");
+          return [...realThreads, ...localOnly];
+        });
+      })
+      .catch(() => {});
+  }, [messagingRepo, snapshot.user?.id, t]);
+
+  // Poll messages every 4s when inside a real (Supabase-backed) conversation
+  useEffect(() => {
+    const conversationId = selectedThread?.conversationId;
+    const userId = snapshot.user?.id;
+    if (!conversationId || !userId) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
+
+    const threadId = selectedThread.id;
+    const fetchMessages = () => {
+      void messagingRepo
+        .listMessages({ conversationId, userId, page: 1, pageSize: 50 })
+        .then((result) => {
+          setThreadMessages((current) => ({
+            ...current,
+            [threadId]: result.items.map((msg) => ({
+              id: msg.id,
+              from: msg.senderId === userId ? ("me" as const) : ("other" as const),
+              text: msg.body ?? "",
+              sentAt: new Date(msg.createdAt).getTime()
+            }))
+          }));
+        })
+        .catch(() => {});
+    };
+
+    fetchMessages();
+    pollingRef.current = setInterval(fetchMessages, 4000);
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [messagingRepo, selectedThread?.conversationId, selectedThread?.id, snapshot.user?.id]);
+
   const openThread = (thread: ChatThread) => {
     if (!readThreadIds.includes(thread.id)) {
       const nextReadThreadIds = [...readThreadIds, thread.id];
@@ -501,21 +581,44 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
       return;
     }
 
+    const now = Date.now();
+    const optimisticId = `optimistic-${now}`;
+    const threadId = selectedThread.id;
+
     setThreadMessages((current) => ({
       ...current,
-      [selectedThread.id]: [
-        ...(current[selectedThread.id] ?? []),
-        {
-          id: `msg-${Date.now()}`,
-          from: "me",
-          text,
-          sentAt: Date.now()
-        }
-      ]
+      [threadId]: [...(current[threadId] ?? []), { id: optimisticId, from: "me" as const, text, sentAt: now }]
     }));
     if (!overrideText) {
       setComposerText("");
     }
+
+    const conversationId = selectedThread.conversationId;
+    const userId = snapshot.user?.id;
+    if (!conversationId || !userId) {
+      return;
+    }
+
+    setSendingMessage(true);
+    void messagingRepo
+      .sendMessage({ conversationId, senderId: userId, body: text })
+      .then((sentMsg) => {
+        setThreadMessages((current) => ({
+          ...current,
+          [threadId]: (current[threadId] ?? [])
+            .filter((m) => m.id !== optimisticId)
+            .concat({ id: sentMsg.id, from: "me" as const, text: sentMsg.body ?? text, sentAt: new Date(sentMsg.createdAt).getTime() })
+        }));
+      })
+      .catch(() => {
+        setThreadMessages((current) => ({
+          ...current,
+          [threadId]: (current[threadId] ?? []).filter((m) => m.id !== optimisticId)
+        }));
+      })
+      .finally(() => {
+        setSendingMessage(false);
+      });
   };
 
   const deleteThread = (threadId: string) => {
@@ -1085,6 +1188,7 @@ function mapListingToThread(
 
   return {
     id: `listing-${listing.id}`,
+    conversationId: null,
     kind: listing.ownerId && currentUserId && listing.ownerId === currentUserId ? "seller" : "buyer",
     name: threadName,
     listingTitle: listing.title,
@@ -1112,4 +1216,25 @@ function formatThreadIdentity(displayName: string, username: string, fallback: s
     return `@${cleanUsername}`;
   }
   return fallback;
+}
+
+function mapConversationSummaryToThread(
+  conv: ConversationSummary,
+  userId: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+): ChatThread {
+  const rawMinutes = Math.floor((Date.now() - new Date(conv.lastMessageAt).getTime()) / 60000);
+  const minutesAgo = Number.isFinite(rawMinutes) && rawMinutes > 0 ? rawMinutes : 1;
+  const isBuyer = conv.listing.ownerId !== userId;
+  return {
+    id: conv.id,
+    conversationId: conv.id,
+    kind: isBuyer ? "buyer" : "seller",
+    name: conv.otherUserName || t("chat.threadName", { id: conv.id.slice(0, 4).toUpperCase() }),
+    listingTitle: conv.listing.title,
+    lastMessage: conv.lastMessagePreview ?? t("chat.listingMessage"),
+    minutesAgo,
+    unreadCount: conv.unreadCount,
+    imageUrl: getPrimaryListingImageUrl(conv.listing.imageUrl)
+  };
 }
