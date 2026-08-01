@@ -110,8 +110,8 @@ export function AuthScreen() {
   }, [checkUsernameAvailability, displayName, step, t, username]);
 
   useEffect(() => {
-    if (Platform.OS !== "web" || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
+    if (Platform.OS !== "web" || typeof window === "undefined" || !window.location) return;
+    const params = new URLSearchParams(typeof window.location.search === "string" ? window.location.search : "");
     const previewStep = params.get("previewStep");
     const previewState = params.get("previewState");
     const previewLang = params.get("previewLang");
@@ -130,7 +130,7 @@ export function AuthScreen() {
     } else if (previewState === "loading") {
       setIsSubmitting(true); setErrorKey(null); setInfoKey(null);
     }
-    if (previewKeyboard === "1") {
+    if (previewKeyboard === "1" && window.document) {
       setTimeout(() => {
         const input = window.document.querySelector("input") as { focus?: () => void } | null;
         if (input && typeof input.focus === "function") input.focus();

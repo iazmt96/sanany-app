@@ -6,6 +6,7 @@ import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { LanguageSwitcher } from "../components/language-switcher";
 import { MobileIcon } from "../components/mobile-icons";
+import { mobileLayout, mobileRadius, mobileSpacing } from "../theme/mobile-theme";
 
 type MoreScreenProps = {
   direction: Direction;
@@ -133,20 +134,23 @@ function ActionItem({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    gap: 10
+    gap: mobileLayout.sectionGap,
+    paddingTop: mobileLayout.screenPaddingTop,
+    paddingHorizontal: mobileLayout.screenPaddingHorizontal,
+    paddingBottom: mobileLayout.screenPaddingBottom
   },
   rowRtl: {
     flexDirection: "row-reverse"
   },
   profileCard: {
-    borderRadius: 18,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#ffffff",
-    padding: 12
+    padding: mobileLayout.cardPadding
   },
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10
+    gap: mobileSpacing.xs
   },
   avatar: {
     width: 54,
@@ -172,11 +176,11 @@ const styles = StyleSheet.create({
   ratingPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: mobileSpacing.xxs,
     borderRadius: 999,
     backgroundColor: "#fffbeb",
     paddingHorizontal: 10,
-    paddingVertical: 6
+    paddingVertical: mobileSpacing.xs
   },
   ratingPillText: {
     fontSize: 11,
@@ -184,7 +188,7 @@ const styles = StyleSheet.create({
     color: "#b45309"
   },
   section: {
-    gap: 6
+    gap: mobileSpacing.xxs
   },
   sectionTitle: {
     fontSize: 12,
@@ -192,16 +196,16 @@ const styles = StyleSheet.create({
     color: "#64748b"
   },
   sectionCard: {
-    borderRadius: 16,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#ffffff",
-    paddingHorizontal: 10
+    paddingHorizontal: mobileSpacing.sm
   },
   actionItem: {
     minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 9
+    gap: mobileSpacing.xs,
+    paddingVertical: mobileSpacing.xs
   },
   iconWrap: {
     width: 28,
@@ -218,18 +222,18 @@ const styles = StyleSheet.create({
     color: "#334155"
   },
   languageRow: {
-    paddingTop: 10,
-    paddingBottom: 4
+    paddingTop: mobileSpacing.xs,
+    paddingBottom: mobileSpacing.xxs
   },
   signOutButton: {
     minHeight: 46,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    borderRadius: 14,
+    gap: mobileSpacing.xs,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "#fef2f2",
-    marginBottom: 4
+    marginTop: mobileSpacing.xxs
   },
   signOutLabel: {
     fontSize: 13,

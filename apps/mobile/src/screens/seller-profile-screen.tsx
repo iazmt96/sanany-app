@@ -21,6 +21,7 @@ import { HighlightsRow, StoryViewer } from "../components/stories";
 import { getMobileSellersRepository } from "../lib/sellers-repository";
 import { getMobileStoriesRepository } from "../lib/stories-repository";
 import { resolveListingPriceLabel } from "../lib/listing-price-label";
+import { mobileLayout, mobileRadius, mobileSpacing } from "../theme/mobile-theme";
 
 type SellerProfileScreenProps = {
   direction: Direction;
@@ -387,14 +388,17 @@ export function SellerProfileScreen({ direction, sellerId, onBack, onOpenListing
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    gap: 10
+    gap: mobileLayout.sectionGap,
+    paddingTop: mobileLayout.screenPaddingTop,
+    paddingHorizontal: mobileLayout.screenPaddingHorizontal,
+    paddingBottom: mobileLayout.screenPaddingBottom
   },
   rowRtl: {
     flexDirection: "row-reverse"
   },
   highlightsWrapper: {
-    marginTop: 8,
-    marginHorizontal: -16
+    marginTop: mobileSpacing.xs,
+    marginHorizontal: -12
   },
   topBar: {
     flexDirection: "row",
@@ -404,11 +408,11 @@ const styles = StyleSheet.create({
   iconButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: mobileSpacing.xs,
     borderRadius: 999,
     backgroundColor: "#ffffff",
     paddingHorizontal: 12,
-    paddingVertical: 8
+    paddingVertical: mobileSpacing.xs
   },
   iconButtonRtl: {
     flexDirection: "row-reverse"
@@ -421,7 +425,7 @@ const styles = StyleSheet.create({
   topActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   iconOnlyButton: {
     width: 34,
@@ -432,15 +436,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff"
   },
   profileCard: {
-    borderRadius: 18,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#ffffff",
-    padding: 12,
-    gap: 10
+    padding: mobileLayout.cardPadding,
+    gap: mobileSpacing.xs
   },
   profileHead: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10
+    gap: mobileSpacing.xs
   },
   avatar: {
     width: 56,
@@ -452,12 +456,12 @@ const styles = StyleSheet.create({
   },
   profileMeta: {
     flex: 1,
-    gap: 2
+    gap: mobileSpacing.xxs
   },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6
+    gap: mobileSpacing.xs
   },
   profileName: {
     fontSize: 16,
@@ -488,7 +492,7 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   ratingValue: {
     fontSize: 16,
@@ -507,13 +511,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
     justifyContent: "space-between",
-    gap: 4
+    gap: mobileSpacing.xxs
   },
   statCell: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "#f8fafc",
-    paddingVertical: 8,
+    paddingVertical: mobileSpacing.xs,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -530,15 +534,15 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6
+    gap: mobileSpacing.xs
   },
   actionButton: {
-    borderRadius: 12,
+    borderRadius: mobileRadius.sm,
     borderWidth: 1,
     borderColor: "#dbe4ee",
     backgroundColor: "#ffffff",
     paddingHorizontal: 10,
-    paddingVertical: 8
+    paddingVertical: mobileSpacing.xs
   },
   actionPrimary: {
     borderColor: "#0f766e",
@@ -556,7 +560,7 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: "row",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   tabButton: {
     borderRadius: 999,
@@ -564,7 +568,7 @@ const styles = StyleSheet.create({
     borderColor: "#dbe4ee",
     backgroundColor: "#ffffff",
     paddingHorizontal: 12,
-    paddingVertical: 7
+    paddingVertical: mobileSpacing.xs
   },
   tabButtonActive: {
     borderColor: "#0f766e",
@@ -580,12 +584,12 @@ const styles = StyleSheet.create({
   },
   controlButton: {
     alignSelf: "flex-start",
-    borderRadius: 12,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#dbe4ee",
     paddingHorizontal: 10,
-    paddingVertical: 8
+    paddingVertical: mobileSpacing.xs
   },
   controlButtonLabel: {
     fontSize: 12,
@@ -593,16 +597,16 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   listContent: {
-    gap: 10,
-    paddingBottom: 10
+    gap: mobileSpacing.xs,
+    paddingBottom: mobileLayout.screenPaddingBottom
   },
   ratingCard: {
-    borderRadius: 12,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#e2e8f0",
-    padding: 10,
-    gap: 4
+    padding: mobileLayout.cardPadding,
+    gap: mobileSpacing.xxs
   },
   ratingCardTitle: {
     fontSize: 13,

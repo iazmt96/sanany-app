@@ -25,25 +25,29 @@ export function MobileListingCard({ direction, listing, priceLabel, statusLabel,
   const activityAt = listing.updatedAt ?? listing.createdAt;
 
   const updatedAtLabel = (() => {
+    const isAr = locale === "ar";
     const date = new Date(activityAt);
     const diffMs = date.getTime() - Date.now();
     const diffMinutes = Math.round(diffMs / (1000 * 60));
     const absMinutes = Math.abs(diffMinutes);
-    const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 
+    // Intl.RelativeTimeFormat is not reliably available in Hermes
+    if (absMinutes < 1) {
+      return isAr ? "الآن" : "just now";
+    }
     if (absMinutes < 60) {
-      return formatter.format(diffMinutes, "minute");
+      return isAr ? `منذ ${absMinutes} دقيقة` : `${absMinutes}m ago`;
     }
 
     const diffHours = Math.round(diffMinutes / 60);
     const absHours = Math.abs(diffHours);
 
     if (absHours < 24) {
-      return formatter.format(diffHours, "hour");
+      return isAr ? `منذ ${absHours} ساعة` : `${absHours}h ago`;
     }
 
     const diffDays = Math.round(diffHours / 24);
-    return formatter.format(diffDays, "day");
+    return isAr ? `منذ ${Math.abs(diffDays)} يوم` : `${Math.abs(diffDays)}d ago`;
   })();
 
   return (

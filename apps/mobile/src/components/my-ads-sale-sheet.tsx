@@ -206,13 +206,13 @@ export function MyAdsSaleSheet({
   };
 
   const downloadInvoice = async () => {
-    if (!invoice || !FileSystem.documentDirectory) {
+    if (!invoice) {
       return;
     }
 
     try {
-      const fileUri = `${FileSystem.documentDirectory}${invoice.payment.invoiceNumber ?? invoice.listingId}.txt`;
-      await FileSystem.writeAsStringAsync(fileUri, buildInvoiceText(invoice, language, t));
+      const file = new FileSystem.File(FileSystem.Paths.document, `${invoice.payment.invoiceNumber ?? invoice.listingId}.txt`);
+      file.write(buildInvoiceText(invoice, language, t));
       setErrorMessage(t("myAds.saleFlow.invoiceSaved"));
     } catch {
       setErrorMessage(t("myAds.saleFlow.invoiceSaveFailed"));

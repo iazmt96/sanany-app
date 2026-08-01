@@ -8,6 +8,7 @@ import { MobileListingTile } from "../components/mobile-listing-tile";
 import { MobileIcon } from "../components/mobile-icons";
 import { MobileSectionHeader } from "../components/mobile-section-header";
 import { getMobileListingsRepository } from "../lib/listings-repository";
+import { mobileLayout, mobileRadius, mobileSpacing } from "../theme/mobile-theme";
 
 type SearchScreenProps = {
   direction: Direction;
@@ -132,7 +133,7 @@ export function SearchScreen({ direction, initialSearch = "", onBack, onOpenList
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <MobileListingTile direction={direction} listing={item} width="48.5%" onPress={() => onOpenListing(item)} />
+            <MobileListingTile direction={direction} listing={item} width={mobileLayout.tileWidth} onPress={() => onOpenListing(item)} />
           )}
         />
       )}
@@ -156,39 +157,41 @@ export function SearchScreen({ direction, initialSearch = "", onBack, onOpenList
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
+    paddingTop: mobileLayout.screenPaddingTop,
+    paddingHorizontal: mobileLayout.screenPaddingHorizontal
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 13,
+    paddingVertical: mobileSpacing.sm,
     fontSize: 14,
     color: "#0f172a"
   },
   searchShell: {
-    marginBottom: 8,
+    marginBottom: mobileSpacing.xs,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    borderRadius: 18,
+    gap: mobileSpacing.xs,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: "#dbe4ee",
     backgroundColor: "#ffffff",
-    paddingHorizontal: 14
+    paddingHorizontal: mobileSpacing.sm
   },
   searchShellRtl: {
     flexDirection: "row-reverse"
   },
   controlsRow: {
-    marginBottom: 10,
+    marginBottom: mobileSpacing.xs,
     flexDirection: "row",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   headerRow: {
-    marginBottom: 6,
+    marginBottom: mobileSpacing.xs,
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   headerTitleWrap: {
     flex: 1
@@ -197,20 +200,20 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse"
   },
   backButton: {
-    marginTop: 4,
-    borderRadius: 16,
+    marginTop: mobileSpacing.xxs,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#ecfdfa",
     paddingHorizontal: 12,
-    paddingVertical: 10
+    paddingVertical: mobileSpacing.xs
   },
   controlButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    borderRadius: 16,
+    gap: mobileSpacing.xs,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#ecfdfa",
     paddingHorizontal: 12,
-    paddingVertical: 10
+    paddingVertical: mobileSpacing.xs
   },
   controlLabel: {
     fontSize: 12,
@@ -231,14 +234,14 @@ const styles = StyleSheet.create({
     color: "#475569"
   },
   listContent: {
-    gap: 10,
-    paddingBottom: 10
+    gap: mobileLayout.sectionGap,
+    paddingBottom: mobileLayout.screenPaddingBottom
   },
   gridRow: {
     justifyContent: "space-between"
   },
   pagination: {
-    marginTop: 4,
+    marginTop: mobileSpacing.xxs,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between"

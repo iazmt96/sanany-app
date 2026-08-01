@@ -518,7 +518,7 @@ async function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 async function convertFileUriToDataUrl(uri: string): Promise<string> {
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+  const base64 = await new FileSystem.File(uri).base64();
   return `data:${inferImageMimeType(uri)};base64,${base64}`;
 }
 
@@ -1611,10 +1611,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
 
       let sizeBytes = pickedAsset.fileSize ?? null;
       if (sizeBytes === null) {
-        const fileInfo = await FileSystem.getInfoAsync(pickedAsset.uri, { size: true });
-        if (fileInfo.exists && "size" in fileInfo && typeof fileInfo.size === "number") {
-          sizeBytes = fileInfo.size;
-        }
+        const file = new FileSystem.File(pickedAsset.uri);
+        sizeBytes = file.exists && typeof file.size === "number" ? file.size : null;
       }
 
       if (sizeBytes !== null && sizeBytes > MAX_VIDEO_SIZE_BYTES) {
@@ -1775,10 +1773,8 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
       for (const asset of result.assets) {
         let sizeBytes = asset.fileSize ?? null;
         if (sizeBytes === null) {
-          const fileInfo = await FileSystem.getInfoAsync(asset.uri, { size: true });
-          if (fileInfo.exists && "size" in fileInfo && typeof fileInfo.size === "number") {
-            sizeBytes = fileInfo.size;
-          }
+          const file = new FileSystem.File(asset.uri);
+          sizeBytes = file.exists && typeof file.size === "number" ? file.size : null;
         }
         const mimeType = asset.mimeType?.trim() || inferImageMimeType(asset.uri);
         const persistedUri =

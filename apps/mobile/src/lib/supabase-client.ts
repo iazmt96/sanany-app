@@ -34,8 +34,17 @@ export function getMobileSupabaseClient(): SupabaseClient {
   client = createSupabaseClient(getMobileSupabaseEnv(), {
     storage: getSupabaseStorage(),
     detectSessionInUrl: false,
-    storageKey: "sanany-mobile-auth"
+    storageKey: "sanany-mobile-auth",
+    realtimeDisabled: true,
   });
+
+  // Immediately disconnect Realtime — mobile app does not use live channels.
+  // This prevents ws/EventTarget prototype errors on React Native / Hermes.
+  try {
+    client.realtime.disconnect();
+  } catch {
+    // ignore — non-critical
+  }
 
   return client;
 }

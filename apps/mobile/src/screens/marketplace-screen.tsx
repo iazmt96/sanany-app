@@ -25,6 +25,7 @@ import { getMobileCategoriesRepository } from "../lib/categories-repository";
 import { getMobileListingsRepository } from "../lib/listings-repository";
 import { getMobileSellersRepository } from "../lib/sellers-repository";
 import { getMobileStoriesRepository } from "../lib/stories-repository";
+import { mobileLayout, mobileRadius, mobileSpacing } from "../theme/mobile-theme";
 
 type MarketplaceScreenProps = {
   direction: Direction;
@@ -456,7 +457,7 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
                 key={`recent-${item.id}`}
                 direction={direction}
                 listing={item}
-                width="48.5%"
+                width={mobileLayout.tileWidth}
                 onPress={() => onOpenListing(item)}
                 sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
                 insightLabel={t("home.card.continue")}
@@ -475,7 +476,7 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
                 key={`personalized-${item.id}`}
                 direction={direction}
                 listing={item}
-                width="48.5%"
+                width={mobileLayout.tileWidth}
                 onPress={() => onOpenListing(item)}
                 sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
                 insightLabel={t("home.card.recommended")}
@@ -494,7 +495,7 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
                 key={`nearby-${item.id}`}
                 direction={direction}
                 listing={item}
-                width="48.5%"
+                width={mobileLayout.tileWidth}
                 onPress={() => onOpenListing(item)}
                 sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
                 insightLabel={selectedCityLabel}
@@ -562,8 +563,10 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
 
 const styles = StyleSheet.create({
   scrollContent: {
-    gap: 14,
-    paddingBottom: 22
+    gap: mobileLayout.sectionGap,
+    paddingTop: mobileLayout.screenPaddingTop,
+    paddingHorizontal: mobileLayout.screenPaddingHorizontal,
+    paddingBottom: mobileLayout.screenPaddingBottom
   },
   placeholderWrap: {
     gap: 14
@@ -595,9 +598,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#e2e8f0"
   },
   heroCard: {
-    borderRadius: 30,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "#f7fbfd",
-    padding: 18
+    padding: mobileSpacing.md
   },
   eyebrow: {
     fontSize: 11,
@@ -619,22 +622,22 @@ const styles = StyleSheet.create({
     color: "#475569"
   },
   searchShell: {
-    marginTop: 16,
+    marginTop: mobileSpacing.sm,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    borderRadius: 20,
+    gap: mobileSpacing.xs,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: "#dbe4ee",
     backgroundColor: "#ffffff",
-    paddingHorizontal: 14
+    paddingHorizontal: mobileSpacing.sm
   },
   searchShellRtl: {
     flexDirection: "row-reverse"
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: mobileSpacing.sm,
     fontSize: 14,
     color: "#0f172a"
   },
@@ -644,10 +647,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#eff6ff"
   },
   cityRow: {
-    marginTop: 12,
+    marginTop: mobileSpacing.sm,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   cityRowRtl: {
     flexDirection: "row-reverse"
@@ -656,7 +659,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#ffffff",
     paddingHorizontal: 12,
-    paddingVertical: 8
+    paddingVertical: mobileSpacing.xs
   },
   cityChipActive: {
     backgroundColor: "#0f766e"
@@ -670,10 +673,10 @@ const styles = StyleSheet.create({
     color: "#ffffff"
   },
   signalChips: {
-    marginTop: 12,
+    marginTop: mobileSpacing.sm,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   signalChipsRtl: {
     flexDirection: "row-reverse"
@@ -682,7 +685,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#f1f5f9",
     paddingHorizontal: 12,
-    paddingVertical: 8
+    paddingVertical: mobileSpacing.xs
   },
   signalChipLabel: {
     fontSize: 11,
@@ -693,7 +696,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#ecfdf5",
     paddingHorizontal: 12,
-    paddingVertical: 8
+    paddingVertical: mobileSpacing.xs
   },
   savedSignalChipLabel: {
     fontSize: 11,
@@ -725,9 +728,9 @@ const styles = StyleSheet.create({
     color: "#64748b"
   },
   errorBox: {
-    borderRadius: 22,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#fef2f2",
-    padding: 14
+    padding: mobileLayout.cardPadding
   },
   errorText: {
     fontSize: 13,
@@ -741,19 +744,19 @@ const styles = StyleSheet.create({
     color: "#7f1d1d"
   },
   sectionCard: {
-    borderRadius: 26,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "#ffffff",
-    padding: 14
+    padding: mobileLayout.cardPadding
   },
   ownerGrid: {
-    marginTop: 12,
+    marginTop: mobileSpacing.sm,
     flexDirection: "row",
-    gap: 10
+    gap: mobileSpacing.xs
   },
   ownerMetricCard: {
     flex: 1,
-    borderRadius: 20,
-    padding: 14
+    borderRadius: mobileRadius.md,
+    padding: mobileLayout.cardPadding
   },
   ownerMetricActive: {
     backgroundColor: "#ecfdf5"
@@ -776,13 +779,13 @@ const styles = StyleSheet.create({
     color: "#0f172a"
   },
   savedGrid: {
-    marginTop: 12,
-    gap: 10
+    marginTop: mobileSpacing.sm,
+    gap: mobileSpacing.xs
   },
   savedCard: {
-    borderRadius: 20,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#f8fafc",
-    padding: 14
+    padding: mobileLayout.cardPadding
   },
   savedTitle: {
     fontSize: 14,
@@ -795,25 +798,25 @@ const styles = StyleSheet.create({
     color: "#64748b"
   },
   listingGrid: {
-    marginTop: 12,
+    marginTop: mobileSpacing.sm,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10
+    gap: mobileLayout.gridGap
   },
   categoryGrid: {
-    marginTop: 12,
+    marginTop: mobileSpacing.sm,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10
+    gap: mobileLayout.gridGap
   },
   categoryGridRtl: {
     flexDirection: "row-reverse"
   },
   categoryCard: {
-    width: "48.5%",
-    borderRadius: 22,
+    width: mobileLayout.tileWidth,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#f8fafc",
-    padding: 14
+    padding: mobileLayout.cardPadding
   },
   categoryEmoji: {
     fontSize: 28

@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import { type Direction } from "@sanany/utils";
 import { MobileIcon } from "./mobile-icons";
+import { mobileLayout, mobileRadius, mobileShadow, mobileSpacing } from "../theme/mobile-theme";
 
 export type VisibleMobileTab = "profile" | "explore" | "add" | "chat" | "more";
 export type MobileTab = VisibleMobileTab | "myAds" | "notifications" | "favorites" | "profile";
@@ -133,25 +134,21 @@ export function MobileNavigation({ direction, activeTab, chatUnreadCount = 0, on
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: 14
+    paddingHorizontal: mobileLayout.shellPaddingHorizontal
   },
   container: {
-    minHeight: 72,
+    minHeight: 64,
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    borderRadius: 28,
+    borderRadius: mobileRadius.lg,
     borderWidth: 1,
     borderColor: "#e2e8f0",
     backgroundColor: "#ffffff",
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: Platform.select({ ios: 10, android: 8 }),
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 7
+    paddingHorizontal: mobileSpacing.sm,
+    paddingTop: mobileSpacing.xs,
+    paddingBottom: Platform.select({ ios: mobileSpacing.xs, android: mobileSpacing.xs }),
+    ...mobileShadow.nav
   },
   containerRtl: {
     flexDirection: "row-reverse"
@@ -162,8 +159,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
-    borderRadius: 20,
+    gap: mobileSpacing.xxs,
+    borderRadius: mobileRadius.md,
     paddingHorizontal: 6,
     paddingVertical: 6
   },
@@ -171,13 +168,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#ecfdfa"
   },
   addButtonWrap: {
-    width: 68,
+    width: 64,
     alignItems: "center",
-    marginBottom: 8
+    marginBottom: mobileSpacing.xxs
   },
   addButton: {
-    width: 62,
-    height: 62,
+    width: 56,
+    height: 56,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
@@ -195,7 +192,7 @@ const styles = StyleSheet.create({
   chatBadge: {
     position: "absolute",
     top: 4,
-    right: 10,
+    right: 8,
     minWidth: 17,
     height: 17,
     borderRadius: 999,

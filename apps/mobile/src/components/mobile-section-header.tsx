@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { type Direction } from "@sanany/utils";
+import { mobileLayout, mobileSpacing } from "../theme/mobile-theme";
 
 type MobileSectionHeaderProps = {
   direction: Direction;
@@ -30,13 +31,13 @@ export function MobileSectionHeader({ direction, title, subtitle, badge }: Mobil
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 14
+    marginBottom: mobileLayout.sectionGap
   },
   topRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 12
+    gap: mobileSpacing.xs
   },
   topRowRtl: {
     flexDirection: "row-reverse"
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#ecfdfa",
     paddingHorizontal: 12,
-    paddingVertical: 8
+    paddingVertical: mobileSpacing.xs
   },
   badgeLabel: {
     fontSize: 12,

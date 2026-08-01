@@ -9,6 +9,7 @@ export type SupabaseClientFactoryOptions = {
   storage?: SupportedStorage;
   detectSessionInUrl?: boolean;
   storageKey?: string;
+  realtimeDisabled?: boolean;
 };
 
 function assertValue(name: string, value: string): string {
@@ -30,6 +31,17 @@ export function createSupabaseClient(env: SupabaseEnv, options: SupabaseClientFa
       storage: options.storage,
       detectSessionInUrl: options.detectSessionInUrl ?? true,
       storageKey: options.storageKey
-    }
+    },
+    realtime: options.realtimeDisabled
+      ? {
+          // Completely disable realtime channels for React Native
+          // (avoids ws/EventTarget prototype errors in Hermes)
+          params: { eventsPerSecond: -1 },
+          timeout: 0,
+        }
+      : undefined,
+    global: options.realtimeDisabled
+      ? { headers: {} }
+      : undefined,
   });
 }

@@ -6,6 +6,7 @@ import type { MarketplaceListing, SellerProfile } from "@sanany/types";
 import { type Direction } from "@sanany/utils";
 import { MobileIcon } from "./mobile-icons";
 import { resolveListingPriceLabel } from "../lib/listing-price-label";
+import { mobileRadius, mobileShadow, mobileSpacing } from "../theme/mobile-theme";
 
 type MobileListingTileProps = {
   direction: Direction;
@@ -39,26 +40,29 @@ export function MobileListingTile({
   const imageCount = useMemo(() => parseListingImageUrls(listing.imageUrl).length, [listing.imageUrl]);
   const activityAt = listing.updatedAt ?? listing.createdAt;
   const updatedAt = useMemo(() => {
-    const locale = (i18n.language || "ar").startsWith("ar") ? "ar" : "en";
+    const isAr = (i18n.language || "ar").startsWith("ar");
     const date = new Date(activityAt);
     const diffMs = date.getTime() - Date.now();
     const diffMinutes = Math.round(diffMs / (1000 * 60));
     const absMinutes = Math.abs(diffMinutes);
-    const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 
+    // Intl.RelativeTimeFormat is not reliably available in Hermes — use manual labels
+    if (absMinutes < 1) {
+      return isAr ? "الآن" : "just now";
+    }
     if (absMinutes < 60) {
-      return formatter.format(diffMinutes, "minute");
+      return isAr ? `منذ ${absMinutes} دقيقة` : `${absMinutes}m ago`;
     }
 
     const diffHours = Math.round(diffMinutes / 60);
     const absHours = Math.abs(diffHours);
 
     if (absHours < 24) {
-      return formatter.format(diffHours, "hour");
+      return isAr ? `منذ ${absHours} ساعة` : `${absHours}h ago`;
     }
 
     const diffDays = Math.round(diffHours / 24);
-    return formatter.format(diffDays, "day");
+    return isAr ? `منذ ${Math.abs(diffDays)} يوم` : `${Math.abs(diffDays)}d ago`;
   }, [activityAt, i18n.language]);
   const priceLabel = useMemo(() => resolveListingPriceLabel(listing, t), [listing, t]);
 
@@ -154,15 +158,16 @@ export function MobileListingTile({
 const styles = StyleSheet.create({
   card: {
     overflow: "hidden",
-    borderRadius: 22,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: "#e2e8f0",
     backgroundColor: "#ffffff",
-    minHeight: 248
+    minHeight: 232,
+    ...mobileShadow.card
   },
   media: {
     position: "relative",
-    height: 128,
+    height: 120,
     backgroundColor: "#d9f3ef"
   },
   image: {
@@ -176,9 +181,9 @@ const styles = StyleSheet.create({
   },
   mediaTopRow: {
     position: "absolute",
-    top: 8,
-    left: 8,
-    right: 8,
+    top: mobileSpacing.xs,
+    left: mobileSpacing.xs,
+    right: mobileSpacing.xs,
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between"
@@ -190,7 +195,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6
+    gap: mobileSpacing.xs
   },
   mediaBadgesRtl: {
     flexDirection: "row-reverse"
@@ -198,8 +203,8 @@ const styles = StyleSheet.create({
   insightBadge: {
     borderRadius: 999,
     backgroundColor: "rgba(15,23,42,0.72)",
-    paddingHorizontal: 8,
-    paddingVertical: 5
+    paddingHorizontal: mobileSpacing.xs,
+    paddingVertical: mobileSpacing.xxs
   },
   insightLabel: {
     color: "#ffffff",
@@ -209,7 +214,7 @@ const styles = StyleSheet.create({
   soldBadge: {
     borderRadius: 999,
     backgroundColor: "#dc2626",
-    paddingHorizontal: 8,
+    paddingHorizontal: mobileSpacing.xs,
     paddingVertical: 4
   },
   soldLabel: {
@@ -219,11 +224,11 @@ const styles = StyleSheet.create({
   },
   photosBadge: {
     position: "absolute",
-    right: 8,
-    bottom: 8,
+    right: mobileSpacing.xs,
+    bottom: mobileSpacing.xs,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: mobileSpacing.xxs,
     borderRadius: 999,
     backgroundColor: "rgba(15,23,42,0.65)",
     paddingHorizontal: 7,
@@ -246,10 +251,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.92)"
   },
   content: {
-    gap: 7,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 12
+    gap: mobileSpacing.xs,
+    paddingHorizontal: mobileSpacing.sm,
+    paddingTop: mobileSpacing.sm,
+    paddingBottom: mobileSpacing.sm
   },
   price: {
     fontSize: 13,
@@ -267,7 +272,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   metaRowRtl: {
     flexDirection: "row-reverse"
@@ -276,7 +281,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4
+    gap: mobileSpacing.xxs
   },
   metaItemRtl: {
     flexDirection: "row-reverse"
@@ -290,11 +295,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
-    borderRadius: 16,
+    gap: mobileSpacing.xs,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#f8fafc",
     paddingHorizontal: 10,
-    paddingVertical: 8
+    paddingVertical: mobileSpacing.xs
   },
   trustRowRtl: {
     flexDirection: "row-reverse"

@@ -11,6 +11,7 @@ import { MobileListingTile } from "../components/mobile-listing-tile";
 import { MyAdsSaleSheet } from "../components/my-ads-sale-sheet";
 import { MobileSectionHeader } from "../components/mobile-section-header";
 import { getMobileListingsRepository } from "../lib/listings-repository";
+import { mobileLayout, mobileRadius, mobileSpacing } from "../theme/mobile-theme";
 
 type MyAdsScreenProps = {
   direction: Direction;
@@ -317,32 +318,34 @@ export function MyAdsScreen({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
+    paddingTop: mobileLayout.screenPaddingTop,
+    paddingHorizontal: mobileLayout.screenPaddingHorizontal
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 13,
+    paddingVertical: mobileSpacing.sm,
     color: "#0f172a"
   },
   searchShell: {
-    marginBottom: 10,
+    marginBottom: mobileSpacing.xs,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    borderRadius: 18,
+    gap: mobileSpacing.xs,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: "#dbe4ee",
     backgroundColor: "#ffffff",
-    paddingHorizontal: 14
+    paddingHorizontal: mobileSpacing.sm
   },
   searchShellRtl: {
     flexDirection: "row-reverse"
   },
   tabsRow: {
-    marginBottom: 12,
+    marginBottom: mobileSpacing.sm,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   tabsRowRtl: {
     flexDirection: "row-reverse"
@@ -352,8 +355,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#dbe4ee",
     backgroundColor: "#ffffff",
-    paddingHorizontal: 14,
-    paddingVertical: 9
+    paddingHorizontal: 12,
+    paddingVertical: mobileSpacing.xs
   },
   tabButtonActive: {
     borderColor: "#0f766e",
@@ -378,23 +381,23 @@ const styles = StyleSheet.create({
     color: "#475569"
   },
   listContent: {
-    gap: 12,
-    paddingBottom: 10
+    gap: mobileLayout.sectionGap,
+    paddingBottom: mobileLayout.screenPaddingBottom
   },
   gridRow: {
     justifyContent: "space-between"
   },
   tileWrap: {
-    width: "48.5%",
-    gap: 8
+    width: mobileLayout.tileWidth,
+    gap: mobileSpacing.xs
   },
   paymentInfo: {
-    borderRadius: 16,
+    borderRadius: mobileRadius.md,
     borderWidth: 1,
     borderColor: "#e2e8f0",
     backgroundColor: "#f8fafc",
     paddingHorizontal: 12,
-    paddingVertical: 10
+    paddingVertical: mobileSpacing.xs
   },
   paymentInfoLabel: {
     fontSize: 11,
@@ -412,7 +415,7 @@ const styles = StyleSheet.create({
     color: "#475569"
   },
   secondaryAction: {
-    marginTop: 8,
+    marginTop: mobileSpacing.xs,
     alignSelf: "flex-start",
     borderRadius: 999,
     borderWidth: 1,
@@ -427,10 +430,10 @@ const styles = StyleSheet.create({
     color: "#334155"
   },
   primaryAction: {
-    borderRadius: 16,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#0f766e",
     paddingHorizontal: 12,
-    paddingVertical: 12
+    paddingVertical: mobileSpacing.sm
   },
   primaryActionDisabled: {
     opacity: 0.45
@@ -442,16 +445,16 @@ const styles = StyleSheet.create({
     color: "#ffffff"
   },
   pagination: {
-    marginTop: 4,
+    marginTop: mobileSpacing.xxs,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between"
   },
   pagerButton: {
-    borderRadius: 14,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "#ecfdfa",
     paddingHorizontal: 12,
-    paddingVertical: 10
+    paddingVertical: mobileSpacing.xs
   },
   pagerLabel: {
     fontSize: 12,

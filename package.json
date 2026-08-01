@@ -2,6 +2,7 @@
   "name": "sanany-marketplace-monorepo",
   "private": true,
   "version": "0.1.0",
+  "main": "apps/mobile/index.ts",
   "workspaces": [
     "apps/*",
     "packages/*"

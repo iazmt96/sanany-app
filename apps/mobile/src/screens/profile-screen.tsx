@@ -10,6 +10,7 @@ import { MobileListingTile } from "../components/mobile-listing-tile";
 import { MobileSectionHeader } from "../components/mobile-section-header";
 import { getMobileListingsRepository } from "../lib/listings-repository";
 import { getMobileSellersRepository } from "../lib/sellers-repository";
+import { mobileLayout, mobileRadius, mobileSpacing } from "../theme/mobile-theme";
 
 type ProfileScreenProps = {
   direction: Direction;
@@ -290,7 +291,7 @@ export function ProfileScreen({ direction, onOpenListing, onOpenVerification, on
             <MobileListingTile
               direction={direction}
               listing={item}
-              width="48.5%"
+              width={mobileLayout.tileWidth}
               onPress={() => {
                 onOpenListing(item);
               }}
@@ -307,26 +308,28 @@ const styles = StyleSheet.create({
     flex: 1
   },
   headerContent: {
-    gap: 10,
-    paddingBottom: 10
+    gap: mobileLayout.sectionGap,
+    paddingTop: mobileLayout.screenPaddingTop,
+    paddingHorizontal: mobileLayout.screenPaddingHorizontal,
+    paddingBottom: mobileSpacing.xs
   },
   rowRtl: {
     flexDirection: "row-reverse"
   },
   headerCard: {
-    borderRadius: 18,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#ffffff",
-    padding: 12
+    padding: mobileLayout.cardPadding
   },
   headerTopRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: mobileSpacing.xs,
     alignItems: "flex-start"
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ecfdfa",
@@ -338,12 +341,12 @@ const styles = StyleSheet.create({
   },
   headerMeta: {
     flex: 1,
-    gap: 3
+    gap: mobileSpacing.xxs
   },
   editButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ecfdfa"
@@ -351,7 +354,7 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5
+    gap: mobileSpacing.xxs
   },
   name: {
     fontSize: 16,
@@ -364,7 +367,7 @@ const styles = StyleSheet.create({
   },
   bio: {
     fontSize: 11,
-    lineHeight: 17,
+    lineHeight: 16,
     color: "#334155"
   },
   website: {
@@ -375,7 +378,7 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6
+    gap: mobileSpacing.xs
   },
   ratingValue: {
     fontSize: 13,
@@ -401,18 +404,18 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    gap: 6
+    gap: mobileSpacing.xxs
   },
   sellerCard: {
-    borderRadius: 26,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "#ffffff",
-    padding: 16,
-    gap: 12
+    padding: mobileLayout.cardPadding,
+    gap: mobileSpacing.xs
   },
   sellerCardHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10
+    gap: mobileSpacing.xs
   },
   sellerCardTitle: {
     fontSize: 15,
@@ -421,18 +424,18 @@ const styles = StyleSheet.create({
   },
   sellerCardSubtitle: {
     fontSize: 11,
-    lineHeight: 17,
+    lineHeight: 16,
     color: "#64748b"
   },
   ownerGrid: {
     flexDirection: "row",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   ownerMetricCard: {
     flex: 1,
-    borderRadius: 14,
-    padding: 12,
-    gap: 4
+    borderRadius: mobileRadius.sm,
+    padding: mobileLayout.cardPadding,
+    gap: mobileSpacing.xxs
   },
   ownerMetricActive: {
     backgroundColor: "#ecfdfa"
@@ -455,19 +458,19 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   completionCard: {
-    borderRadius: 16,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#ffffff",
-    padding: 12,
-    gap: 10
+    padding: mobileLayout.cardPadding,
+    gap: mobileSpacing.xs
   },
   completionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10
+    gap: mobileSpacing.xs
   },
   completionMeta: {
     flex: 1,
-    gap: 3
+    gap: mobileSpacing.xxs
   },
   completionTitle: {
     fontSize: 14,
@@ -476,7 +479,7 @@ const styles = StyleSheet.create({
   },
   completionSubtitle: {
     fontSize: 11,
-    lineHeight: 17,
+    lineHeight: 16,
     color: "#64748b"
   },
   completionValue: {
@@ -496,8 +499,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f766e"
   },
   verificationAction: {
-    minHeight: 44,
-    borderRadius: 14,
+    minHeight: 40,
+    borderRadius: mobileRadius.sm,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#ecfdfa"
@@ -509,11 +512,11 @@ const styles = StyleSheet.create({
   },
   statCell: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10
+    paddingVertical: mobileSpacing.xs
   },
   statValue: {
     fontSize: 14,
@@ -527,7 +530,7 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: "row",
-    gap: 8
+    gap: mobileSpacing.xs
   },
   tabButton: {
     borderRadius: 999,
@@ -535,7 +538,7 @@ const styles = StyleSheet.create({
     borderColor: "#dbe4ee",
     backgroundColor: "#ffffff",
     paddingHorizontal: 12,
-    paddingVertical: 7
+    paddingVertical: mobileSpacing.xs
   },
   tabButtonActive: {
     borderColor: "#0f766e",
@@ -550,23 +553,25 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   gridContent: {
-    gap: 10,
-    paddingBottom: 14
+    gap: mobileSpacing.xs,
+    paddingHorizontal: mobileLayout.screenPaddingHorizontal,
+    paddingBottom: mobileLayout.screenPaddingBottom
   },
   gridRow: {
     justifyContent: "space-between"
   },
   ratingsContent: {
-    gap: 8,
-    paddingBottom: 14
+    gap: mobileSpacing.xs,
+    paddingHorizontal: mobileLayout.screenPaddingHorizontal,
+    paddingBottom: mobileLayout.screenPaddingBottom
   },
   ratingCard: {
-    borderRadius: 12,
+    borderRadius: mobileRadius.sm,
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "#e2e8f0",
-    padding: 10,
-    gap: 4
+    padding: mobileLayout.cardPadding,
+    gap: mobileSpacing.xxs
   },
   ratingCardTitle: {
     fontSize: 13,

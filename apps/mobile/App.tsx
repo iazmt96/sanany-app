@@ -27,6 +27,7 @@ import { SellerProfileScreen } from "./src/screens/seller-profile-screen";
 import { VerificationScreen } from "./src/screens/verification-screen";
 import { MapScreen } from "./src/screens/map-screen";
 import { mobileI18n } from "./src/i18n/mobile-i18n";
+import { mobileLayout, mobileRadius } from "./src/theme/mobile-theme";
 
 function AppContent() {
   const { t } = useTranslation();
@@ -59,7 +60,7 @@ function AppContent() {
   }, [activeTab, sceneFade]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && window.location) {
       const params = new URLSearchParams(window.location.search);
       if (params.get("previewScreen") === "splash") {
         return;
@@ -74,7 +75,7 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || !window.location) {
       return;
     }
     const params = new URLSearchParams(window.location.search);
@@ -351,19 +352,16 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 12,
-    gap: 14
+    paddingHorizontal: mobileLayout.shellPaddingHorizontal,
+    paddingTop: mobileLayout.shellPaddingTop,
+    paddingBottom: mobileLayout.shellPaddingBottom,
+    gap: mobileLayout.compactGap
   },
   contentCard: {
     flex: 1,
     overflow: "hidden",
-    borderRadius: 30,
-    backgroundColor: "#f8fbfd",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 6
+    borderRadius: mobileRadius.lg,
+    backgroundColor: "#f8fbfd"
   },
   scenesWrap: {
     flex: 1

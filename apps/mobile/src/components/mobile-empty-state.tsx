@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { type Direction } from "@sanany/utils";
 import { MobileIcon } from "./mobile-icons";
+import { mobileRadius, mobileShadow, mobileSpacing } from "../theme/mobile-theme";
 
 type MobileEmptyStateProps = {
   direction: Direction;
@@ -33,15 +34,11 @@ export function MobileEmptyState({ direction, icon, title, description, actionLa
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    borderRadius: 24,
+    borderRadius: mobileRadius.lg,
     backgroundColor: "#ffffff",
-    paddingHorizontal: 20,
-    paddingVertical: 28,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2
+    paddingHorizontal: mobileSpacing.md,
+    paddingVertical: mobileSpacing.lg,
+    ...mobileShadow.card
   },
   iconWrap: {
     width: 62,
@@ -50,7 +47,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 22,
     backgroundColor: "#ecfdfa",
-    marginBottom: 14
+    marginBottom: mobileSpacing.sm
   },
   title: {
     fontSize: 18,
@@ -58,14 +55,14 @@ const styles = StyleSheet.create({
     color: "#0f172a"
   },
   description: {
-    marginTop: 8,
+    marginTop: mobileSpacing.xs,
     fontSize: 13,
     lineHeight: 20,
     color: "#64748b"
   },
   action: {
-    marginTop: 16,
-    borderRadius: 16,
+    marginTop: mobileSpacing.md,
+    borderRadius: mobileRadius.md,
     backgroundColor: "#0D9488",
     paddingHorizontal: 18,
     paddingVertical: 12
