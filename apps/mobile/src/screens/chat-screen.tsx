@@ -8,12 +8,14 @@ import type { MarketplaceListing } from "@sanany/types";
 import { type Direction } from "@sanany/utils";
 import { useAuth } from "../auth/auth-context";
 import { consumePendingChatListingIntent } from "../lib/chat-intent-store";
+import { getMobileSellersRepository } from "../lib/sellers-repository";
 
 type ChatScreenProps = {
   direction: Direction;
   openListingIntent?: MarketplaceListing | null;
   onIntentHandled?(): void;
   onUnreadCountChange?(count: number): void;
+  onThreadOpenChange?(isOpen: boolean): void;
 };
 
 type ChatFilter = "all" | "seller" | "buyer";
@@ -207,9 +209,10 @@ function SwipeableThreadCard({ direction, thread, onOpen, onDelete }: SwipeableT
   );
 }
 
-export function ChatScreen({ direction, openListingIntent = null, onIntentHandled, onUnreadCountChange }: ChatScreenProps) {
+export function ChatScreen({ direction, openListingIntent = null, onIntentHandled, onUnreadCountChange, onThreadOpenChange }: ChatScreenProps) {
   const { t } = useTranslation();
-  const { snapshot } = useAuth();
+  const { snapshot, accountProfile } = useAuth();
+  const sellersRepository = useMemo(() => getMobileSellersRepository(), []);
   const isRtl = direction === "rtl";
   const textAlign = isRtl ? "right" : "left";
   const [activeFilter, setActiveFilter] = useState<ChatFilter>("all");
@@ -319,7 +322,9 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
       return;
     }
 
-    const intentThread = mapListingToThread(activeListingIntent, t, snapshot.user?.id ?? null);
+    let isCancelled = false;
+    const fallbackName = resolveListingThreadName(activeListingIntent, t);
+    const intentThread = mapListingToThread(activeListingIntent, t, snapshot.user?.id ?? null, fallbackName);
     setForcedVisibleThreadId(intentThread.id);
     setListingThreads((current) => {
       const withoutSame = current.filter((item) => item.id !== intentThread.id);
@@ -353,12 +358,77 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
       } catch {}
     });
 
-    setActiveFilter("buyer");
+    setThreadMessages((current) => {
+      if (current[intentThread.id]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [intentThread.id]: []
+      };
+    });
+    setSelectedThread(intentThread);
+    setComposerText("");
+    setActiveFilter(intentThread.kind);
     setUnreadOnly(false);
+    setReadThreadIds((current) => {
+      if (current.includes(intentThread.id)) {
+        return current;
+      }
+      const nextReadThreadIds = [...current, intentThread.id];
+      void AsyncStorage.setItem(READ_THREADS_STORAGE_KEY, JSON.stringify(nextReadThreadIds));
+      return nextReadThreadIds;
+    });
     setStorageListingIntent(null);
     setRuntimeListingIntent(null);
     onIntentHandled?.();
-  }, [activeListingIntent, hiddenThreadIds, onIntentHandled, snapshot.user?.id, t]);
+
+    if (!activeListingIntent.ownerId || activeListingIntent.ownerId === snapshot.user?.id) {
+      const ownDisplayName = accountProfile?.displayName?.trim() || "";
+      const ownUsername = accountProfile?.username?.trim() || "";
+      const ownThreadName = formatThreadIdentity(ownDisplayName, ownUsername, fallbackName);
+      if (ownThreadName !== fallbackName) {
+        setListingThreads((current) => current.map((thread) => (thread.id === intentThread.id ? { ...thread, name: ownThreadName } : thread)));
+        setSelectedThread((current) => (current?.id === intentThread.id ? { ...current, name: ownThreadName } : current));
+      } else if (snapshot.user?.id) {
+        void sellersRepository
+          .getProfile(snapshot.user.id, snapshot.user.id)
+          .then((profile) => {
+            if (isCancelled || !profile) {
+              return;
+            }
+            const resolvedOwnName = formatThreadIdentity(profile.displayName?.trim() || "", profile.username?.trim() || "", fallbackName);
+            if (!resolvedOwnName || resolvedOwnName === fallbackName) {
+              return;
+            }
+            setListingThreads((current) => current.map((thread) => (thread.id === intentThread.id ? { ...thread, name: resolvedOwnName } : thread)));
+            setSelectedThread((current) => (current?.id === intentThread.id ? { ...current, name: resolvedOwnName } : current));
+          })
+          .catch(() => {
+            // Keep fallback when own profile cannot be loaded.
+          });
+      }
+    } else if (activeListingIntent.ownerId && activeListingIntent.ownerId !== snapshot.user?.id) {
+      void sellersRepository
+        .getProfile(activeListingIntent.ownerId, snapshot.user?.id ?? null)
+        .then((profile) => {
+          const sellerName = formatThreadIdentity(profile?.displayName?.trim() || "", profile?.username?.trim() || "", fallbackName);
+          if (!sellerName || sellerName === fallbackName) {
+            return;
+          }
+          setListingThreads((current) => current.map((thread) => (thread.id === intentThread.id ? { ...thread, name: sellerName } : thread)));
+          setSelectedThread((current) => (current?.id === intentThread.id ? { ...current, name: sellerName } : current));
+        })
+        .catch(() => {
+          // Keep the translated fallback name if seller profile couldn't be loaded.
+        });
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeListingIntent, accountProfile?.displayName, accountProfile?.username, onIntentHandled, sellersRepository, snapshot.user?.id, t]);
 
   const threads = useMemo<ChatThread[]>(
     () =>
@@ -389,11 +459,9 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
     onUnreadCountChange?.(totalUnread);
   }, [onUnreadCountChange, threads]);
 
-  const buildDefaultMessages = () => [
-    { id: "msg-1", from: "other" as const, text: t("chat.detail.messages.other1") },
-    { id: "msg-2", from: "me" as const, text: t("chat.detail.messages.me1") },
-    { id: "msg-3", from: "other" as const, text: t("chat.detail.messages.other2") }
-  ];
+  useEffect(() => {
+    onThreadOpenChange?.(selectedThread !== null);
+  }, [onThreadOpenChange, selectedThread]);
 
   const openThread = (thread: ChatThread) => {
     if (!readThreadIds.includes(thread.id)) {
@@ -409,7 +477,7 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
 
       return {
         ...current,
-        [thread.id]: buildDefaultMessages()
+        [thread.id]: []
       };
     });
     setSelectedThread(thread);
@@ -428,7 +496,7 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
     setThreadMessages((current) => ({
       ...current,
       [selectedThread.id]: [
-        ...(current[selectedThread.id] ?? buildDefaultMessages()),
+        ...(current[selectedThread.id] ?? []),
         {
           id: `msg-${Date.now()}`,
           from: "me",
@@ -462,7 +530,7 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
 
   if (selectedThread) {
     const quickReplies = [t("chat.detail.quickReplies.duration"), t("chat.detail.quickReplies.finalPrice"), t("chat.detail.quickReplies.latest")];
-    const detailMessages = threadMessages[selectedThread.id] ?? buildDefaultMessages();
+    const detailMessages = threadMessages[selectedThread.id] ?? [];
 
     return (
       <View style={styles.detailContainer}>
@@ -798,7 +866,7 @@ const styles = StyleSheet.create({
   },
   detailContainer: {
     flex: 1,
-    backgroundColor: "#e5e7eb"
+    backgroundColor: "#ffffff"
   },
   detailHeader: {
     flexDirection: "row",
@@ -852,6 +920,7 @@ const styles = StyleSheet.create({
   },
   messagesArea: {
     flex: 1,
+    backgroundColor: "#ffffff",
     paddingHorizontal: 12,
     paddingBottom: 8
   },
@@ -950,7 +1019,12 @@ const styles = StyleSheet.create({
   }
 });
 
-function mapListingToThread(listing: MarketplaceListing, t: (key: string, options?: Record<string, unknown>) => string, currentUserId: string | null): ChatThread {
+function mapListingToThread(
+  listing: MarketplaceListing,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  currentUserId: string | null,
+  threadName: string
+): ChatThread {
   const firstImage = getPrimaryListingImageUrl(listing.imageUrl);
 
   const rawMinutes = Math.floor((Date.now() - new Date(listing.createdAt).getTime()) / (1000 * 60));
@@ -959,11 +1033,30 @@ function mapListingToThread(listing: MarketplaceListing, t: (key: string, option
   return {
     id: `listing-${listing.id}`,
     kind: listing.ownerId && currentUserId && listing.ownerId === currentUserId ? "seller" : "buyer",
-    name: t("chat.threadName", { id: listing.id.slice(0, 4).toUpperCase() }),
+    name: threadName,
     listingTitle: listing.title,
     lastMessage: t("chat.listingMessage"),
     minutesAgo,
     unreadCount: 1,
     imageUrl: firstImage
   };
+}
+
+function resolveListingThreadName(listing: MarketplaceListing, t: (key: string, options?: Record<string, unknown>) => string): string {
+  return t("chat.threadName", { id: listing.id.slice(0, 4).toUpperCase() });
+}
+
+function formatThreadIdentity(displayName: string, username: string, fallback: string): string {
+  const cleanName = displayName.trim();
+  const cleanUsername = username.trim().replace(/^@+/, "");
+  if (cleanName && cleanUsername) {
+    return `${cleanName} • @${cleanUsername}`;
+  }
+  if (cleanName) {
+    return cleanName;
+  }
+  if (cleanUsername) {
+    return `@${cleanUsername}`;
+  }
+  return fallback;
 }
