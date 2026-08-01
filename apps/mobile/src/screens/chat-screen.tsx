@@ -36,6 +36,7 @@ type ChatMessage = {
   id: string;
   from: "me" | "other";
   text: string;
+  sentAt: number;
 };
 
 const HIDDEN_THREADS_STORAGE_KEY = "sanany:hidden-chat-threads";
@@ -207,6 +208,13 @@ function SwipeableThreadCard({ direction, thread, onOpen, onDelete }: SwipeableT
       </Animated.View>
     </View>
   );
+}
+
+function formatMessageTime(ts: number): string {
+  const d = new Date(ts);
+  const h = d.getHours().toString().padStart(2, "0");
+  const m = d.getMinutes().toString().padStart(2, "0");
+  return `${h}:${m}`;
 }
 
 export function ChatScreen({ direction, openListingIntent = null, onIntentHandled, onUnreadCountChange, onThreadOpenChange }: ChatScreenProps) {
@@ -483,12 +491,12 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
     setSelectedThread(thread);
   };
 
-  const sendMessage = () => {
+  const sendMessage = (overrideText?: string) => {
     if (!selectedThread) {
       return;
     }
 
-    const text = composerText.trim();
+    const text = (overrideText ?? composerText).trim();
     if (!text) {
       return;
     }
@@ -500,11 +508,14 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
         {
           id: `msg-${Date.now()}`,
           from: "me",
-          text
+          text,
+          sentAt: Date.now()
         }
       ]
     }));
-    setComposerText("");
+    if (!overrideText) {
+      setComposerText("");
+    }
   };
 
   const deleteThread = (threadId: string) => {
@@ -572,6 +583,12 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
 
         <View style={styles.messagesArea}>
           <View style={styles.messagesSpacer} />
+          {detailMessages.length === 0 ? (
+            <View style={styles.messagesEmpty}>
+              <Ionicons name="chatbubbles-outline" size={36} color="#d1d5db" />
+              <Text style={[styles.messagesEmptyText, { textAlign }]}>{t("chat.detail.emptyHint")}</Text>
+            </View>
+          ) : null}
           <View style={styles.messagesList}>
             {detailMessages.map((message) => (
               <View key={message.id} style={[styles.bubbleWrap, message.from === "me" ? styles.bubbleWrapMe : styles.bubbleWrapOther]}>
@@ -580,6 +597,9 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
                     {message.text}
                   </Text>
                 </View>
+                <Text style={[styles.bubbleTime, message.from === "me" ? styles.bubbleTimeMe : styles.bubbleTimeOther]}>
+                  {formatMessageTime(message.sentAt)}
+                </Text>
               </View>
             ))}
           </View>
@@ -587,7 +607,13 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
 
         <View style={[styles.quickRepliesRow, isRtl ? styles.quickRepliesRowRtl : undefined]}>
           {quickReplies.map((reply) => (
-            <Pressable key={reply} style={styles.quickReplyChip}>
+            <Pressable
+              key={reply}
+              style={styles.quickReplyChip}
+              onPress={() => {
+                setComposerText(reply);
+              }}
+            >
               <Text style={styles.quickReplyLabel}>{reply}</Text>
             </Pressable>
           ))}
@@ -602,13 +628,13 @@ export function ChatScreen({ direction, openListingIntent = null, onIntentHandle
               value={composerText}
               onChangeText={setComposerText}
               placeholder={t("chat.detail.inputPlaceholder")}
-              onSubmitEditing={sendMessage}
+              onSubmitEditing={() => sendMessage()}
               returnKeyType="send"
             />
           </View>
           <Pressable
             style={styles.micButton}
-            onPress={sendMessage}
+            onPress={() => sendMessage()}
           >
             <Ionicons name={composerText.trim().length > 0 ? "send" : "mic-outline"} size={24} color="#ffffff" />
           </Pressable>
@@ -959,6 +985,28 @@ const styles = StyleSheet.create({
   },
   bubbleTextMe: {
     color: "#ffffff"
+  },
+  bubbleTime: {
+    fontSize: 11,
+    marginTop: 3,
+    color: "#9ca3af"
+  },
+  bubbleTimeMe: {
+    textAlign: "right" as const
+  },
+  bubbleTimeOther: {
+    textAlign: "left" as const
+  },
+  messagesEmpty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 32
+  },
+  messagesEmptyText: {
+    fontSize: 14,
+    color: "#9ca3af"
   },
   quickRepliesRow: {
     flexDirection: "row",

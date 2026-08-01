@@ -1736,6 +1736,7 @@
     },
     detail: {
       inputPlaceholder: "Write a message...",
+      emptyHint: "Start typing or choose a quick reply below.",
       quickReplies: {
         duration: "How long have you used it?",
         finalPrice: "What's your final price?",

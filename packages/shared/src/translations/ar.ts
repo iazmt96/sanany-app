@@ -1735,6 +1735,7 @@
     },
     detail: {
       inputPlaceholder: "اكتب رسالة...",
+      emptyHint: "ابدأ بكتابة رسالتك أو اختر ردًا سريعًا.",
       quickReplies: {
         duration: "كم مدة استخدامك؟",
         finalPrice: "كم وصل السوم؟",
