@@ -10,8 +10,23 @@ export function Card({ className, children }: PropsWithChildren<ClassNameProps>)
   return <div className={clsx("rounded-xl border border-slate-200 bg-white p-5 shadow-sm", className)}>{children}</div>;
 }
 
-export function Badge({ children }: PropsWithChildren<ClassNameProps>) {
-  return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">{children}</span>;
+type BadgeVariant = "default" | "available" | "reserved" | "sold" | "draft" | "inactive";
+
+export function Badge({ children, className, variant = "default" }: PropsWithChildren<ClassNameProps & { variant?: BadgeVariant }>) {
+  const variantClassName =
+    variant === "available"
+      ? "bg-emerald-100 text-emerald-800"
+      : variant === "reserved"
+        ? "bg-amber-100 text-amber-800"
+        : variant === "sold"
+          ? "bg-rose-100 text-rose-700"
+        : variant === "draft"
+          ? "bg-sky-100 text-sky-800"
+          : variant === "inactive"
+            ? "bg-slate-200 text-slate-700"
+        : "bg-slate-100 text-slate-700";
+
+  return <span className={clsx("rounded-full px-2 py-1 text-xs font-semibold", variantClassName, className)}>{children}</span>;
 }
 
 export function Button({ className, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -39,4 +54,3 @@ export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInput
     />
   );
 }
-

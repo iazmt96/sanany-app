@@ -2,6 +2,7 @@
   "name": "sanany-marketplace-monorepo",
   "private": true,
   "version": "0.1.0",
+  "main": "apps/mobile/index.ts",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -10,11 +11,17 @@
     "build": "npm run build --workspaces --if-present",
     "dev:web": "npm run dev -w @sanany/web",
     "dev:mobile": "npm run dev -w @sanany/mobile",
+    "deploy:web:prod": "npx vercel deploy --prod",
+    "vercel:link:web": "npx vercel link",
+    "supabase:email-templates": "node scripts\\sync-supabase-auth-email-templates.mjs",
+    "setup:supabase": "powershell -ExecutionPolicy Bypass -File scripts\\setup-supabase-env.ps1",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {
+    "@react-native/js-polyfills": "^0.79.5",
+    "eas-cli": "^21.0.0",
+    "metro": "^0.82.5",
     "typescript": "^5.8.0"
   }
 }
-

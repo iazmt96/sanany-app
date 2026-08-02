@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "@sanany/shared": "file:../shared",
     "@sanany/types": "file:../types",
     "@supabase/supabase-js": "^2.49.0"
   },

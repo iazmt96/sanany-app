@@ -8,6 +8,7 @@
     ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "strict": true,
     "skipLibCheck": true,
@@ -27,10 +28,12 @@
       "@sanany/api": [
         "packages/api/src"
       ],
+      "@sanany/auth": [
+        "packages/auth/src"
+      ],
       "@sanany/ui": [
         "packages/ui/src"
       ]
     }
   }
 }
-

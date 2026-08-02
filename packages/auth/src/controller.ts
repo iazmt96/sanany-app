@@ -1,0 +1,108 @@
+import type { Session, User } from "@supabase/supabase-js";
+import type { AuthPayload, PhoneOtpRequestPayload, PhoneOtpVerifyPayload } from "@sanany/types";
+import type { AuthService, AuthSubscription } from "./supabase-auth";
+
+export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+
+export type AuthSnapshot = {
+  status: AuthStatus;
+  session: Session | null;
+  user: User | null;
+};
+
+type SnapshotListener = (snapshot: AuthSnapshot) => void;
+
+export type AuthController = {
+  initialize(): Promise<AuthSnapshot>;
+  subscribe(listener: SnapshotListener): AuthSubscription;
+  getSnapshot(): AuthSnapshot;
+  signIn(payload: AuthPayload): Promise<void>;
+  signUp(payload: AuthPayload): Promise<Session | null>;
+  requestPhoneOtp(payload: PhoneOtpRequestPayload): Promise<void>;
+  verifyPhoneOtp(payload: PhoneOtpVerifyPayload): Promise<Session | null>;
+  requestPasswordReset(email: string, redirectTo?: string): Promise<void>;
+  signOut(): Promise<void>;
+};
+
+const initialSnapshot: AuthSnapshot = {
+  status: "loading",
+  session: null,
+  user: null
+};
+
+function buildSnapshot(session: Session | null): AuthSnapshot {
+  return {
+    status: session ? "authenticated" : "unauthenticated",
+    session,
+    user: session?.user ?? null
+  };
+}
+
+export function createAuthController(service: AuthService): AuthController {
+  let snapshot = initialSnapshot;
+  let initialized = false;
+  let cleanupSubscription: AuthSubscription | null = null;
+  const listeners = new Set<SnapshotListener>();
+
+  const notify = () => {
+    for (const listener of listeners) {
+      listener(snapshot);
+    }
+  };
+
+  const setSnapshot = (nextSession: Session | null) => {
+    snapshot = buildSnapshot(nextSession);
+    notify();
+  };
+
+  return {
+    async initialize() {
+      if (!initialized) {
+        const session = await service.getSession();
+        setSnapshot(session);
+        cleanupSubscription = service.onAuthStateChange((nextSession) => {
+          setSnapshot(nextSession);
+        });
+        initialized = true;
+      }
+
+      return snapshot;
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      listener(snapshot);
+
+      return () => {
+        listeners.delete(listener);
+        if (listeners.size === 0 && cleanupSubscription) {
+          cleanupSubscription();
+          cleanupSubscription = null;
+          initialized = false;
+          // Do NOT reset snapshot here — preserves session across React StrictMode
+          // double-invoke cycles so the next subscriber sees the restored session.
+        }
+      };
+    },
+    getSnapshot() {
+      return snapshot;
+    },
+    async signIn(payload) {
+      await service.signIn(payload);
+    },
+    async signUp(payload) {
+      return service.signUp(payload);
+    },
+    async requestPhoneOtp(payload) {
+      await service.requestPhoneOtp(payload);
+    },
+    async verifyPhoneOtp(payload) {
+      return service.verifyPhoneOtp(payload);
+    },
+    async requestPasswordReset(email, redirectTo) {
+      await service.requestPasswordReset(email, redirectTo);
+    },
+    async signOut() {
+      await service.signOut();
+    }
+  };
+}

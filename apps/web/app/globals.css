@@ -10,3 +10,68 @@ body {
   @apply min-h-screen bg-slate-50 text-slate-900 antialiased;
 }
 
+.skip-link {
+  position: absolute;
+  top: -40px;
+  inset-inline-start: 12px;
+  z-index: 100;
+  border-radius: 10px;
+  background: #0f766e;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus-visible {
+  top: 10px;
+}
+
+.sanany-map-marker {
+  position: relative;
+  display: block;
+}
+
+.sanany-map-marker__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgba(47, 143, 137, 0.28);
+  animation: sananyMarkerPulse 1.9s ease-out infinite;
+}
+
+.sanany-map-marker__dot {
+  position: absolute;
+  inset: 6px;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  background: #2f8f89;
+  box-shadow: 0 4px 12px rgba(47, 143, 137, 0.28);
+}
+
+@keyframes sananyMarkerPulse {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0.06;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

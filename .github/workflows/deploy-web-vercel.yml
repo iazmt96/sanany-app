@@ -1,0 +1,63 @@
+name: Deploy Web to Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - iazmt96-phase-1-sanany-monorepo
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-web-vercel.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Vercel secrets
+        run: |
+          missing=0
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Missing required GitHub secret: VERCEL_TOKEN"
+            missing=1
+          fi
+          if [ -z "$VERCEL_ORG_ID" ]; then
+            echo "::error::Missing required GitHub secret: VERCEL_ORG_ID"
+            missing=1
+          fi
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Missing required GitHub secret: VERCEL_PROJECT_ID"
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "::error::Set these in GitHub > Settings > Secrets and variables > Actions, then re-run this workflow."
+            exit 1
+          fi
+
+      - name: Pull Vercel environment
+        run: npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+      - name: Build web app artifacts
+        run: npx vercel build --prod --token=$VERCEL_TOKEN
+
+      - name: Deploy to production
+        run: npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
