@@ -52,9 +52,15 @@ function AppContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [homeSearchQuery, setHomeSearchQuery] = useState("");
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [exploreRefreshKey, setExploreRefreshKey] = useState(0);
+  const prevActiveTab = useRef<MobileTab>("explore");
   const sceneFade = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (activeTab === "explore" && prevActiveTab.current !== "explore") {
+      setExploreRefreshKey((k) => k + 1);
+    }
+    prevActiveTab.current = activeTab;
     Animated.sequence([
       Animated.timing(sceneFade, { toValue: 0.72, duration: 90, useNativeDriver: true }),
       Animated.timing(sceneFade, { toValue: 1, duration: 140, useNativeDriver: true })
@@ -305,6 +311,7 @@ function AppContent() {
                     ) : (
                       <MarketplaceScreen
                         direction={direction}
+                        refreshKey={exploreRefreshKey}
                         previewState={isHomePreview ? homePreviewState : undefined}
                         onOpenListing={setSelectedListing}
                         onOpenMyAds={() => setActiveTab("myAds")}

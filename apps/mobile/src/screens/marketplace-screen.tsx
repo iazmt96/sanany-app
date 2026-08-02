@@ -48,6 +48,7 @@ import { mobileLayout, mobileRadius, mobileSpacing } from "../theme/mobile-theme
 
 type MarketplaceScreenProps = {
   direction: Direction;
+  refreshKey?: number;
   onOpenListing(listing: MarketplaceListing): void;
   onOpenSearch(initialSearch?: string): void;
   onOpenMyAds(): void;
@@ -181,7 +182,7 @@ function HomePlaceholder() {
   );
 }
 
-export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOpenMyAds, onOpenAuth, onOpenMap, previewState }: MarketplaceScreenProps) {
+export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpenSearch, onOpenMyAds, onOpenAuth, onOpenMap, previewState }: MarketplaceScreenProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
@@ -291,7 +292,7 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
     return () => {
       active = false;
     };
-  }, [categoriesRepository, listingsRepository, previewState, sellersRepository, snapshot.user?.id, t]);
+  }, [categoriesRepository, listingsRepository, previewState, refreshKey, sellersRepository, snapshot.user?.id, t]);
 
   useEffect(() => {
     let active = true;
