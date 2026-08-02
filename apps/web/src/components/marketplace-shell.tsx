@@ -37,7 +37,7 @@ type HomePreviewState = "default" | "loading" | "error" | "empty" | "guest";
 type OwnerSummary = { active: number; drafts: number; reserved: number };
 
 const CITY_KEYS: readonly CityKey[] = ["riyadh", "jeddah", "dammam", "makkah", "madinah"];
-const GRID_CLASS = "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4";
+const GRID_CLASS = "grid grid-cols-2 gap-3";
 const CATEGORY_GRID_CLASS = "grid grid-cols-2 gap-3 md:grid-cols-4";
 const EXPERIENCE_ICONS: Record<MarketplaceCategoryNode["experienceKey"], string> = {
   general: "📦",
@@ -584,7 +584,7 @@ export function MarketplaceShell({ language }: MarketplaceShellProps) {
       {savedSearches.length > 0 ? (
         <div className="space-y-4">
           <SectionHeader title={t("home.sections.savedSearches")} description={t("home.sectionDescriptions.savedSearches")} />
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2">
             {savedSearches.slice(0, 4).map((search) => (
               <button
                 key={search.id}
