@@ -48,6 +48,7 @@ import { mobileLayout, mobileRadius, mobileSpacing } from "../theme/mobile-theme
 
 type MarketplaceScreenProps = {
   direction: Direction;
+  refreshKey?: number;
   onOpenListing(listing: MarketplaceListing): void;
   onOpenSearch(initialSearch?: string): void;
   onOpenMyAds(): void;
@@ -181,7 +182,7 @@ function HomePlaceholder() {
   );
 }
 
-export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOpenMyAds, onOpenAuth, onOpenMap, previewState }: MarketplaceScreenProps) {
+export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpenSearch, onOpenMyAds, onOpenAuth, onOpenMap, previewState }: MarketplaceScreenProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
@@ -291,7 +292,7 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
     return () => {
       active = false;
     };
-  }, [categoriesRepository, listingsRepository, previewState, sellersRepository, snapshot.user?.id, t]);
+  }, [categoriesRepository, listingsRepository, previewState, refreshKey, sellersRepository, snapshot.user?.id, t]);
 
   useEffect(() => {
     let active = true;
@@ -442,6 +443,10 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
 
     return uniqueListings([...recentViewedListings, ...favoriteListings, ...nearbyListings, ...listings]).slice(0, 4);
   }, [favoriteListings, listings, nearbyListings, recentSearches, recentViewedListings, savedSearches]);
+  const latestListings = useMemo(
+    () => uniqueListings([...listings]).slice(0, 8),
+    [listings]
+  );
   const primarySavedSearch = savedSearches[0] ?? recentSearches[0] ?? null;
 
   const primaryAssistantCopy = recentViewedListings.length > 0
@@ -820,6 +825,29 @@ export function MarketplaceScreen({ direction, onOpenListing, onOpenSearch, onOp
                   {collectLeafCategories(category).length || 1} {t("home.categories.childCount")}
                 </Text>
               </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {!appliedSearch && latestListings.length > 0 ? (
+        <View style={styles.sectionCard}>
+          <MobileSectionHeader
+            direction={direction}
+            title={t("home.sections.latestListings")}
+            subtitle={t("home.sectionDescriptions.latestListings")}
+            onSeeAll={() => onOpenSearch("")}
+          />
+          <View style={[styles.listingGrid, isRtl ? styles.listingGridRtl : undefined]}>
+            {latestListings.map((item) => (
+              <MobileListingTile
+                key={`latest-${item.id}`}
+                direction={direction}
+                listing={item}
+                width={mobileLayout.tileWidth}
+                onPress={() => onOpenListing(item)}
+                sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
+              />
             ))}
           </View>
         </View>
