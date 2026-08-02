@@ -37,7 +37,7 @@ type HomePreviewState = "default" | "loading" | "error" | "empty" | "guest";
 type OwnerSummary = { active: number; drafts: number; reserved: number };
 
 const CITY_KEYS: readonly CityKey[] = ["riyadh", "jeddah", "dammam", "makkah", "madinah"];
-const GRID_CLASS = "grid grid-cols-2 gap-3";
+const GRID_CLASS = "grid grid-cols-2 gap-3 xl:grid-cols-4";
 const CATEGORY_GRID_CLASS = "grid grid-cols-2 gap-3 md:grid-cols-4";
 const EXPERIENCE_ICONS: Record<MarketplaceCategoryNode["experienceKey"], string> = {
   general: "📦",
