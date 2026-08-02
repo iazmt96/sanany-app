@@ -443,6 +443,10 @@ export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpen
 
     return uniqueListings([...recentViewedListings, ...favoriteListings, ...nearbyListings, ...listings]).slice(0, 4);
   }, [favoriteListings, listings, nearbyListings, recentSearches, recentViewedListings, savedSearches]);
+  const latestListings = useMemo(
+    () => uniqueListings([...listings]).slice(0, 8),
+    [listings]
+  );
   const primarySavedSearch = savedSearches[0] ?? recentSearches[0] ?? null;
 
   const primaryAssistantCopy = recentViewedListings.length > 0
@@ -821,6 +825,29 @@ export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpen
                   {collectLeafCategories(category).length || 1} {t("home.categories.childCount")}
                 </Text>
               </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {!appliedSearch && latestListings.length > 0 ? (
+        <View style={styles.sectionCard}>
+          <MobileSectionHeader
+            direction={direction}
+            title={t("home.sections.latestListings")}
+            subtitle={t("home.sectionDescriptions.latestListings")}
+            onSeeAll={() => onOpenSearch("")}
+          />
+          <View style={[styles.listingGrid, isRtl ? styles.listingGridRtl : undefined]}>
+            {latestListings.map((item) => (
+              <MobileListingTile
+                key={`latest-${item.id}`}
+                direction={direction}
+                listing={item}
+                width={mobileLayout.tileWidth}
+                onPress={() => onOpenListing(item)}
+                sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
+              />
             ))}
           </View>
         </View>

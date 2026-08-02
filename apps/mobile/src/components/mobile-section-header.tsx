@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { type Direction } from "@sanany/utils";
 import { mobileLayout, mobileSpacing } from "../theme/mobile-theme";
 
@@ -7,9 +7,11 @@ type MobileSectionHeaderProps = {
   title: string;
   subtitle: string;
   badge?: string;
+  onSeeAll?: () => void;
+  seeAllLabel?: string;
 };
 
-export function MobileSectionHeader({ direction, title, subtitle, badge }: MobileSectionHeaderProps) {
+export function MobileSectionHeader({ direction, title, subtitle, badge, onSeeAll, seeAllLabel }: MobileSectionHeaderProps) {
   const isRtl = direction === "rtl";
 
   return (
@@ -19,7 +21,11 @@ export function MobileSectionHeader({ direction, title, subtitle, badge }: Mobil
           <Text style={[styles.title, { textAlign: isRtl ? "right" : "left" }]}>{title}</Text>
           <Text style={[styles.subtitle, { textAlign: isRtl ? "right" : "left" }]}>{subtitle}</Text>
         </View>
-        {badge ? (
+        {onSeeAll ? (
+          <Pressable onPress={onSeeAll} style={styles.seeAllBtn}>
+            <Text style={styles.seeAllLabel}>{seeAllLabel ?? (isRtl ? "عرض الكل" : "See all")}</Text>
+          </Pressable>
+        ) : badge ? (
           <View style={styles.badge}>
             <Text style={styles.badgeLabel}>{badge}</Text>
           </View>
@@ -55,6 +61,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: "#64748b"
+  },
+  seeAllBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: mobileSpacing.xs
+  },
+  seeAllLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#0f766e"
   },
   badge: {
     borderRadius: 999,
