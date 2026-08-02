@@ -533,7 +533,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
         {isLoading ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
-              <div className="h-80 animate-pulse rounded-xl bg-slate-200" />
+              <div className="h-72 animate-pulse rounded-xl bg-slate-200 sm:h-96 md:h-[420px]" />
               <div className="h-28 animate-pulse rounded-xl bg-slate-200" />
               <div className="h-36 animate-pulse rounded-xl bg-slate-200" />
             </div>
@@ -562,7 +562,7 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
               <Card className="space-y-4">
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                   {primaryImage ? (
-                    <button type="button" onClick={openImagePreview} className="relative block h-80 w-full cursor-zoom-in text-start">
+                    <button type="button" onClick={openImagePreview} className="relative block h-72 w-full cursor-zoom-in text-start sm:h-96 md:h-[420px]">
                       <div
                         ref={mediaCarouselRef}
                         className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -595,11 +595,25 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                       ) : null}
                     </button>
                   ) : (
-                    <div className="flex h-80 items-center justify-center text-sm text-slate-500">{t("marketplace.detail.noImage")}</div>
+                    <div className="flex h-72 items-center justify-center text-sm text-slate-500 sm:h-96 md:h-[420px]">{t("marketplace.detail.noImage")}</div>
                   )}
                 </div>
 
-                {/* Actions row — owner controls */}
+                {/* Thumbnail strip for multi-image listings */}
+                {listingImages.length > 1 ? (
+                  <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {listingImages.map((url, index) => (
+                      <button
+                        key={`thumb-${listing.id}-${index}`}
+                        type="button"
+                        onClick={() => { scrollToImage(index); setSelectedImageIndex(index); }}
+                        className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${selectedImageIndex === index ? "border-brand shadow-sm" : "border-transparent opacity-50 hover:opacity-80"}`}
+                      >
+                        <Image src={url} alt={`${index + 1}`} fill className="object-cover" sizes="64px" />
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="flex flex-wrap items-center gap-2">
                   {isOwner ? (
                     <>
@@ -681,7 +695,10 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                   ) : (
                     <>
                       {contactPermissions.canCall ? (
-                        <a href={`tel:${advertiserPhone}`} className="inline-flex h-10 items-center justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white">
+                        <a href={`tel:${advertiserPhone}`} className="inline-flex h-10 items-center gap-2 justify-center rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand/90">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                            <path fillRule="evenodd" d="M2 3.5A1.5 1.5 0 0 1 3.5 2h1.148a1.5 1.5 0 0 1 1.465 1.175l.716 3.223a1.5 1.5 0 0 1-1.052 1.767l-.933.267c-.41.117-.643.555-.48.95a11.542 11.542 0 0 0 6.254 6.254c.395.163.833-.07.95-.48l.267-.933a1.5 1.5 0 0 1 1.767-1.052l3.223.716A1.5 1.5 0 0 1 18 16.352V17.5a1.5 1.5 0 0 1-1.5 1.5H15c-1.149 0-2.263-.15-3.326-.43A13.022 13.022 0 0 1 2.43 8.326 13.019 13.019 0 0 1 2 5V3.5Z" clipRule="evenodd" />
+                          </svg>
                           {t("marketplace.detail.call")}
                         </a>
                       ) : null}
@@ -690,38 +707,53 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                           href={`https://wa.me/${advertiserPhone.replace(/[^\d]/g, "")}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex h-10 items-center justify-center rounded-lg border border-brand bg-brand/5 px-4 text-sm font-semibold text-brand"
+                          className="inline-flex h-10 items-center gap-2 justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
                         >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                            <path d="M3.505 2.365A41.369 41.369 0 0 1 9 2c1.863 0 3.697.124 5.495.365 1.247.167 2.318.946 2.85 2.052l.253.53a11.52 11.52 0 0 1 .582 5.98l-.043.304a2.75 2.75 0 0 1-1.526 2.05.75.75 0 0 0-.428.662v1.576a.75.75 0 0 1-1.06.68l-3.498-1.748a.75.75 0 0 0-.375-.082 10.023 10.023 0 0 1-3.75-.465.75.75 0 0 0-.576.073l-1.998 1.15a.75.75 0 0 1-1.062-.678V12.04a2.75 2.75 0 0 1-1.7-2.23 11.52 11.52 0 0 1 .582-5.98l.253-.529c.532-1.106 1.603-1.885 2.85-2.052Z" />
+                          </svg>
                           {t("marketplace.detail.chat")}
                         </a>
                       ) : null}
                       {listing.ownerId ? (
                         <Link
                           href={`/${resolvedLanguage}/chat?listingId=${listing.id}&sellerId=${listing.ownerId}`}
-                          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700"
+                          className="inline-flex h-10 items-center gap-2 justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                         >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                            <path fillRule="evenodd" d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 4.014 1 5.426v5.148c0 1.413.993 2.67 2.43 2.902 1.168.188 2.352.327 3.55.414.28.02.521.18.642.413l1.713 3.293a.75.75 0 0 0 1.33 0l1.713-3.293a.639.639 0 0 1 .642-.413 44.196 44.196 0 0 0 3.55-.414c1.437-.232 2.43-1.49 2.43-2.902V5.426c0-1.413-.993-2.67-2.43-2.902A44.197 44.197 0 0 0 10 2ZM5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm6-1a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm2 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                          </svg>
                           {t("sellerProfile.message")}
                         </Link>
                       ) : null}
                       <button
                         type="button"
                         onClick={onToggleFavorite}
-                        className={`inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-semibold ${
-                          isFavorite ? "border-rose-200 bg-rose-50 text-rose-700" : "border-slate-300 bg-white text-slate-700"
+                        className={`inline-flex h-10 items-center gap-2 justify-center rounded-lg border px-4 text-sm font-semibold transition-colors ${
+                          isFavorite ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                         }`}
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isFavorite ? 0 : 1.5} className="h-4 w-4 shrink-0">
+                          <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-2.184C4.032 12.18 2.25 9.875 2.25 7a4.5 4.5 0 0 1 8.25-2.5A4.5 4.5 0 0 1 18.75 7c0 2.875-1.783 5.18-3.635 6.936a22.049 22.049 0 0 1-3.744 2.866l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
+                        </svg>
                         {t("marketplace.detail.favorite")}
                       </button>
-                      <button type="button" onClick={() => void onShareListing()} className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700">
+                      <button type="button" onClick={() => void onShareListing()} className="inline-flex h-10 items-center gap-2 justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                          <path d="M13 4.5a2.5 2.5 0 1 1 .702 1.737L6.97 9.604a2.518 2.518 0 0 1 0 .792l6.733 3.367a2.5 2.5 0 1 1-.671 1.341l-6.733-3.367a2.5 2.5 0 1 1 0-3.474l6.733-3.366A2.52 2.52 0 0 1 13 4.5Z" />
+                        </svg>
                         {t("marketplace.detail.share")}
                       </button>
                       <button
                         type="button"
                         onClick={onReportListing}
-                        className={`inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-semibold ${
-                          isReported ? "border-amber-200 bg-amber-50 text-amber-700" : "border-slate-300 bg-white text-slate-700"
+                        className={`inline-flex h-10 items-center gap-2 justify-center rounded-lg border px-4 text-sm font-semibold transition-colors ${
+                          isReported ? "border-amber-200 bg-amber-50 text-amber-700" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                         }`}
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                          <path fillRule="evenodd" d="M3 6a3 3 0 0 1 3-3h10a1 1 0 0 1 .8 1.6L14.25 7l2.55 2.4A1 1 0 0 1 16 11H6a1 1 0 0 0-1 1v3a1 1 0 1 1-2 0V6Z" clipRule="evenodd" />
+                        </svg>
                         {t("marketplace.detail.report")}
                       </button>
                     </>
@@ -742,8 +774,8 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                   <div className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(availabilityState)}`}>
                     {t(`marketplace.detail.availability.${availabilityState}`)}
                   </div>
-                  {/* Price visible on mobile (hidden on lg where sidebar shows it) */}
-                  <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-bold text-slate-900 lg:hidden">
+                  {/* Price — always visible, prominent */}
+                  <div className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1.5 text-lg font-extrabold text-teal-800">
                     {listingPriceLabel}
                   </div>
                 </div>
@@ -802,13 +834,66 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-600">{t("marketplace.detail.noSimilarAds")}</p>
+                  <div className="flex flex-col items-center gap-2 py-4 text-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5 text-slate-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-slate-500">{t("marketplace.detail.noSimilarAds")}</p>
+                  </div>
                 )}
               </Card>
             </section>
 
             <aside className="space-y-4">
               <Card className="sticky top-24 space-y-4">
+                {/* Price block */}
+                <div className="rounded-xl border border-teal-100 bg-gradient-to-b from-teal-50 to-emerald-50/40 px-4 py-4 text-center">
+                  <p className="text-xs font-medium text-teal-600">{t("marketplace.detail.priceLabel")}</p>
+                  <p className="mt-1 text-3xl font-extrabold text-slate-900">{listingPriceLabel}</p>
+                </div>
+
+                {/* CTA buttons in sidebar for desktop */}
+                {!isOwner ? (
+                  <div className="hidden gap-2 lg:grid">
+                    {contactPermissions.canCall ? (
+                      <a
+                        href={`tel:${advertiserPhone}`}
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand text-sm font-semibold text-white transition-colors hover:bg-brand/90"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                          <path fillRule="evenodd" d="M2 3.5A1.5 1.5 0 0 1 3.5 2h1.148a1.5 1.5 0 0 1 1.465 1.175l.716 3.223a1.5 1.5 0 0 1-1.052 1.767l-.933.267c-.41.117-.643.555-.48.95a11.542 11.542 0 0 0 6.254 6.254c.395.163.833-.07.95-.48l.267-.933a1.5 1.5 0 0 1 1.767-1.052l3.223.716A1.5 1.5 0 0 1 18 16.352V17.5a1.5 1.5 0 0 1-1.5 1.5H15c-1.149 0-2.263-.15-3.326-.43A13.022 13.022 0 0 1 2.43 8.326 13.019 13.019 0 0 1 2 5V3.5Z" clipRule="evenodd" />
+                        </svg>
+                        {t("marketplace.detail.call")}
+                      </a>
+                    ) : null}
+                    {contactPermissions.canChat ? (
+                      <a
+                        href={`https://wa.me/${advertiserPhone.replace(/[^\d]/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                          <path d="M3.505 2.365A41.369 41.369 0 0 1 9 2c1.863 0 3.697.124 5.495.365 1.247.167 2.318.946 2.85 2.052l.253.53a11.52 11.52 0 0 1 .582 5.98l-.043.304a2.75 2.75 0 0 1-1.526 2.05.75.75 0 0 0-.428.662v1.576a.75.75 0 0 1-1.06.68l-3.498-1.748a.75.75 0 0 0-.375-.082 10.023 10.023 0 0 1-3.75-.465.75.75 0 0 0-.576.073l-1.998 1.15a.75.75 0 0 1-1.062-.678V12.04a2.75 2.75 0 0 1-1.7-2.23 11.52 11.52 0 0 1 .582-5.98l.253-.529c.532-1.106 1.603-1.885 2.85-2.052Z" />
+                        </svg>
+                        {t("marketplace.detail.chat")}
+                      </a>
+                    ) : null}
+                    {listing.ownerId ? (
+                      <Link
+                        href={`/${resolvedLanguage}/chat?listingId=${listing.id}&sellerId=${listing.ownerId}`}
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
+                          <path fillRule="evenodd" d="M10 2c-2.236 0-4.43.18-6.57.524C1.993 2.755 1 4.014 1 5.426v5.148c0 1.413.993 2.67 2.43 2.902 1.168.188 2.352.327 3.55.414.28.02.521.18.642.413l1.713 3.293a.75.75 0 0 0 1.33 0l1.713-3.293a.639.639 0 0 1 .642-.413 44.196 44.196 0 0 0 3.55-.414c1.437-.232 2.43-1.49 2.43-2.902V5.426c0-1.413-.993-2.67-2.43-2.902A44.197 44.197 0 0 0 10 2ZM5 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm6-1a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm2 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                        </svg>
+                        {t("sellerProfile.message")}
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <section className="space-y-3">
                   <h3 className="text-sm font-semibold text-slate-900">{t("marketplace.detail.advertiserTitle")}</h3>
@@ -816,10 +901,16 @@ export function ListingDetailsShell({ language, listingId }: ListingDetailsShell
                     href={listing.ownerId ? `/${resolvedLanguage}/seller/${listing.ownerId}` : "#"}
                     className="flex items-center gap-3 rounded-2xl bg-[#f8fbfd] p-3 transition hover:bg-teal-50/60"
                   >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-50">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0f766e" className="h-6 w-6">
-                        <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
-                      </svg>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-100">
+                      {seller?.displayName ? (
+                        <span className="text-sm font-bold text-teal-700">
+                          {seller.displayName.split(" ").map((w: string) => w[0]).filter(Boolean).slice(0, 2).join("")}
+                        </span>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0f766e" className="h-6 w-6">
+                          <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+                        </svg>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-slate-900">{seller?.displayName ?? t("marketplace.detail.advertiserName", { id: listing.id.slice(0, 4).toUpperCase() })}</p>
