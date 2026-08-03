@@ -903,7 +903,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
   const fetchRemoteDraftUpdatedAt = async (listingId: string) => {
     const { data, error } = await getWebSupabaseClient().from("listings").select("updated_at").eq("id", listingId).maybeSingle();
     if (error) {
-      throw error;
+      throw new Error(error.message ?? "draft-fetch-failed");
     }
     return typeof data?.updated_at === "string" ? data.updated_at : null;
   };
