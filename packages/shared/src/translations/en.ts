@@ -12,6 +12,7 @@
     signOut: "Sign out",
     next: "Next",
     previous: "Previous",
+    change: "Change",
     page: "Page {{current}} of {{total}}",
     notFound: {
       title: "Page not found",
