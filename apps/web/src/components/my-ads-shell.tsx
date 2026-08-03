@@ -407,6 +407,8 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
   });
   const qualityTone =
     qualityScore >= 80 ? "bg-emerald-100 text-emerald-700" : qualityScore >= 50 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700";
+  const currentStepNumber = currentStepIndex + 1;
+  const stepProgressPercent = Math.round((currentStepNumber / ADD_STEPS.length) * 100);
   const getStepLabel = (step: AddStep) => {
     if (step === "category") {
       return t("marketplace.create.flow.categoryTitle");
@@ -1386,27 +1388,63 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
             <h1 className="text-2xl font-bold text-slate-900">{t("myAds.pageTitle")}</h1>
             <p className="text-sm text-slate-600">{t("myAds.pageSubtitle")}</p>
           </div>
-          <button type="button" onClick={openCreateFlow} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
-            {t("myAds.management.createNew")}
-          </button>
+          {isCreating ? (
+            <button type="button" onClick={exitCreateFlow} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              {t("marketplace.create.flow.back")}
+            </button>
+          ) : (
+            <button type="button" onClick={openCreateFlow} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
+              {t("myAds.management.createNew")}
+            </button>
+          )}
         </header>
 
         {isCreating ? (
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <Card className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              {ADD_STEPS.map((step, index) => (
-                <button
-                  key={step}
-                  type="button"
-                  onClick={() => setCurrentStepIndex(index)}
-                  className={`rounded-full border px-3 py-1.5 text-sm ${
-                    index === currentStepIndex ? "border-brand bg-brand/10 text-brand" : "border-slate-200 bg-white text-slate-700"
-                  }`}
-                >
-                  {getStepLabel(step)}
-                </button>
-              ))}
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <Card className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-slate-800">{t("marketplace.create.flow.stepProgress", { current: currentStepNumber, total: ADD_STEPS.length })}</p>
+                <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${qualityTone}`}>
+                  {t("myAds.form.qualityScore", { value: qualityScore })}
+                </div>
+              </div>
+              <div className="h-2 w-full rounded-full bg-slate-100">
+                <div
+                  className="h-2 rounded-full bg-brand transition-all duration-300"
+                  style={{ width: `${stepProgressPercent}%` }}
+                  aria-hidden="true"
+                />
+              </div>
+              <ol className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label={t("marketplace.create.flow.stepProgress", { current: currentStepNumber, total: ADD_STEPS.length })}>
+                {ADD_STEPS.map((step, index) => {
+                  const isActiveStep = index === currentStepIndex;
+                  const isCompleteStep = index < currentStepIndex;
+                  return (
+                    <li
+                      key={step}
+                      className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${
+                        isActiveStep
+                          ? "border-brand bg-brand/10 text-brand"
+                          : isCompleteStep
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 bg-white text-slate-600"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold ${
+                            isActiveStep ? "bg-brand text-white" : isCompleteStep ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {index + 1}
+                        </span>
+                        <span className="truncate">{getStepLabel(step)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
 
             {currentStep === "category" ? (
@@ -1918,7 +1956,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                disabled={currentStepIndex === 0 || isSubmitting}
+                disabled={isSubmitting}
                 onClick={goBack}
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
               >
@@ -1944,12 +1982,8 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
             </div>
           </Card>
 
-          <Card className="space-y-3 xl:sticky xl:top-24 xl:h-fit">
+          <Card className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-24 xl:h-fit">
             <h3 className="text-base font-semibold text-slate-900">{t("myAds.form.summaryTitle")}</h3>
-            <p className="text-sm text-slate-600">{t("marketplace.create.flow.stepProgress", { current: currentStepIndex + 1, total: ADD_STEPS.length })}</p>
-            <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${qualityTone}`}>
-              {t("myAds.form.qualityScore", { value: qualityScore })}
-            </div>
             <ul className="space-y-2 text-sm text-slate-700">
               <li>{t("myAds.form.summaryType", { value: offerType ? t(`marketplace.create.offerTypes.${offerType}`) : "-" })}</li>
               <li>{t("myAds.form.summaryCategory", { value: selectedCategoryLabel })}</li>
@@ -1996,7 +2030,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
               }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700"
             >
-              {t("search.clearFilters")}
+              {t("search.filters.clearAll")}
             </button>
           </div>
 
