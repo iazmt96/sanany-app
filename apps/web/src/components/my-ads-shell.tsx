@@ -328,6 +328,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     tapId: string;
     listingId: string;
   } | null>(initialTapPaymentReturn);
+  const [isCreating, setIsCreating] = useState(false);
   const [editingListingId, setEditingListingId] = useState<string | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [offerType, setOfferType] = useState<ListingOfferType | null>(null);
@@ -973,10 +974,13 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     persistDraftSnapshot(payload);
     try {
       const remoteDraft = await syncDraftToRemote();
-      setActionMessage(t("marketplace.create.draft.savedAt", { value: formatRelativeMinutes(payload.updatedAt) ?? "0" }));
       if (remoteDraft) {
         setEditingListingId(remoteDraft.id);
       }
+      resetForm();
+      setIsCreating(false);
+      setSection("drafts");
+      await loadManagementData();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : t("marketplace.create.draft.saveFailed"));
     } finally {
@@ -1053,6 +1057,10 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
 
   const goBack = () => {
     setErrorMessage(null);
+    if (currentStepIndex === 0) {
+      exitCreateFlow();
+      return;
+    }
     setCurrentStepIndex((current) => clampStepIndex(current - 1));
   };
 
@@ -1214,6 +1222,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
       }
       setActionMessage(t(status === "draft" ? "marketplace.create.draft.savedAt" : "marketplace.create.success", { value: "0" }));
       resetForm();
+      setIsCreating(false);
       setSection(status === "draft" ? "drafts" : "active");
       setPage(1);
       await loadManagementData();
@@ -1226,6 +1235,13 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
 
   const openCreateFlow = () => {
     resetForm();
+    setActionMessage(null);
+    setErrorMessage(null);
+    setIsCreating(true);
+  };
+
+  const exitCreateFlow = () => {
+    setIsCreating(false);
     setActionMessage(null);
     setErrorMessage(null);
   };
@@ -1275,6 +1291,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
     setDraftConflict(null);
     setActionMessage(t("myAds.management.editing", { title: listing.title }));
     setErrorMessage(null);
+    setIsCreating(true);
   };
 
   const updateListingStatus = async (listing: MarketplaceListing, status: ListingStatus) => {
@@ -1374,6 +1391,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
           </button>
         </header>
 
+        {isCreating ? (
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <Card className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -1940,7 +1958,9 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
             </ul>
           </Card>
         </section>
+        ) : null}
 
+        {!isCreating ? (
         <div data-testid="my-ads-management">
           <Card className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -2127,6 +2147,7 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
           ) : null}
           </Card>
         </div>
+        ) : null}
         <MyAdsSaleCompletion
           isOpen={selectedSaleListing !== null}
           language={resolvedLanguage}
