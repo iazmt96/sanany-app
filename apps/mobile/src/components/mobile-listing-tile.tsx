@@ -188,9 +188,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between"
   },
-  mediaTopRowRtl: {
-    flexDirection: "row-reverse"
-  },
+  mediaTopRowRtl: {},
   mediaBadges: {
     flexShrink: 1,
     flexDirection: "row",
@@ -243,12 +241,17 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   favoriteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.92)"
+    backgroundColor: "rgba(255,255,255,0.96)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2
   },
   content: {
     gap: mobileSpacing.xs,

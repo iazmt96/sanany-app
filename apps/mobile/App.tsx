@@ -317,6 +317,7 @@ function AppContent() {
                         onOpenMyAds={() => setActiveTab("myAds")}
                         onOpenAuth={() => setActiveTab("profile")}
                         onOpenMap={() => setIsMapOpen(true)}
+                        onOpenAddListing={() => setActiveTab("add")}
                         onOpenSearch={(initialSearch) => {
                           setHomeSearchQuery(initialSearch ?? "");
                           setIsSearchOpen(true);
