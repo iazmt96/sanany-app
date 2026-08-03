@@ -12,6 +12,7 @@
     signOut: "تسجيل الخروج",
     next: "التالي",
     previous: "السابق",
+    change: "تغيير",
     page: "الصفحة {{current}} من {{total}}",
     notFound: {
       title: "الصفحة غير موجودة",

@@ -2103,48 +2103,69 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
             <View>
               <Text style={[styles.stepTitle, { textAlign }]}>{t("marketplace.create.flow.categoryTitle")}</Text>
               <Text style={[styles.stepHint, { textAlign }]}>{t("marketplace.create.flow.categoryHint")}</Text>
-              <Text style={[styles.sectionLabel, { textAlign }]}>{t("marketplace.create.flow.offerTypeTitle")}</Text>
-              <View style={styles.categoryGrid}>
-                {OFFER_TYPES.map((item) => {
-                  const selected = item === offerType;
-                  return (
-                    <Pressable
-                      key={item}
-                      style={[styles.categoryCard, selected ? styles.categoryCardSelected : undefined]}
-                      onPress={() => {
-                        setOfferType(item);
-                        setCategory(null);
-                        setErrorKey(null);
-                      }}
-                    >
-                      <Text style={[styles.categoryLabel, selected ? styles.categoryLabelSelected : undefined]}>{t(`marketplace.create.offerTypes.${item}`)}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
 
+              {/* Phase 1 → 2: Offer type selection or confirmed breadcrumb */}
               {offerType ? (
+                <Pressable
+                  style={[styles.breadcrumb, direction === "rtl" ? styles.breadcrumbRtl : undefined]}
+                  onPress={() => { setOfferType(null); setCategory(null); setErrorKey(null); }}
+                >
+                  <View style={[styles.breadcrumbLeft, direction === "rtl" ? styles.breadcrumbLeftRtl : undefined]}>
+                    <Text style={styles.breadcrumbCheck}>✓</Text>
+                    <View>
+                      <Text style={[styles.breadcrumbMeta, { textAlign }]}>{t("marketplace.create.flow.offerTypeTitle")}</Text>
+                      <Text style={[styles.breadcrumbValue, { textAlign }]}>{t(`marketplace.create.offerTypes.${offerType}`)}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.breadcrumbChangeBtn}>{t("common.change")}</Text>
+                </Pressable>
+              ) : (
+                <>
+                  <Text style={[styles.sectionLabel, { textAlign }]}>{t("marketplace.create.flow.offerTypeTitle")}</Text>
+                  <View style={styles.categoryGrid}>
+                    {OFFER_TYPES.map((item) => (
+                      <Pressable
+                        key={item}
+                        style={styles.categoryCard}
+                        onPress={() => { setOfferType(item); setCategory(null); setErrorKey(null); }}
+                      >
+                        <Text style={styles.categoryLabel}>{t(`marketplace.create.offerTypes.${item}`)}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </>
+              )}
+
+              {/* Phase 2 → 3: Category selection or confirmed breadcrumb */}
+              {offerType && !category ? (
                 <>
                   <Text style={[styles.sectionLabel, styles.secondSectionLabel, { textAlign }]}>{t("marketplace.create.flow.subCategoryTitle")}</Text>
                   <View style={styles.categoryGrid}>
-                    {selectedTypeCategories.map((item) => {
-                      const selected = item === category;
-                      return (
-                        <Pressable
-                          key={item}
-                          style={[styles.categoryCard, selected ? styles.categoryCardSelected : undefined]}
-                          onPress={() => {
-                            setCategory(item);
-                            setExtraDetails("");
-                            setErrorKey(null);
-                          }}
-                        >
-                          <Text style={[styles.categoryLabel, selected ? styles.categoryLabelSelected : undefined]}>{t(`marketplace.create.categories.${item}`)}</Text>
-                        </Pressable>
-                      );
-                    })}
+                    {selectedTypeCategories.map((item) => (
+                      <Pressable
+                        key={item}
+                        style={styles.categoryCard}
+                        onPress={() => { setCategory(item); setExtraDetails(""); setErrorKey(null); }}
+                      >
+                        <Text style={styles.categoryLabel}>{t(`marketplace.create.categories.${item}`)}</Text>
+                      </Pressable>
+                    ))}
                   </View>
                 </>
+              ) : offerType && category ? (
+                <Pressable
+                  style={[styles.breadcrumb, direction === "rtl" ? styles.breadcrumbRtl : undefined]}
+                  onPress={() => { setCategory(null); setErrorKey(null); }}
+                >
+                  <View style={[styles.breadcrumbLeft, direction === "rtl" ? styles.breadcrumbLeftRtl : undefined]}>
+                    <Text style={styles.breadcrumbCheck}>✓</Text>
+                    <View>
+                      <Text style={[styles.breadcrumbMeta, { textAlign }]}>{t("marketplace.create.flow.subCategoryTitle")}</Text>
+                      <Text style={[styles.breadcrumbValue, { textAlign }]}>{t(`marketplace.create.categories.${category}`)}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.breadcrumbChangeBtn}>{t("common.change")}</Text>
+                </Pressable>
               ) : null}
             </View>
           ) : null}
@@ -3289,6 +3310,45 @@ const styles = StyleSheet.create({
   },
   categoryLabelSelected: {
     color: "#0f766e"
+  },
+  breadcrumb: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#f0fdf4",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#86efac",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12
+  },
+  breadcrumbRtl: { flexDirection: "row-reverse" },
+  breadcrumbLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1
+  },
+  breadcrumbLeftRtl: { flexDirection: "row-reverse" },
+  breadcrumbCheck: {
+    fontSize: 18,
+    color: "#16a34a"
+  },
+  breadcrumbMeta: {
+    fontSize: 11,
+    color: "#64748b"
+  },
+  breadcrumbValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0f766e",
+    marginTop: 1
+  },
+  breadcrumbChangeBtn: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1d4ed8"
   },
   previewCard: {
     borderRadius: 14,
