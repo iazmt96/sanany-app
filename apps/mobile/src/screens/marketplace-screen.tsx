@@ -54,6 +54,7 @@ type MarketplaceScreenProps = {
   onOpenMyAds(): void;
   onOpenAuth?(): void;
   onOpenMap?(): void;
+  onOpenAddListing?(): void;
   previewState?: "loading" | "error" | "empty" | "guest";
 };
 
@@ -182,7 +183,7 @@ function HomePlaceholder() {
   );
 }
 
-export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpenSearch, onOpenMyAds, onOpenAuth, onOpenMap, previewState }: MarketplaceScreenProps) {
+export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpenSearch, onOpenMyAds, onOpenAuth, onOpenMap, onOpenAddListing, previewState }: MarketplaceScreenProps) {
   const { t } = useTranslation();
   const { snapshot } = useAuth();
   const listingsRepository = useMemo(() => getMobileListingsRepository(), []);
@@ -607,7 +608,7 @@ export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpen
   }
 
   return (
-    <>
+    <View style={styles.screenRoot}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* Stories row — top of home screen */}
       <StoriesRow
@@ -662,6 +663,29 @@ export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpen
           ))}
         </View>
       </View>
+
+      {!appliedSearch && latestListings.length > 0 ? (
+        <View style={styles.sectionCard}>
+          <MobileSectionHeader
+            direction={direction}
+            title={t("home.sections.latestListings")}
+            subtitle={t("home.sectionDescriptions.latestListings")}
+            onSeeAll={() => onOpenSearch("")}
+          />
+          <View style={[styles.listingGrid, isRtl ? styles.listingGridRtl : undefined]}>
+            {latestListings.map((item) => (
+              <MobileListingTile
+                key={`latest-${item.id}`}
+                direction={direction}
+                listing={item}
+                width={mobileLayout.tileWidth}
+                onPress={() => onOpenListing(item)}
+                sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       {inlineResultsActive && activeFilterChips.length > 0 ? (
         <View style={[styles.activeFiltersRow, isRtl ? styles.activeFiltersRowRtl : undefined]}>
@@ -825,29 +849,6 @@ export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpen
                   {collectLeafCategories(category).length || 1} {t("home.categories.childCount")}
                 </Text>
               </Pressable>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {!appliedSearch && latestListings.length > 0 ? (
-        <View style={styles.sectionCard}>
-          <MobileSectionHeader
-            direction={direction}
-            title={t("home.sections.latestListings")}
-            subtitle={t("home.sectionDescriptions.latestListings")}
-            onSeeAll={() => onOpenSearch("")}
-          />
-          <View style={[styles.listingGrid, isRtl ? styles.listingGridRtl : undefined]}>
-            {latestListings.map((item) => (
-              <MobileListingTile
-                key={`latest-${item.id}`}
-                direction={direction}
-                listing={item}
-                width={mobileLayout.tileWidth}
-                onPress={() => onOpenListing(item)}
-                sellerProfile={item.ownerId ? sellerMap.get(item.ownerId) ?? null : null}
-              />
             ))}
           </View>
         </View>
@@ -1241,11 +1242,25 @@ export function MarketplaceScreen({ direction, refreshKey, onOpenListing, onOpen
           </View>
         </View>
       </Modal>
-    </>
+      {onOpenAddListing ? (
+        <Pressable
+          style={styles.fab}
+          onPress={onOpenAddListing}
+          accessibilityRole="button"
+          accessibilityLabel={t("marketplace.addListing")}
+        >
+          <Text style={styles.fabIcon}>+</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+    position: "relative"
+  },
   scrollContent: {
     gap: mobileLayout.sectionGap,
     paddingTop: mobileLayout.screenPaddingTop,
@@ -1762,5 +1777,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
     color: "#ffffff"
+  },
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#0f766e",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8
+  },
+  fabIcon: {
+    fontSize: 30,
+    fontWeight: "300",
+    color: "#ffffff",
+    lineHeight: 36,
+    textAlign: "center"
   }
 });
