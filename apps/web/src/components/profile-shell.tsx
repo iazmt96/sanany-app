@@ -201,26 +201,6 @@ export function ProfileShell({ language, tab = null, tapPaymentReturn = null }: 
   return (
     <RequireAuth language={resolvedLanguage}>
       <div dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="space-y-5 overflow-x-hidden sm:space-y-6">
-        {/* Tab switcher */}
-        <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <Link
-            href={profileTabHref}
-            className={`flex-1 py-3 text-center text-sm font-semibold transition ${
-              !isAdsTab ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            }`}
-          >
-            {t("profile.pageTitle")}
-          </Link>
-          <Link
-            href={adsTabHref}
-            className={`flex-1 py-3 text-center text-sm font-semibold transition ${
-              isAdsTab ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            }`}
-          >
-            {t("nav.myAds")}
-          </Link>
-        </div>
-
         {isAdsTab ? (
           <MyAdsShell language={resolvedLanguage} tapPaymentReturn={tapPaymentReturn ?? null} />
         ) : (

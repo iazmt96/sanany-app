@@ -1382,65 +1382,50 @@ export function MyAdsShell({ language, tapPaymentReturn: initialTapPaymentReturn
 
   const content = (
       <main dir={resolvedLanguage === "ar" ? "rtl" : "ltr"} className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-8">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-2">
-            <Image src="/brand/sanany-logo.png" alt={t("app.title")} width={500} height={220} className="h-9 w-auto" priority />
-            <h1 className="text-2xl font-bold text-slate-900">{t("myAds.pageTitle")}</h1>
-            <p className="text-sm text-slate-600">{t("myAds.pageSubtitle")}</p>
-          </div>
-          {isCreating ? (
-            <button type="button" onClick={exitCreateFlow} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              {t("marketplace.create.flow.back")}
-            </button>
-          ) : (
-            <button type="button" onClick={openCreateFlow} className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
-              {t("myAds.management.createNew")}
-            </button>
-          )}
-        </header>
-
         {isCreating ? (
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <Card className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-800">{t("marketplace.create.flow.stepProgress", { current: currentStepNumber, total: ADD_STEPS.length })}</p>
+            {/* Timeline stepper */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-xs text-slate-500">{t("marketplace.create.flow.stepProgress", { current: currentStepNumber, total: ADD_STEPS.length })}</p>
                 <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${qualityTone}`}>
                   {t("myAds.form.qualityScore", { value: qualityScore })}
                 </div>
               </div>
-              <div className="h-2 w-full rounded-full bg-slate-100">
-                <div
-                  className="h-2 rounded-full bg-brand transition-all duration-300"
-                  style={{ width: `${stepProgressPercent}%` }}
-                  aria-hidden="true"
-                />
-              </div>
-              <ol className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label={t("marketplace.create.flow.stepProgress", { current: currentStepNumber, total: ADD_STEPS.length })}>
+              <ol className="flex items-start" aria-label={t("marketplace.create.flow.stepProgress", { current: currentStepNumber, total: ADD_STEPS.length })}>
                 {ADD_STEPS.map((step, index) => {
                   const isActiveStep = index === currentStepIndex;
                   const isCompleteStep = index < currentStepIndex;
+                  const isLast = index === ADD_STEPS.length - 1;
                   return (
-                    <li
-                      key={step}
-                      className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${
-                        isActiveStep
-                          ? "border-brand bg-brand/10 text-brand"
-                          : isCompleteStep
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-slate-200 bg-white text-slate-600"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold ${
-                            isActiveStep ? "bg-brand text-white" : isCompleteStep ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"
+                    <li key={step} className="flex flex-1 flex-col items-center">
+                      <div className="flex w-full items-center">
+                        <div className={`h-0.5 flex-1 transition-all duration-300 ${index === 0 ? "invisible" : isCompleteStep ? "bg-emerald-400" : "bg-slate-200"}`} />
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300 ${
+                            isActiveStep
+                              ? "border-brand bg-brand text-white shadow-md shadow-brand/30"
+                              : isCompleteStep
+                                ? "border-emerald-500 bg-emerald-500 text-white"
+                                : "border-slate-200 bg-white text-slate-400"
                           }`}
                         >
-                          {index + 1}
-                        </span>
-                        <span className="truncate">{getStepLabel(step)}</span>
+                          {isCompleteStep ? (
+                            <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <polyline points="3,8 6.5,11.5 13,4.5" />
+                            </svg>
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+                        <div className={`h-0.5 flex-1 transition-all duration-300 ${isLast ? "invisible" : isCompleteStep ? "bg-emerald-400" : "bg-slate-200"}`} />
                       </div>
+                      <p className={`mt-2 text-center text-xs font-medium leading-tight transition-colors duration-300 ${
+                        isActiveStep ? "text-brand" : isCompleteStep ? "text-emerald-600" : "text-slate-400"
+                      }`}>
+                        {getStepLabel(step)}
+                      </p>
                     </li>
                   );
                 })}
