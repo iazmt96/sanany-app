@@ -12,10 +12,14 @@ import {
   TextInput,
   View
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 import type { FollowedSellerStories, MarketplaceListing, Story, StoryHighlight, StoryMedia } from "@sanany/types";
 import type { Direction } from "@sanany/utils";
 import { MobileIcon } from "./mobile-icons";
+
+// Instagram-style story ring gradient colors (yellow → orange → pink → purple)
+const STORY_GRADIENT: [string, string, string, string] = ["#f9ed32", "#ee2a7b", "#6228d7", "#4f5bd5"];
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -31,41 +35,58 @@ type StoryRingProps = {
   onPress(): void;
 };
 
+const RING = 3;   // gradient ring thickness
+const GAP = 3;    // white gap between ring and avatar
+
 export function StoryRing({ avatarUrl, name, hasUnviewed, isOwn, size = 60, onPress }: StoryRingProps) {
   const { t } = useTranslation();
-  const ringColor = isOwn ? "#0f766e" : hasUnviewed ? "#0f766e" : "#cbd5e1";
-  const ringWidth = isOwn || hasUnviewed ? 2.5 : 2;
+  const outerSize = size + (RING + GAP) * 2;
+  const innerSize = size + GAP * 2;
+  const borderRadius = outerSize / 2;
+  const showGradient = isOwn || hasUnviewed;
+
+  const avatarContent = (
+    <>
+      {avatarUrl ? (
+        <Image
+          source={{ uri: avatarUrl }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+        />
+      ) : (
+        <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2 }]}>
+          <Text style={styles.avatarInitial}>
+            {name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
+      {isOwn && (
+        <View style={styles.addBadge}>
+          <Text style={styles.addBadgeText}>+</Text>
+        </View>
+      )}
+    </>
+  );
 
   return (
     <Pressable style={styles.ringWrapper} onPress={onPress}>
-      <View style={[
-        styles.ring,
-        {
-          borderColor: ringColor,
-          borderWidth: ringWidth,
-          width: size + 8,
-          height: size + 8,
-          borderRadius: (size + 8) / 2
-        }
-      ]}>
-        {avatarUrl ? (
-          <Image
-            source={{ uri: avatarUrl }}
-            style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
-          />
-        ) : (
-          <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2 }]}>
-            <Text style={styles.avatarInitial}>
-              {name.charAt(0).toUpperCase()}
-            </Text>
+      {showGradient ? (
+        <LinearGradient
+          colors={STORY_GRADIENT}
+          start={{ x: 0.0, y: 1.0 }}
+          end={{ x: 1.0, y: 0.0 }}
+          style={{ width: outerSize, height: outerSize, borderRadius, justifyContent: "center", alignItems: "center" }}
+        >
+          <View style={{ width: innerSize, height: innerSize, borderRadius: innerSize / 2, backgroundColor: "white", justifyContent: "center", alignItems: "center" }}>
+            {avatarContent}
           </View>
-        )}
-        {isOwn && (
-          <View style={styles.addBadge}>
-            <Text style={styles.addBadgeText}>+</Text>
+        </LinearGradient>
+      ) : (
+        <View style={{ width: outerSize, height: outerSize, borderRadius, borderWidth: RING, borderColor: "#e2e8f0", justifyContent: "center", alignItems: "center" }}>
+          <View style={{ width: innerSize, height: innerSize, borderRadius: innerSize / 2, backgroundColor: "white", justifyContent: "center", alignItems: "center" }}>
+            {avatarContent}
           </View>
-        )}
-      </View>
+        </View>
+      )}
       <Text style={styles.ringLabel} numberOfLines={1}>{isOwn ? t("stories.myStory") : name}</Text>
     </Pressable>
   );
@@ -618,9 +639,7 @@ export function HighlightsRow({ highlights, onOpenHighlight }: HighlightsRowProp
 
 const styles = StyleSheet.create({
   // Ring
-  ringWrapper: { width: 76, alignItems: "center", marginHorizontal: 6 },
-  ring: { padding: 3, justifyContent: "center", alignItems: "center" },
-  avatar: {},
+  ringWrapper: { width: 80, alignItems: "center", marginHorizontal: 4 },
   avatarPlaceholder: {
     backgroundColor: "#e2e8f0",
     justifyContent: "center",
@@ -631,16 +650,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#0f766e",
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    backgroundColor: "#0095f6",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: "white"
   },
-  addBadgeText: { color: "white", fontSize: 12, fontWeight: "700", lineHeight: 14 },
+  addBadgeText: { color: "white", fontSize: 13, fontWeight: "700", lineHeight: 15 },
   ringLabel: { fontSize: 11, lineHeight: 14, color: "#475569", marginTop: 4, maxWidth: 68, minHeight: 14, textAlign: "center" },
 
   // Stories row
