@@ -1259,18 +1259,29 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
     void persistDraft(true);
   }, [persistDraft, snapshot.user?.id]);
 
+  // Auto-save: local-only (AsyncStorage) on every field change, no remote call.
+  // Remote sync happens on explicit "Next" / "Save & exit" actions only.
+  // We capture the snapshot at effect time so the timer closure always has the
+  // latest values, and we deliberately do NOT include persistDraft in deps to
+  // avoid an infinite loop (persistDraft -> setPendingSyncOperations -> new ref).
   useEffect(() => {
     if (!draftStorageKey || !snapshot.user?.id || !draftHydratedRef.current || isSubmitting) {
       return;
     }
 
+    const payload = buildDraftSnapshot();
+    const key = draftStorageKey;
+
     const timer = setTimeout(() => {
-      void persistDraft(true);
+      void AsyncStorage.setItem(key, JSON.stringify(payload)).then(() => {
+        setLastDraftSavedAt(payload.updatedAt);
+      });
     }, 1200);
 
     return () => {
       clearTimeout(timer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     carAdType,
     carBrand,
@@ -1294,7 +1305,6 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
     isCommissionAccepted,
     isSubmitting,
     offerType,
-    persistDraft,
     price,
     selectedImages,
     selectedVideo,
@@ -2053,7 +2063,7 @@ export function AddListingScreen({ direction, onCreated, onExit }: AddListingScr
 
     if (currentStepIndex < FLOW_STEPS.length - 1) {
       setCurrentStepIndex((value) => value + 1);
-      void persistDraft(false);
+      void persistDraft(true);
     }
   };
 
