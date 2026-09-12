@@ -352,7 +352,17 @@ export function AuthShell({ language }: AuthShellProps) {
                       onChange={(e) => setAcceptedTerms(e.target.checked)}
                       className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-teal-600"
                     />
-                    <span className="text-xs leading-5 text-slate-500">{t("auth.phoneOnboarding.termsNotice")}</span>
+                    <span className="text-xs leading-5 text-slate-500">
+                      {t("auth.phoneOnboarding.termsNoticePrefix")}{" "}
+                      <Link href={`/${resolvedLanguage}/terms`} target="_blank" className="font-semibold text-teal-700 underline underline-offset-2 hover:text-teal-800">
+                        {t("auth.phoneOnboarding.termsNoticeTermsLink")}
+                      </Link>{" "}
+                      {t("auth.phoneOnboarding.termsNoticeSeparator")}{" "}
+                      <Link href={`/${resolvedLanguage}/privacy`} target="_blank" className="font-semibold text-teal-700 underline underline-offset-2 hover:text-teal-800">
+                        {t("auth.phoneOnboarding.termsNoticePrivacyLink")}
+                      </Link>
+                      .
+                    </span>
                   </label>
                   {errorKey && <p className="text-sm text-red-500" role="alert">{t(errorKey)}</p>}
                   {infoKey && <p className="text-sm text-teal-700" role="status">{t(infoKey)}</p>}

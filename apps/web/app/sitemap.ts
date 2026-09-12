@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 import { createClient } from "../utils/supabase/server";
 import { absoluteUrl, localizedPath, toSlug } from "../src/lib/seo";
 
-const PUBLIC_STATIC_PATHS = ["", "/search", "/categories"] as const;
+const PUBLIC_STATIC_PATHS = ["", "/search", "/categories", "/terms", "/privacy", "/listing-policy", "/payment-policy", "/refund-policy"] as const;
+const POLICY_PATHS = new Set(["/terms", "/privacy", "/listing-policy", "/payment-policy", "/refund-policy"]);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -13,8 +14,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       entries.push({
         url: absoluteUrl(localizedPath(language, path)),
         lastModified: now,
-        changeFrequency: path === "" ? "daily" : "hourly",
-        priority: path === "" ? 1 : 0.8
+        changeFrequency: path === "" ? "daily" : POLICY_PATHS.has(path) ? "monthly" : "hourly",
+        priority: path === "" ? 1 : POLICY_PATHS.has(path) ? 0.5 : 0.8
       });
     }
   }

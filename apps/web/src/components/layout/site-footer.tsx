@@ -17,16 +17,22 @@ export function SiteFooter({ language }: SiteFooterProps) {
 
   const infoLinks = [
     { href: `/${resolvedLanguage}`, label: t("siteLayout.footer.about") },
-    { href: `/${resolvedLanguage}`, label: t("siteLayout.footer.terms") },
-    { href: `/${resolvedLanguage}`, label: t("siteLayout.footer.privacy") },
     { href: `/${resolvedLanguage}`, label: t("siteLayout.footer.help") },
     { href: `/${resolvedLanguage}`, label: t("siteLayout.footer.contact") }
+  ];
+
+  const policyLinks = [
+    { href: `/${resolvedLanguage}/terms`, label: t("siteLayout.footer.policyTerms") },
+    { href: `/${resolvedLanguage}/privacy`, label: t("siteLayout.footer.policyPrivacy") },
+    { href: `/${resolvedLanguage}/listing-policy`, label: t("siteLayout.footer.policyListings") },
+    { href: `/${resolvedLanguage}/payment-policy`, label: t("siteLayout.footer.policyPayments") },
+    { href: `/${resolvedLanguage}/refund-policy`, label: t("siteLayout.footer.policyRefunds") }
   ];
 
   return (
     <footer className="mt-10 border-t border-slate-200 bg-white">
       <ResponsiveContainer className="py-8">
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr_1fr]">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
           <section className="space-y-3">
             <h2 className="text-base font-bold text-slate-900">{t("app.title")}</h2>
             <p className="max-w-prose text-sm text-slate-600">{t("siteLayout.footer.aboutDescription")}</p>
@@ -38,6 +44,19 @@ export function SiteFooter({ language }: SiteFooterProps) {
             <ul className="space-y-2">
               {infoLinks.map((item) => (
                 <li key={item.label}>
+                  <Link href={item.href} className="text-sm text-slate-600 hover:text-brand">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-900">{t("siteLayout.footer.policiesTitle")}</h3>
+            <ul className="space-y-2">
+              {policyLinks.map((item) => (
+                <li key={item.href}>
                   <Link href={item.href} className="text-sm text-slate-600 hover:text-brand">
                     {item.label}
                   </Link>

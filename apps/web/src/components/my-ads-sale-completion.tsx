@@ -420,6 +420,18 @@ export function MyAdsSaleCompletion({
             <span className="text-sm text-slate-700">{t("myAds.saleFlow.confirmLabel")}</span>
           </label>
 
+          <p className="text-xs leading-5 text-slate-500">
+            {t("myAds.saleFlow.policyNoticePrefix")}{" "}
+            <a href={`/${language}/payment-policy`} target="_blank" rel="noreferrer" className="font-semibold text-teal-700 underline underline-offset-2 hover:text-teal-800">
+              {t("myAds.saleFlow.policyNoticePayments")}
+            </a>{" "}
+            {t("myAds.saleFlow.policyNoticeSeparator")}{" "}
+            <a href={`/${language}/refund-policy`} target="_blank" rel="noreferrer" className="font-semibold text-teal-700 underline underline-offset-2 hover:text-teal-800">
+              {t("myAds.saleFlow.policyNoticeRefunds")}
+            </a>
+            .
+          </p>
+
           {uiState === "pending" ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {errorMessage ?? t("myAds.saleFlow.pendingHint")}
