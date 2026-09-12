@@ -1,4 +1,4 @@
-name: Deploy Web to Vercel
+﻿name: Deploy Web to Vercel
 
 on:
   push:
@@ -28,10 +28,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Validate Vercel secrets
         run: |
@@ -53,11 +49,9 @@ jobs:
             exit 1
           fi
 
-      - name: Pull Vercel environment
-        run: npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
-
-      - name: Build web app artifacts
-        run: npx vercel build --prod --token=$VERCEL_TOKEN
-
-      - name: Deploy to production
-        run: npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+      # Build remotely on Vercel so sensitive environment variables
+      # (e.g. NEXT_PUBLIC_SUPABASE_URL) are available at build time.
+      # A local `vercel build` in CI receives "[SENSITIVE]" placeholders
+      # for sensitive env vars, which breaks the client bundle.
+      - name: Deploy to production (build on Vercel)
+        run: npx vercel deploy --prod --token=$VERCEL_TOKEN
